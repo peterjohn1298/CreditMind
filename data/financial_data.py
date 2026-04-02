@@ -12,17 +12,31 @@ from typing import Optional
 EDGAR_HEADERS = {"User-Agent": "CreditMind creditmind-app@example.com"}
 
 
+def _df_to_dict(df) -> dict:
+    """Convert a yfinance DataFrame to a JSON-safe dict with string keys.
+
+    yfinance returns DataFrames whose column headers are pandas Timestamps.
+    json.dumps raises TypeError on non-string dict keys, so we stringify them here.
+    """
+    if df is None or df.empty:
+        return {}
+    return {
+        str(col): {str(idx): val for idx, val in df[col].items()}
+        for col in df.columns
+    }
+
+
 def get_financial_statements(ticker: str) -> dict:
     """Fetch income statement, balance sheet, and cash flow via yfinance."""
     stock = yf.Ticker(ticker)
     try:
         return {
             "ticker": ticker,
-            "income_statement": stock.financials.to_dict() if not stock.financials.empty else {},
-            "balance_sheet": stock.balance_sheet.to_dict() if not stock.balance_sheet.empty else {},
-            "cash_flow": stock.cashflow.to_dict() if not stock.cashflow.empty else {},
-            "quarterly_income": stock.quarterly_financials.to_dict() if not stock.quarterly_financials.empty else {},
-            "quarterly_balance": stock.quarterly_balance_sheet.to_dict() if not stock.quarterly_balance_sheet.empty else {},
+            "income_statement": _df_to_dict(stock.financials),
+            "balance_sheet": _df_to_dict(stock.balance_sheet),
+            "cash_flow": _df_to_dict(stock.cashflow),
+            "quarterly_income": _df_to_dict(stock.quarterly_financials),
+            "quarterly_balance": _df_to_dict(stock.quarterly_balance_sheet),
         }
     except Exception as e:
         return {"ticker": ticker, "error": str(e)}
