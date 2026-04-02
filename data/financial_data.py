@@ -12,16 +12,35 @@ from typing import Optional
 EDGAR_HEADERS = {"User-Agent": "CreditMind creditmind-app@example.com"}
 
 
+def _safe_val(val):
+    """Convert a pandas/numpy scalar to a JSON-safe Python type."""
+    import math
+    if val is None:
+        return None
+    try:
+        # Catches numpy int/float subtypes
+        f = float(val)
+        if math.isnan(f) or math.isinf(f):
+            return None
+        # Return int if lossless
+        if f == int(f) and abs(f) < 1e15:
+            return int(f)
+        return f
+    except (TypeError, ValueError):
+        return str(val)
+
+
 def _df_to_dict(df) -> dict:
     """Convert a yfinance DataFrame to a JSON-safe dict with string keys.
 
     yfinance returns DataFrames whose column headers are pandas Timestamps.
     json.dumps raises TypeError on non-string dict keys, so we stringify them here.
+    NaN/Inf values are converted to None so the result is valid JSON.
     """
     if df is None or df.empty:
         return {}
     return {
-        str(col): {str(idx): val for idx, val in df[col].items()}
+        str(col): {str(idx): _safe_val(val) for idx, val in df[col].items()}
         for col in df.columns
     }
 

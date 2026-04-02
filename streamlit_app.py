@@ -103,20 +103,22 @@ with tab1:
             progress_bar.progress(progress)
             status_text.markdown(f"**Running:** {agent_name} ✓")
 
-        with st.spinner("Running underwriting agents..."):
-            credit_state = run_full_underwriting(
-                company=company,
-                ticker=ticker,
-                loan_amount=loan_amount,
-                loan_tenor=loan_tenor,
-                loan_type=loan_type,
-                on_agent_complete=on_agent_complete,
-            )
-
-        progress_bar.progress(1.0)
-        status_text.markdown("**All agents complete.**")
-        st.session_state.credit_state = credit_state
-        st.success("Underwriting pipeline complete.")
+        try:
+            with st.spinner("Running underwriting agents..."):
+                credit_state = run_full_underwriting(
+                    company=company,
+                    ticker=ticker,
+                    loan_amount=loan_amount,
+                    loan_tenor=loan_tenor,
+                    loan_type=loan_type,
+                    on_agent_complete=on_agent_complete,
+                )
+            progress_bar.progress(1.0)
+            status_text.markdown("**All agents complete.**")
+            st.session_state.credit_state = credit_state
+            st.success("Underwriting pipeline complete.")
+        except Exception as e:
+            st.error(f"Pipeline error: {type(e).__name__}: {e}")
 
     # Display results if available
     if st.session_state.credit_state:
