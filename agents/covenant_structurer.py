@@ -1,11 +1,12 @@
 """
 Agent 5: Covenant Structurer
-Recommends loan covenants, collateral requirements, and financial maintenance tests
-based on the borrower's risk profile.
+Claude fetches current balance sheet and cash flow metrics to calibrate
+covenant thresholds precisely to the borrower's actual financial position.
 """
 
 import json
 from agents.base_agent import BaseAgent
+from core.tools import COVENANT_TOOLS
 from core.credit_state import log_agent
 
 
@@ -19,9 +20,11 @@ class CovenantStructurerAgent(BaseAgent):
     def role(self) -> str:
         return (
             "You are a structured finance specialist at a commercial bank. "
-            "Your job is to design appropriate loan covenants and collateral requirements "
-            "that protect the lender while remaining commercially reasonable for the borrower. "
-            "Covenants should be calibrated to the borrower's risk profile — tighter for weaker credits."
+            "You design loan covenants and collateral requirements calibrated to the borrower's risk profile. "
+            "Tighter covenants for weaker credits; looser for investment grade. "
+            "You must fetch current key metrics and balance sheet data to set precise, "
+            "defensible covenant thresholds — not generic ones. "
+            "Covenants must be set with headroom: e.g. if current DSCR is 2.1x, a 1.5x minimum gives 28% headroom."
         )
 
     def run(self, credit_state: dict) -> dict:
@@ -37,49 +40,57 @@ class CovenantStructurerAgent(BaseAgent):
         rating = credit_state.get("internal_rating", "BB")
         risk_full = credit_state.get("_risk_scorer_full", {})
 
-        user_message = f"""
-Structure loan covenants for {company} ({ticker}).
+        task = f"""
+Structure loan covenants for {company} (ticker: {ticker}).
 
 LOAN: ${loan_amount:,.0f} | {loan_tenor} | {loan_type}
 INTERNAL RATING: {rating} | RISK SCORE: {risk_score}/100
 
-FINANCIAL PROFILE:
-{json.dumps(financial, indent=2, default=str)}
+FINANCIAL PROFILE (Agent 1):
+{json.dumps(financial, indent=2, default=str)[:1000]}
 
-UNDERWRITING METRICS:
-{json.dumps(underwriting, indent=2, default=str)}
+UNDERWRITING METRICS (Agent 2):
+{json.dumps(underwriting, indent=2, default=str)[:800]}
 
-RISK ASSESSMENT:
-{json.dumps(risk_full, indent=2, default=str)}
+RISK ASSESSMENT (Agent 4):
+{json.dumps(risk_full, indent=2, default=str)[:600]}
+
+Use your tools to:
+- Fetch current key metrics to calibrate precise covenant thresholds with real headroom
+- Fetch balance sheet to assess collateral availability and set LTV-style covenants
+- Fetch macro snapshot to factor in rate environment for pricing
 
 Produce structured JSON covenant recommendations:
 {{
   "financial_covenants": [
     {{
-      "name": "covenant name",
+      "name": "covenant name (e.g. Minimum DSCR)",
       "metric": "what is measured",
-      "threshold": "minimum/maximum level",
+      "current_borrower_level": "actual current value from fetched data",
+      "threshold": "covenant minimum/maximum with headroom calculation",
+      "headroom_pct": "percentage headroom from current level",
       "testing_frequency": "quarterly | semi-annual | annual",
-      "rationale": "why this covenant"
+      "rationale": "why this specific threshold"
     }}
   ],
   "collateral_requirements": {{
-    "required": true/false,
+    "required": true_or_false,
     "type": "type of collateral",
     "coverage_ratio": "e.g. 1.5x loan value",
     "notes": "additional notes"
   }},
-  "negative_covenants": ["list of things borrower cannot do without lender consent"],
-  "reporting_requirements": ["quarterly financials", "annual audited accounts", "etc"],
+  "negative_covenants": ["list of prohibited actions without lender consent"],
+  "reporting_requirements": ["quarterly financials", "annual audited accounts", "material event notification within 5 days"],
   "pricing_recommendation": {{
     "spread_over_benchmark": "e.g. SOFR + 250bps",
-    "rationale": "based on rating and risk"
+    "upfront_fee": "e.g. 75bps",
+    "rationale": "based on rating, risk score, and current macro rates"
   }},
-  "covenant_package_summary": "overall description of covenant package strength"
+  "covenant_package_summary": "overall strength and rationale of the covenant package"
 }}
 """
 
-        result = self.call_claude_json(self.role, user_message)
+        result = self.run_agentic_loop_json(self.role, task, COVENANT_TOOLS)
         credit_state["recommended_covenants"] = result
         credit_state = log_agent(credit_state, self.name)
         return credit_state

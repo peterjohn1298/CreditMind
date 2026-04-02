@@ -1,11 +1,12 @@
 """
-Agent 11: Rating Reviewer (Post-Disbursement, Quarterly)
-Reassesses internal credit rating. Recommends Upgrade / Maintain / Downgrade / Watchlist.
-Triggers credit committee review if downgrade.
+Agent 11: Rating Reviewer (Post-Disbursement Quarterly)
+Claude fetches live metrics, news, and macro data to make an independent
+rating recommendation — not just rubber-stamping prior agents.
 """
 
 import json
 from agents.base_agent import BaseAgent
+from core.tools import RATING_REVIEWER_TOOLS
 from core.credit_state import log_agent, add_alert, add_divergence
 
 
@@ -18,15 +19,18 @@ class RatingReviewerAgent(BaseAgent):
     @property
     def role(self) -> str:
         return (
-            "You are a credit rating committee member at a commercial bank. "
-            "Your job is to conduct a quarterly review of a borrower's internal credit rating. "
-            "You consider the full picture: financial performance, sentiment, early warnings, "
-            "covenant compliance, and portfolio health. "
-            "Your rating recommendation triggers the bank's review process."
+            "You are a credit rating committee member conducting a quarterly rating review. "
+            "You consider financial performance, sentiment, early warnings, covenant compliance, and portfolio health. "
+            "You also fetch current metrics and news independently to form your own view. "
+            "Do not simply echo prior agents — challenge their conclusions if the data supports it. "
+            "Rating actions: UPGRADE (credit improving), MAINTAIN (stable), "
+            "DOWNGRADE (credit deteriorating), WATCHLIST (under review with negative bias). "
+            "A downgrade always triggers credit committee review."
         )
 
     def run(self, credit_state: dict) -> dict:
         company = credit_state["company"]
+        ticker = credit_state["ticker"]
         original_rating = credit_state.get("internal_rating", "BB")
         current_rating = credit_state.get("current_rating", original_rating)
         live_risk_score = credit_state.get("live_risk_score", 50)
@@ -38,26 +42,30 @@ class RatingReviewerAgent(BaseAgent):
         early_warnings = credit_state.get("early_warning_flags", [])
         divergence_flags = credit_state.get("divergence_flags", [])
 
-        user_message = f"""
-Conduct quarterly rating review for {company}.
+        task = f"""
+Quarterly rating review for {company} (ticker: {ticker}).
 
-ORIGINAL RATING AT UNDERWRITING: {original_rating}
-CURRENT RATING: {current_rating}
-ORIGINAL RISK SCORE: {original_risk_score}/100
-LIVE RISK SCORE: {live_risk_score}/100
-CURRENT SENTIMENT: {sentiment_score}
+RATING HISTORY:
+- Original rating at underwriting: {original_rating}
+- Current rating: {current_rating}
+- Original risk score: {original_risk_score}/100
+- Live risk score: {live_risk_score}/100
 
-PORTFOLIO HEALTH:
-{json.dumps(portfolio_health, indent=2, default=str)}
+CURRENT MONITORING STATE:
+- Sentiment: {sentiment_score}
+- Early warnings: {json.dumps(early_warnings, default=str)[:400]}
+- Divergence flags: {json.dumps(divergence_flags, default=str)[:300]}
 
-COVENANT STATUS:
-{json.dumps(covenant_status, indent=2, default=str)}
+PORTFOLIO HEALTH (Agent 9):
+{json.dumps(portfolio_health, indent=2, default=str)[:600]}
 
-EARLY WARNINGS:
-{json.dumps(early_warnings, indent=2, default=str)}
+COVENANT STATUS (Agent 10):
+{json.dumps(covenant_status, indent=2, default=str)[:600]}
 
-DIVERGENCE FLAGS:
-{json.dumps(divergence_flags, indent=2, default=str)}
+Use your tools to form an independent view:
+- Fetch current key metrics to verify financial trajectory
+- Fetch current news — look for anything that changes the credit picture
+- Fetch macro snapshot — assess if macro tail risks affect the rating
 
 Produce structured JSON rating review:
 {{
@@ -65,23 +73,23 @@ Produce structured JSON rating review:
   "recommended_rating": "AAA | AA | A | BBB | BB | B | CCC | CC | C | D",
   "rating_action": "UPGRADE | MAINTAIN | DOWNGRADE | WATCHLIST",
   "notches_changed": integer,
-  "rating_rationale": "detailed explanation",
+  "rating_rationale": "detailed explanation citing specific data points you fetched",
   "positive_factors": ["factor1", "factor2"],
   "negative_factors": ["factor1", "factor2"],
+  "independent_findings": "anything you found that prior agents did not flag",
   "outlook": "POSITIVE | STABLE | NEGATIVE | DEVELOPING",
-  "credit_committee_review_required": true/false,
+  "credit_committee_review_required": true_or_false,
   "review_summary": "summary for credit committee memo"
 }}
 """
 
-        result = self.call_claude_json(self.role, user_message)
+        result = self.run_agentic_loop_json(self.role, task, RATING_REVIEWER_TOOLS)
 
         new_rating = result.get("recommended_rating", current_rating)
         rating_action = result.get("rating_action", "MAINTAIN")
-
         credit_state["current_rating"] = new_rating
 
-        # Divergence: check if rating reviewer disagrees with risk scorer
+        # Divergence: rating committee says downgrade but risk score is low
         if rating_action == "DOWNGRADE" and live_risk_score < 45:
             add_divergence(
                 credit_state,
@@ -89,7 +97,6 @@ Produce structured JSON rating review:
                 f"but live risk score is only {live_risk_score}/100. Manual review recommended."
             )
 
-        # Trigger credit committee on downgrade
         if rating_action in ["DOWNGRADE", "WATCHLIST"]:
             add_alert(
                 credit_state,
