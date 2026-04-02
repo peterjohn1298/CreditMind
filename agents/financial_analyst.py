@@ -35,15 +35,15 @@ class FinancialAnalystAgent(BaseAgent):
 Analyze the following financial data for {company} ({ticker}) for a credit assessment.
 
 COMPANY INFO:
-{json.dumps(info, indent=2, default=str)}
+{json.dumps(info, indent=2, default=str)[:1500]}
 
 KEY METRICS:
-{json.dumps(metrics, indent=2, default=str)}
+{json.dumps(metrics, indent=2, default=str)[:1500]}
 
 FINANCIAL STATEMENTS (annual):
-Income Statement: {json.dumps(statements.get('income_statement', {}), indent=2, default=str)[:3000]}
-Balance Sheet: {json.dumps(statements.get('balance_sheet', {}), indent=2, default=str)[:3000]}
-Cash Flow: {json.dumps(statements.get('cash_flow', {}), indent=2, default=str)[:3000]}
+Income Statement: {json.dumps(statements.get('income_statement', {}), indent=2, default=str)[:2000]}
+Balance Sheet: {json.dumps(statements.get('balance_sheet', {}), indent=2, default=str)[:2000]}
+Cash Flow: {json.dumps(statements.get('cash_flow', {}), indent=2, default=str)[:2000]}
 
 Produce a structured JSON financial analysis with the following keys:
 {{
