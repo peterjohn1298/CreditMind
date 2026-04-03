@@ -1,11 +1,12 @@
 """
-Agent 1: Financial Analyst
-Claude autonomously fetches financial statements, ratios, and macro context.
-It decides what data it needs and calls tools until it can produce a complete analysis.
+Agent 1: Financial Analyst (Wave 1 — runs in parallel)
+Reads extracted financial statements and produces a 3-year historical analysis.
+Uses document data — no ticker or yfinance dependency.
 """
 
+import json
 from agents.base_agent import BaseAgent
-from core.tools import FINANCIAL_ANALYST_TOOLS
+from core.tools import GET_MACRO_SNAPSHOT
 from core.credit_state import log_agent
 
 
@@ -18,61 +19,84 @@ class FinancialAnalystAgent(BaseAgent):
     @property
     def role(self) -> str:
         return (
-            "You are a senior financial analyst at a commercial bank conducting a credit assessment. "
-            "You have access to tools to fetch financial statements, ratios, SEC filings, and macro data. "
-            "Use the tools to gather the data you need — income statement for revenue and profitability trends, "
-            "balance sheet for leverage and liquidity, cash flow for FCF quality, key metrics for ratios, "
-            "and macro snapshot for environmental context. "
-            "Be precise, cite specific numbers, and flag any material concerns. "
-            "Fetch what you need — do not guess or hallucinate numbers."
+            "You are a senior financial analyst at a private credit fund. "
+            "You analyze 3 years of audited financial statements to assess credit quality. "
+            "You focus on trends — improving or deteriorating — not just point-in-time snapshots. "
+            "Key questions: Is revenue growing organically or through acquisitions? "
+            "Are margins expanding or compressing? Is FCF conversion high or low? "
+            "Is leverage increasing or decreasing? "
+            "Fetch macro context to understand the environment these financials were produced in. "
+            "Be specific — cite exact numbers from the data."
         )
 
     def run(self, credit_state: dict) -> dict:
-        ticker = credit_state["ticker"]
         company = credit_state["company"]
+        loan_amount = credit_state["loan_amount"]
+
+        financial_data = credit_state.get("documents", {}).get("financials")
+
+        if not financial_data:
+            credit_state["financial_analysis"] = {
+                "error": "No financial statements uploaded.",
+                "overall_financial_health": "UNKNOWN",
+            }
+            return log_agent(credit_state, self.name)
 
         task = f"""
-Conduct a comprehensive financial analysis of {company} (ticker: {ticker}) for a credit assessment.
+Conduct a 3-year financial analysis of {company} for a ${loan_amount:,.0f} credit assessment.
 
-Use your tools to fetch the data you need. At minimum:
-- Fetch the income statement to assess revenue trend and profitability
-- Fetch the balance sheet to assess leverage and liquidity
-- Fetch cash flow to assess FCF quality and debt serviceability
-- Fetch key metrics for pre-calculated ratios
-- Fetch macro snapshot for environmental context
+AUDITED FINANCIAL STATEMENTS (extracted):
+{json.dumps(financial_data, indent=2, default=str)[:3000]}
 
-After gathering data, produce a structured JSON financial analysis:
+Fetch the macro snapshot for environmental context.
+
+Produce JSON financial analysis:
 {{
-  "revenue_trend": "description of 3-year revenue trend with specific numbers",
+  "revenue_trend": {{
+    "cagr_3yr": null,
+    "description": "organic vs acquired growth, trajectory",
+    "year_over_year": {{"yr1_to_yr2": null, "yr2_to_yr3": null}}
+  }},
   "profitability": {{
-    "gross_margin": value_or_null,
-    "operating_margin": value_or_null,
-    "net_margin": value_or_null,
-    "ebitda_margin": value_or_null,
-    "assessment": "STRONG | ADEQUATE | WEAK"
+    "gross_margin":     {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
+    "ebitda_margin":    {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
+    "operating_margin": {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
+    "net_margin":       {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
+    "assessment": "brief assessment"
   }},
   "liquidity": {{
-    "current_ratio": value_or_null,
-    "quick_ratio": value_or_null,
-    "cash_position": value_or_null,
-    "assessment": "STRONG | ADEQUATE | WEAK"
+    "current_ratio":  null,
+    "cash_balance":   null,
+    "cash_trend":     "BUILDING | STABLE | DECLINING",
+    "assessment": "brief assessment"
   }},
   "leverage": {{
-    "debt_to_equity": value_or_null,
-    "total_debt": value_or_null,
-    "net_debt": value_or_null,
-    "assessment": "LOW | MODERATE | HIGH | VERY_HIGH"
+    "total_debt":     null,
+    "debt_trend":     "DECREASING | STABLE | INCREASING",
+    "net_debt":       null,
+    "assessment": "brief assessment"
   }},
-  "cash_flow_quality": "assessment of operating vs free cash flow with specific figures",
-  "macro_context": "how the current macro environment affects this borrower",
-  "key_strengths": ["strength1", "strength2", "strength3"],
-  "key_concerns": ["concern1", "concern2"],
-  "overall_financial_health": "STRONG | ADEQUATE | WEAK | DISTRESSED",
-  "data_quality_note": "any gaps or limitations in the data fetched"
+  "cash_flow_quality": {{
+    "operating_cf":       null,
+    "capex":              null,
+    "free_cash_flow":     null,
+    "fcf_conversion":     "FCF as % of EBITDA",
+    "assessment": "HIGH | MEDIUM | LOW"
+  }},
+  "audit_flags": {{
+    "clean_opinion": true_or_false,
+    "going_concern": true_or_false,
+    "restatements":  true_or_false,
+    "notes_of_concern": ["any significant accounting notes"]
+  }},
+  "macro_context": "how macro environment affected these financials",
+  "key_strengths":  ["strength1", "strength2"],
+  "key_concerns":   ["concern1", "concern2"],
+  "overall_financial_health": "STRONG | ADEQUATE | WEAK | DISTRESSED"
 }}
 """
 
-        result = self.run_agentic_loop_json(self.role, task, FINANCIAL_ANALYST_TOOLS)
+        result = self.run_agentic_loop_json(self.role, task, tools=[GET_MACRO_SNAPSHOT])
         credit_state["financial_analysis"] = result
         credit_state = log_agent(credit_state, self.name)
         return credit_state
