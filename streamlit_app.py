@@ -152,10 +152,10 @@ with tab1:
         col1.metric("Internal Rating", cs.get("internal_rating", "—"))
         col2.metric("Risk Score", f"{cs.get('risk_score', '—')}/100")
 
-        risk_full = cs.get("_risk_scorer_full", {})
+        risk_full = cs.get("_risk_scorer_full") or {}
         col3.metric("Recommendation", risk_full.get("recommendation", "—"))
 
-        dscr = cs.get("underwriting_metrics", {}).get("dscr", {}).get("value", "—")
+        dscr = ((cs.get("underwriting_metrics") or {}).get("dscr") or {}).get("value", "—")
         col4.metric("DSCR", f"{dscr}" if dscr != "—" else "—")
 
         # Credit Memo
