@@ -1,10 +1,14 @@
 """
 Document Processor — sends uploaded PDFs directly to Claude for extraction.
 Claude reads the actual document and extracts structured financial data.
-No OCR, no text parsing — Claude handles it natively via the document API.
+
+Strategy:
+  - Small PDFs (<500KB): sent via Claude document API (native, best for formatted docs)
+  - Large PDFs (>=500KB): text extracted via PyPDF2, sent as plain text (avoids rate limits)
 """
 
 import base64
+import io
 import json
 import os
 from anthropic import Anthropic
@@ -12,22 +16,52 @@ from anthropic import Anthropic
 client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 MODEL = "claude-sonnet-4-6"
 
+# PDFs larger than this are text-extracted instead of sent as document blocks
+_LARGE_PDF_THRESHOLD_BYTES = 500_000
+# Max characters of extracted text to send (keeps token count manageable)
+_MAX_TEXT_CHARS = 80_000
+
+
+def _extract_text_from_pdf(pdf_bytes: bytes) -> str:
+    """Extract plain text from a PDF using PyPDF2."""
+    try:
+        import PyPDF2
+        reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
+        pages = []
+        for i, page in enumerate(reader.pages):
+            text = page.extract_text() or ""
+            if text.strip():
+                pages.append(f"--- Page {i+1} ---\n{text}")
+        return "\n\n".join(pages)
+    except Exception as e:
+        return f"[Text extraction failed: {e}]"
+
 
 def _extract(pdf_bytes: bytes, prompt: str) -> dict:
-    """Core extraction: send PDF to Claude, get structured JSON back."""
-    b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
+    """Core extraction: send PDF to Claude, get structured JSON back.
 
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=4096,
-        system=(
-            "You are a financial document analyst for a private credit fund. "
-            "Extract data precisely from the document. "
-            "Only extract numbers and text that are explicitly present — never hallucinate figures. "
-            "If a figure is not in the document, return null for that field. "
-            "Respond with valid JSON only. No explanation, no markdown fences."
-        ),
-        messages=[
+    Routes large PDFs through text extraction to avoid rate limits.
+    """
+    system = (
+        "You are a financial document analyst for a private credit fund. "
+        "Extract data precisely from the document. "
+        "Only extract numbers and text that are explicitly present — never hallucinate figures. "
+        "If a figure is not in the document, return null for that field. "
+        "Respond with valid JSON only. No explanation, no markdown fences."
+    )
+
+    if len(pdf_bytes) >= _LARGE_PDF_THRESHOLD_BYTES:
+        # Large PDF — extract text and send as plain text message
+        extracted_text = _extract_text_from_pdf(pdf_bytes)
+        if len(extracted_text) > _MAX_TEXT_CHARS:
+            extracted_text = extracted_text[:_MAX_TEXT_CHARS] + "\n\n[Document truncated for length]"
+
+        content = f"DOCUMENT TEXT:\n\n{extracted_text}\n\n---\n\n{prompt}"
+        messages = [{"role": "user", "content": content}]
+    else:
+        # Small PDF — use native document API
+        b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
+        messages = [
             {
                 "role": "user",
                 "content": [
@@ -42,7 +76,13 @@ def _extract(pdf_bytes: bytes, prompt: str) -> dict:
                     {"type": "text", "text": prompt},
                 ],
             }
-        ],
+        ]
+
+    response = client.messages.create(
+        model=MODEL,
+        max_tokens=4096,
+        system=system,
+        messages=messages,
     )
 
     raw = response.content[0].text
