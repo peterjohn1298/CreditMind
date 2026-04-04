@@ -18,15 +18,19 @@ MODEL = "claude-sonnet-4-6"
 
 # PDFs larger than this are text-extracted instead of sent as document blocks
 _LARGE_PDF_THRESHOLD_BYTES = 500_000
-# Max characters of extracted text to send (keeps token count manageable)
-_MAX_TEXT_CHARS = 80_000
+# Max characters of extracted text to send (~3,500 tokens — well under 30k/min limit)
+_MAX_TEXT_CHARS = 14_000
 
 
 def _extract_text_from_pdf(pdf_bytes: bytes) -> str:
-    """Extract plain text from a PDF using PyPDF2."""
+    """Extract plain text from a PDF using pypdf (falls back to PyPDF2)."""
     try:
-        import PyPDF2
-        reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
+        try:
+            import pypdf as pdf_lib
+        except ImportError:
+            import PyPDF2 as pdf_lib
+
+        reader = pdf_lib.PdfReader(io.BytesIO(pdf_bytes))
         pages = []
         for i, page in enumerate(reader.pages):
             text = page.extract_text() or ""
@@ -37,10 +41,50 @@ def _extract_text_from_pdf(pdf_bytes: bytes) -> str:
         return f"[Text extraction failed: {e}]"
 
 
-def _extract(pdf_bytes: bytes, prompt: str) -> dict:
+def _smart_truncate(text: str, max_chars: int, financial_mode: bool = False) -> str:
+    """
+    Truncate text intelligently.
+    financial_mode: for annual reports, skip narrative front matter and
+    jump to the financial statements section (usually in the back half).
+    """
+    if len(text) <= max_chars:
+        return text
+
+    if financial_mode:
+        # Search for financial statement section markers
+        markers = [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS",
+            "CONSOLIDATED BALANCE SHEET",
+            "CONSOLIDATED STATEMENTS OF INCOME",
+            "FINANCIAL STATEMENTS AND SUPPLEMENTARY",
+            "REPORT OF INDEPENDENT REGISTERED",
+            "Item 8",
+        ]
+        best_pos = -1
+        for marker in markers:
+            pos = text.upper().find(marker.upper())
+            if pos != -1 and (best_pos == -1 or pos < best_pos):
+                best_pos = pos
+
+        if best_pos != -1:
+            # Start from 500 chars before the marker to catch context
+            start = max(0, best_pos - 500)
+            excerpt = text[start:start + max_chars]
+            return excerpt + "\n\n[Document truncated — showing financial statements section]"
+
+        # Fallback: skip first 40% (narrative) and take from there
+        skip = int(len(text) * 0.40)
+        return text[skip:skip + max_chars] + "\n\n[Document truncated — showing back portion]"
+
+    # Default: take from the beginning
+    return text[:max_chars] + "\n\n[Document truncated for length]"
+
+
+def _extract(pdf_bytes: bytes, prompt: str, financial_mode: bool = False) -> dict:
     """Core extraction: send PDF to Claude, get structured JSON back.
 
     Routes large PDFs through text extraction to avoid rate limits.
+    financial_mode: uses smarter truncation to find financial statement tables.
     """
     system = (
         "You are a financial document analyst for a private credit fund. "
@@ -52,10 +96,8 @@ def _extract(pdf_bytes: bytes, prompt: str) -> dict:
 
     if len(pdf_bytes) >= _LARGE_PDF_THRESHOLD_BYTES:
         # Large PDF — extract text and send as plain text message
-        extracted_text = _extract_text_from_pdf(pdf_bytes)
-        if len(extracted_text) > _MAX_TEXT_CHARS:
-            extracted_text = extracted_text[:_MAX_TEXT_CHARS] + "\n\n[Document truncated for length]"
-
+        full_text = _extract_text_from_pdf(pdf_bytes)
+        extracted_text = _smart_truncate(full_text, _MAX_TEXT_CHARS, financial_mode=financial_mode)
         content = f"DOCUMENT TEXT:\n\n{extracted_text}\n\n---\n\n{prompt}"
         messages = [{"role": "user", "content": content}]
     else:
@@ -134,7 +176,7 @@ Return JSON:
   "notes_flags": ["any significant accounting notes worth flagging"]
 }
 """
-    return _extract(pdf_bytes, prompt)
+    return _extract(pdf_bytes, prompt, financial_mode=True)
 
 
 def extract_qoe(pdf_bytes: bytes) -> dict:
@@ -171,6 +213,7 @@ Return JSON:
 
 
 def extract_cim(pdf_bytes: bytes) -> dict:
+
     """
     Extract company overview, market, and commercial information from CIM.
     """
@@ -265,4 +308,4 @@ Return JSON:
   "key_legal_risks": ["risk1", "risk2"]
 }
 """
-    return _extract(pdf_bytes, prompt)
+    return _extract(pdf_bytes, prompt, financial_mode=True)
