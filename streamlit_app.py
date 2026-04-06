@@ -14,7 +14,8 @@ from core.orchestrator import run_due_diligence, DailyMonitoringOrchestrator, Qu
 from core.document_processor import extract_financials, extract_qoe, extract_cim, extract_legal
 from core.portfolio_store import (
     add_deal, update_deal, get_deal, get_all_deals,
-    get_active_deals, get_portfolio_summary, get_all_alerts, resolve_alert
+    get_active_deals, get_portfolio_summary, get_all_alerts, resolve_alert,
+    seed_demo_portfolio, is_portfolio_seeded, get_portfolio_stats,
 )
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -31,14 +32,17 @@ st.sidebar.caption("Private Credit Intelligence Platform")
 st.sidebar.markdown("---")
 
 summary = get_portfolio_summary()
-st.sidebar.metric("Active Loans", summary["active_loans"])
-st.sidebar.metric("In Diligence", summary["in_diligence"])
-st.sidebar.metric("Total Exposure", f"${summary['total_exposure']:,.0f}")
+stats   = get_portfolio_stats()
+st.sidebar.metric("Active Loans",   stats["active_loans"])
+st.sidebar.metric("Total Exposure", f"${stats['total_exposure']/1e6:.0f}M")
+st.sidebar.metric("Avg Risk Score", f"{stats['avg_risk_score']}/100")
 
-if summary["critical_alerts"] > 0:
-    st.sidebar.error(f"🔴 {summary['critical_alerts']} Critical Alert(s)")
-if summary["watchlist"] > 0:
-    st.sidebar.warning(f"🟠 {summary['watchlist']} On Watchlist")
+if stats["critical_alerts"] > 0:
+    st.sidebar.error(f"🔴 {stats['critical_alerts']} Critical Alert(s)")
+if stats["watchlist_count"] > 0:
+    st.sidebar.warning(f"🟠 {stats['watchlist_count']} On Watchlist")
+if stats["breach_count"] > 0:
+    st.sidebar.error(f"⚠️ {stats['breach_count']} Covenant Breach(es)")
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4 = st.tabs([
@@ -208,38 +212,75 @@ with tab2:
     st.header("Portfolio Overview")
     st.caption("All active loans and deals in diligence.")
 
+    # ── Demo portfolio seed button ────────────────────────────────────────────
+    if not is_portfolio_seeded():
+        st.info("No portfolio loaded. Load the 50-company demo portfolio to see live monitoring in action.")
+        if st.button("Load Demo Portfolio (50 Companies)", type="primary"):
+            seed_demo_portfolio()
+            st.success("Demo portfolio loaded — 50 companies across 10 sectors.")
+            st.rerun()
+        st.markdown("---")
+
     deals = get_all_deals()
 
     if not deals:
-        st.info("No deals in portfolio. Run a due diligence pipeline in the New Deal tab.")
+        st.info("No deals in portfolio. Load the demo portfolio above or run a due diligence pipeline.")
     else:
-        # Portfolio metrics
-        m1, m2, m3, m4, m5 = st.columns(5)
-        m1.metric("Total Deals", summary["total_deals"])
-        m2.metric("Active Loans", summary["active_loans"])
-        m3.metric("In Diligence", summary["in_diligence"])
-        m4.metric("Watchlist", summary["watchlist"])
-        m5.metric("Total Exposure", f"${summary['total_exposure']/1e6:.0f}M")
+        stats = get_portfolio_stats()
+
+        # ── Top-line metrics ──────────────────────────────────────────────────
+        m1, m2, m3, m4, m5, m6, m7 = st.columns(7)
+        m1.metric("Total Deals",      stats["total_deals"])
+        m2.metric("Active Loans",     stats["active_loans"])
+        m3.metric("Watchlist",        stats["watchlist_count"],
+                  delta=f"+{stats['watchlist_count']}" if stats["watchlist_count"] else None,
+                  delta_color="inverse")
+        m4.metric("Covenant Breaches",stats["breach_count"],
+                  delta=f"+{stats['breach_count']}" if stats["breach_count"] else None,
+                  delta_color="inverse")
+        m5.metric("Critical Alerts",  stats["critical_alerts"],
+                  delta=f"+{stats['critical_alerts']}" if stats["critical_alerts"] else None,
+                  delta_color="inverse")
+        m6.metric("Avg Risk Score",   f"{stats['avg_risk_score']}/100")
+        m7.metric("Total Exposure",   f"${stats['total_exposure']/1e6:.0f}M")
 
         st.markdown("---")
 
-        # Deal table
+        # ── Sector exposure breakdown ─────────────────────────────────────────
+        with st.expander("Sector Exposure Breakdown", expanded=False):
+            sector_data = [
+                {"Sector": k, "Exposure ($M)": round(v / 1e6, 1),
+                 "% of Portfolio": f"{v/stats['total_exposure']*100:.1f}%"}
+                for k, v in sorted(stats["sector_exposure"].items(), key=lambda x: -x[1])
+            ]
+            st.dataframe(sector_data, use_container_width=True)
+
+        # ── Deal table ────────────────────────────────────────────────────────
         table_data = []
+        status_emoji = {
+            "WATCHLIST": "🔴", "DISBURSED": "🟢", "MONITORING": "🟢",
+            "PENDING": "⚪", "DEFAULT": "🔴",
+        }
         for deal in deals:
-            risk = deal.get("risk_assessment") or {}
             alerts = [a for a in deal.get("human_alerts", []) if not a.get("resolved")]
+            flags  = deal.get("early_warning_flags", [])
+            cov    = (deal.get("covenant_status") or {}).get("overall_compliance", "—")
+            status = deal.get("loan_status", "—")
             table_data.append({
-                "Deal ID":    deal.get("deal_id", "—"),
+                "":           status_emoji.get(status, "⚪"),
                 "Company":    deal.get("company", "—"),
+                "Sector":     deal.get("sector", "—"),
                 "Sponsor":    deal.get("sponsor") or "Direct",
                 "Amount":     f"${deal.get('loan_amount', 0)/1e6:.0f}M",
                 "Rating":     deal.get("internal_rating", "—"),
-                "Risk Score": f"{deal.get('risk_score', '—')}/100" if deal.get("risk_score") else "—",
-                "Status":     deal.get("status", "—"),
-                "Alerts":     len(alerts),
+                "Risk":       deal.get("risk_score", "—"),
+                "Status":     status,
+                "Covenants":  cov,
+                "Alerts":     f"{'🔴 ' if any(a.get('severity')=='CRITICAL' for a in alerts) else ''}{len(alerts)}",
+                "EW Flags":   len(flags),
             })
 
-        st.dataframe(table_data, use_container_width=True)
+        st.dataframe(table_data, use_container_width=True, height=500)
 
         # Monitoring controls for active deals
         active = get_active_deals()
