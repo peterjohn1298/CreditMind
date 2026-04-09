@@ -197,7 +197,7 @@ export default function Underwriting() {
               <div>
                 <label className="text-muted text-xs uppercase tracking-wider block mb-1">Tenor (years)</label>
                 <select value={form.tenor} onChange={(e) => setForm((f) => ({ ...f, tenor: e.target.value }))}
-                  className="w-full bg-navy-900 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent transition-colors">
+                  className="w-full bg-navy-900 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent transition-colors [color-scheme:dark]">
                   {["3","4","5","6","7","8"].map((v) => <option key={v} value={v}>{v} years</option>)}
                 </select>
               </div>
@@ -206,7 +206,7 @@ export default function Underwriting() {
             <div>
               <label className="text-muted text-xs uppercase tracking-wider block mb-1">Facility Type</label>
               <select value={form.facility} onChange={(e) => setForm((f) => ({ ...f, facility: e.target.value }))}
-                className="w-full bg-navy-900 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent transition-colors">
+                className="w-full bg-navy-900 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent transition-colors [color-scheme:dark]">
                 {["First Lien Term Loan","Unitranche","Term Loan A","Term Loan B","Revolving Credit Facility","Senior Secured","Senior Unsecured"].map((v) => (
                   <option key={v} value={v}>{v}</option>
                 ))}

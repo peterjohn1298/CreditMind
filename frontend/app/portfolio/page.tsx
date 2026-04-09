@@ -30,12 +30,12 @@ export default function Portfolio() {
         {/* Filters */}
         <div className="flex gap-3">
           <select value={sector} onChange={(e) => setSector(e.target.value)}
-            className="bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent">
-            {SECTORS.map((s) => <option key={s}>{s}</option>)}
+            className="bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent [color-scheme:dark]">
+            {SECTORS.map((s) => <option key={s} className="bg-navy-800 text-primary">{s}</option>)}
           </select>
           <select value={status} onChange={(e) => setStatus(e.target.value)}
-            className="bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent capitalize">
-            {STATUSES.map((s) => <option key={s} className="capitalize">{s}</option>)}
+            className="bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent capitalize [color-scheme:dark]">
+            {STATUSES.map((s) => <option key={s} className="bg-navy-800 text-primary capitalize">{s}</option>)}
           </select>
           <div className="flex-1" />
           <p className="text-muted text-sm self-center font-mono">{deals.length} deals</p>
