@@ -1,0 +1,183 @@
+{
+  "version": "2023",
+  "source": "MSCI/S&P Global GICS",
+  "sectors": [
+    {
+      "gics_sector_id": "10",
+      "name": "Energy",
+      "etf_ticker": "XLE",
+      "industries": [
+        { "id": "1010", "name": "Energy" },
+        { "id": "101010", "name": "Energy Equipment & Services" },
+        { "id": "101020", "name": "Oil, Gas & Consumable Fuels" }
+      ]
+    },
+    {
+      "gics_sector_id": "15",
+      "name": "Materials",
+      "etf_ticker": "XLB",
+      "industries": [
+        { "id": "1510", "name": "Materials" },
+        { "id": "151010", "name": "Chemicals" },
+        { "id": "151020", "name": "Construction Materials" },
+        { "id": "151030", "name": "Containers & Packaging" },
+        { "id": "151040", "name": "Metals & Mining" },
+        { "id": "151050", "name": "Paper & Forest Products" }
+      ]
+    },
+    {
+      "gics_sector_id": "20",
+      "name": "Industrials",
+      "etf_ticker": "XLI",
+      "industries": [
+        { "id": "2010", "name": "Capital Goods" },
+        { "id": "201010", "name": "Aerospace & Defense" },
+        { "id": "201020", "name": "Building Products" },
+        { "id": "201030", "name": "Construction & Engineering" },
+        { "id": "201040", "name": "Electrical Equipment" },
+        { "id": "201050", "name": "Industrial Conglomerates" },
+        { "id": "201060", "name": "Machinery" },
+        { "id": "201070", "name": "Trading Companies & Distributors" },
+        { "id": "2020", "name": "Commercial & Professional Services" },
+        { "id": "202010", "name": "Commercial Services & Supplies" },
+        { "id": "202020", "name": "Professional Services" },
+        { "id": "2030", "name": "Transportation" },
+        { "id": "203010", "name": "Air Freight & Logistics" },
+        { "id": "203020", "name": "Passenger Airlines" },
+        { "id": "203030", "name": "Marine Transportation" },
+        { "id": "203040", "name": "Ground Transportation" },
+        { "id": "203050", "name": "Transportation Infrastructure" }
+      ]
+    },
+    {
+      "gics_sector_id": "25",
+      "name": "Consumer Discretionary",
+      "etf_ticker": "XLY",
+      "industries": [
+        { "id": "2510", "name": "Automobiles & Components" },
+        { "id": "251010", "name": "Automobile Components" },
+        { "id": "251020", "name": "Automobiles" },
+        { "id": "2520", "name": "Consumer Durables & Apparel" },
+        { "id": "252010", "name": "Household Durables" },
+        { "id": "252020", "name": "Leisure Products" },
+        { "id": "252030", "name": "Textiles, Apparel & Luxury Goods" },
+        { "id": "2530", "name": "Consumer Services" },
+        { "id": "253010", "name": "Hotels, Restaurants & Leisure" },
+        { "id": "253020", "name": "Diversified Consumer Services" },
+        { "id": "2550", "name": "Consumer Discretionary Distribution & Retail" },
+        { "id": "255010", "name": "Distributors" },
+        { "id": "255020", "name": "Broadline Retail" },
+        { "id": "255030", "name": "Specialty Retail" }
+      ]
+    },
+    {
+      "gics_sector_id": "30",
+      "name": "Consumer Staples",
+      "etf_ticker": "XLP",
+      "industries": [
+        { "id": "3010", "name": "Consumer Staples Distribution & Retail" },
+        { "id": "301010", "name": "Consumer Staples Distribution & Retail" },
+        { "id": "3020", "name": "Food, Beverage & Tobacco" },
+        { "id": "302010", "name": "Beverages" },
+        { "id": "302020", "name": "Food Products" },
+        { "id": "302030", "name": "Tobacco" },
+        { "id": "3030", "name": "Household & Personal Products" },
+        { "id": "303010", "name": "Household Products" },
+        { "id": "303020", "name": "Personal Care Products" }
+      ]
+    },
+    {
+      "gics_sector_id": "35",
+      "name": "Health Care",
+      "etf_ticker": "XLV",
+      "industries": [
+        { "id": "3510", "name": "Health Care Equipment & Services" },
+        { "id": "351010", "name": "Health Care Equipment & Supplies" },
+        { "id": "351020", "name": "Health Care Providers & Services" },
+        { "id": "351030", "name": "Health Care Technology" },
+        { "id": "3520", "name": "Pharmaceuticals, Biotechnology & Life Sciences" },
+        { "id": "352010", "name": "Biotechnology" },
+        { "id": "352020", "name": "Pharmaceuticals" },
+        { "id": "352030", "name": "Life Sciences Tools & Services" }
+      ]
+    },
+    {
+      "gics_sector_id": "40",
+      "name": "Financials",
+      "etf_ticker": "XLF",
+      "industries": [
+        { "id": "4010", "name": "Banks" },
+        { "id": "401010", "name": "Diversified Banks" },
+        { "id": "401020", "name": "Regional Banks" },
+        { "id": "4020", "name": "Financial Services" },
+        { "id": "402010", "name": "Diversified Financial Services" },
+        { "id": "402020", "name": "Consumer Finance" },
+        { "id": "402030", "name": "Capital Markets" },
+        { "id": "402040", "name": "Mortgage Real Estate Investment Trusts (REITs)" },
+        { "id": "4030", "name": "Insurance" },
+        { "id": "403010", "name": "Insurance" }
+      ]
+    },
+    {
+      "gics_sector_id": "45",
+      "name": "Information Technology",
+      "etf_ticker": "XLK",
+      "industries": [
+        { "id": "4510", "name": "Software & Services" },
+        { "id": "451020", "name": "IT Services" },
+        { "id": "451030", "name": "Software" },
+        { "id": "4520", "name": "Technology Hardware & Equipment" },
+        { "id": "452010", "name": "Communications Equipment" },
+        { "id": "452020", "name": "Technology Hardware, Storage & Peripherals" },
+        { "id": "452030", "name": "Electronic Equipment, Instruments & Components" },
+        { "id": "4530", "name": "Semiconductors & Semiconductor Equipment" },
+        { "id": "453010", "name": "Semiconductors & Semiconductor Equipment" }
+      ]
+    },
+    {
+      "gics_sector_id": "50",
+      "name": "Communication Services",
+      "etf_ticker": "XLC",
+      "industries": [
+        { "id": "5010", "name": "Telecommunication Services" },
+        { "id": "501010", "name": "Diversified Telecommunication Services" },
+        { "id": "501020", "name": "Wireless Telecommunication Services" },
+        { "id": "5020", "name": "Media & Entertainment" },
+        { "id": "502010", "name": "Media" },
+        { "id": "502020", "name": "Entertainment" },
+        { "id": "502030", "name": "Interactive Media & Services" }
+      ]
+    },
+    {
+      "gics_sector_id": "55",
+      "name": "Utilities",
+      "etf_ticker": "XLU",
+      "industries": [
+        { "id": "5510", "name": "Utilities" },
+        { "id": "551010", "name": "Electric Utilities" },
+        { "id": "551020", "name": "Gas Utilities" },
+        { "id": "551030", "name": "Multi-Utilities" },
+        { "id": "551040", "name": "Water Utilities" },
+        { "id": "551050", "name": "Independent Power and Renewable Electricity Producers" }
+      ]
+    },
+    {
+      "gics_sector_id": "60",
+      "name": "Real Estate",
+      "etf_ticker": "XLRE",
+      "industries": [
+        { "id": "6010", "name": "Equity Real Estate Investment Trusts (REITs)" },
+        { "id": "601010", "name": "Diversified REITs" },
+        { "id": "601020", "name": "Industrial REITs" },
+        { "id": "601025", "name": "Hotel & Resort REITs" },
+        { "id": "601030", "name": "Office REITs" },
+        { "id": "601040", "name": "Health Care REITs" },
+        { "id": "601050", "name": "Residential REITs" },
+        { "id": "601060", "name": "Retail REITs" },
+        { "id": "601070", "name": "Specialized REITs" },
+        { "id": "6020", "name": "Real Estate Management & Development" },
+        { "id": "602010", "name": "Real Estate Management & Development" }
+      ]
+    }
+  ]
+}
