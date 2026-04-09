@@ -2,111 +2,121 @@
 **Version:** 1.0
 **Author:** Jasmin (Research/Data/Docs)
 **Date:** 2024-03-19
+**Duration:** ~5 minutes
 **Audience:** Prospective clients — credit officers, portfolio managers, heads of credit risk
-**Duration:** ~15 minutes
 **Format:** [Action] → [Script]
 
 ---
 
 ## Pre-Demo Setup
 
-Load the demo portfolio (`demo_portfolio.json`) with all 6 companies. Have the OPEC+ sector event (`demo_sector_event.json`) queued but not yet triggered. Open the portfolio dashboard as the starting screen.
+Load `demo/demo_portfolio.json` (6 companies, $330M total). Have the OPEC+ sector event queued. Open `/dashboard` as the starting screen.
 
 ---
 
-## Step 1 — Open the Portfolio Dashboard
+## Step 1
 
-**[Action]** Navigate to the Portfolio Dashboard. The table shows all 6 active deals with their risk scores, ratings, alert counts, and status badges.
+**[Action]** Open `/dashboard`
 
 **[Script]**
-"This is the CreditMind portfolio dashboard. Every deal in your book is visible at a glance — company, ticker, internal rating, loan amount, sector, and live risk score. Notice Occidental Petroleum is already flagged CRITICAL with 8 open alerts, and Boeing is on WATCH. This view updates in real time as new signals come in. Your team doesn't have to go looking for problems — CreditMind surfaces them."
+"This is our credit portfolio dashboard — $330M across 6 active loans in 4 sectors."
 
 ---
 
-## Step 2 — Explore the Risk Score Column
+## Step 2
 
-**[Action]** Hover over OXY's risk score of 81, showing the tooltip breakdown.
+**[Action]** Point to the sector heat map widget on the dashboard
 
 **[Script]**
-"Each risk score is a composite signal — not just a static internal rating. It factors in the company's financial health, sector stress, and recent news sentiment. OXY scores 81 out of 100 on risk — that's deep into red territory. You can see it's been deteriorating over the past 30 days. Click through for the full breakdown."
+"Notice Energy has been showing elevated stress — the heat map turned orange over the past few days."
 
 ---
 
-## Step 3 — Open the OXY Company Detail View
+## Step 3
 
-**[Action]** Click on OXY to open the Company Detail view. Show loan metadata, rating history chart, and open alerts panel.
+**[Action]** Click heat map → navigate to `/sector-intelligence`
 
 **[Script]**
-"Here's the full company view for Occidental Petroleum. Deal ID DL-2024-006: $350M Term Loan B, BB- rated, sponsored by Berkshire Hathaway, maturing February 2029. You can see the rating trend — this was a BB+ two quarters ago. Eight open alerts. Let me show you what triggered the most recent one."
+"This is our Sector Intelligence Hub — something no other credit platform offers. We monitor all 11 GICS sectors simultaneously, not just individual companies."
 
 ---
 
-## Step 4 — Trigger the OPEC+ Sector Event
+## Step 4
 
-**[Action]** Activate the demo sector event. Watch the portfolio table update — OXY jumps to CRITICAL with a new alert, XOM risk score increases from 62 to 71, Boeing gets a new indirect exposure alert.
+**[Action]** Show the full heat map with 60-day history and forecast
 
 **[Script]**
-"I'm going to simulate what happened this morning: OPEC+ announced a surprise 1.5 million barrel per day production cut. Watch what CreditMind does automatically. OXY's risk score just jumped from 81 to 87 — it's now escalated with a credit committee flag. XOM moved from 62 to 71 — into amber territory. And Boeing — which is not an energy company — just received an indirect exposure alert because its aerospace supply chain has petrochemical input risk. Three relevant alerts, zero manual analysis."
+"Energy spiked red after an OPEC+ production cut. Our model flagged this as a 2.8 standard deviation anomaly from the 30-day baseline."
 
 ---
 
-## Step 5 — Review the Sector Event Detail Panel
+## Step 5
 
-**[Action]** Open the OPEC+ event detail panel. Show the structured breakdown: direct exposure, indirect exposure, no exposure companies with rationales.
+**[Action]** Click the Energy sector alert card
 
 **[Script]**
-"This is the sector event view. CreditMind has already mapped your entire portfolio against this shock. Direct exposure — OXY at CRITICAL, XOM at HIGH. Indirect supply chain exposure — Boeing at MEDIUM, with a specific rationale about aerospace composite costs and airline order deferrals. And then three companies with no exposure — JPM, Amazon, Pfizer — each with a written rationale explaining why. This isn't a generic market alert. It's your portfolio, analyzed."
+"The system immediately runs contagion analysis across our entire portfolio — asking which of our loans are exposed to this event."
 
 ---
 
-## Step 6 — Walk Through Recommended Actions
+## Step 6
 
-**[Action]** Scroll to the Recommended Actions section of the event panel. Show the three prioritized action items.
+**[Action]** Show the ContagionCard for Occidental Petroleum (OXY)
 
 **[Script]**
-"CreditMind doesn't just tell you what happened — it tells you what to do next. Priority one: escalate OXY to the credit committee, request a borrowing base certificate. Priority two: schedule a covenant review for XOM within ten business days. Priority three: add energy input cost monitoring to Boeing's quarterly checklist. These actions are pre-populated. Your team can assign them, track them, and close them — right here."
+"OXY is already our most stressed deal at risk score 71. The leverage covenant has less than 0.1x headroom — the system recommends a covenant review call within 5 business days."
 
 ---
 
-## Step 7 — Explore the Sector Stress Dashboard
+## Step 7
 
-**[Action]** Navigate to the Sector Stress view. Show the sector stress score heatmap with ETF performance overlaid. Highlight Energy at 78/100.
+**[Action]** Show the ContagionCard for Boeing (indirect exposure)
 
 **[Script]**
-"The Sector Stress dashboard gives you a market-level view. Each of the 11 GICS sectors has a live stress score, mapped to the corresponding SPDR ETF. Energy is at 78 — elevated, trending up since the OPEC+ announcement. XLE, the energy ETF, is up 4.2% today while SPY is down 0.8%. That divergence matters — it tells us the market is pricing in the shock. CreditMind correlates your portfolio's sector exposure to these real-time signals."
+"Here's what makes this powerful — Boeing is an Industrials company, not Energy. But our AI identified supply chain exposure to petrochemical inputs. Flagged for quarterly review."
 
 ---
 
-## Step 8 — Show the JPMorgan Detail View (No Exposure Example)
+## Step 8
 
-**[Action]** Click on JPM to open its company detail. Highlight the 0 alert count, risk score of 28, and the "no exposure" rationale from the sector event.
+**[Action]** Show the 30-day sector forecast chart
 
 **[Script]**
-"Now let's look at JPMorgan — the other end of the spectrum. Risk score 28, zero alerts, A-minus rated, $500M revolving credit. When the OPEC+ event fired, CreditMind evaluated JPMorgan and determined: no meaningful exposure. It didn't flood your team with a false alarm. That's the other half of this — reducing noise, not just generating alerts. Your analysts should spend time on OXY, not on JPM right now."
+"The forecaster models the next 30 days using ETF momentum, news velocity, and FRED macro. Energy shows continued stress. Financials is showing early signs of improvement."
 
 ---
 
-## Step 9 — Demonstrate the Alert Log and Audit Trail
+## Step 9
 
-**[Action]** Open the Alert Log view. Show the chronological feed of alerts with severity tags, timestamps, deal IDs, and review status.
+**[Action]** Navigate to `/alerts`, resolve one alert
 
 **[Script]**
-"Every alert is logged with a full audit trail — who reviewed it, when, and what action was taken. This matters for regulatory exams and internal credit reviews. If an examiner asks 'when did you know about the OXY stress event and what did you do?' — you have a complete, timestamped record. CreditMind is built for the accountability that credit risk management requires."
+"Two alerts were auto-generated — one CRITICAL for OXY, one HIGH for ExxonMobil. One click to acknowledge. Action and timestamp are logged to the audit trail."
 
 ---
 
-## Step 10 — Close with the Value Proposition
+## Step 10
 
-**[Action]** Return to the Portfolio Dashboard. Show the full 6-company view with updated statuses post-event.
+**[Action]** Navigate to `/portfolio`, filter by Energy sector
 
 **[Script]**
-"Here's what just happened in the last five minutes: a major macro event hit the market, CreditMind automatically assessed your entire portfolio, surfaced three relevant alerts with specific rationales, deprioritized three companies that don't need attention, and generated a prioritized action list for your team. In a traditional workflow, this analysis would take a credit analyst half a day — pulling Bloomberg data, reading news, mapping sector exposure, drafting a memo. CreditMind does it in seconds. That's the pitch: your team's judgment, amplified. Any questions before we talk about your specific portfolio?"
+"Our entire $330M book filtered by sector in one click. All Energy exposure visible, sorted by risk score."
 
 ---
 
-## Demo Notes
+## Closing Line
 
-- If asked about covenant tracking: "That's on our Q3 2024 roadmap — we're building document ingestion for covenant schedules now."
-- If asked about pricing: "We're in pilot phase — let's talk about your portfolio size and we can structure a proposal."
-- If asked about data security: "All data is encrypted in transit and at rest, hosted on AWS. We can provide a security data sheet."
-- If asked about Bloomberg integration: "We can ingest Bloomberg data exports via our REST API — full documentation available."
+"What used to take a credit analyst two hours of news reading and portfolio cross-referencing — CreditMind does in under 90 seconds, continuously, for every sector simultaneously."
+
+---
+
+## Q&A Cheat Sheet
+
+| Question | Answer |
+|---|---|
+| Covenant tracking? | Q3 2024 roadmap — document ingestion for covenant schedules in progress. |
+| Pricing? | Pilot phase — let's discuss portfolio size and structure a proposal. |
+| Data security? | Encrypted in transit and at rest, hosted on AWS. Security data sheet available. |
+| Bloomberg integration? | Ingest Bloomberg data exports via REST API — full documentation available. |
+| How many sectors? | All 11 GICS sectors, monitored simultaneously, 24/7. |
+| Open source? | Yes — available on GitHub at github.com/peterjohn1298/CreditMind. |

@@ -1,52 +1,48 @@
 {
   "event_id": "EVT-2024-001",
-  "event_name": "OPEC+ Production Cut — Energy Sector Stress Scenario",
-  "event_type": "Geopolitical / Commodity Shock",
-  "event_date": "2024-03-19",
+  "event_name": "OPEC+ Surprise Production Cut — Energy Sector Stress Event",
+  "trigger_date": "2024-03-19",
+  "sector": "Energy",
   "severity": "HIGH",
-  "description": "OPEC+ announces surprise coordinated production cut of 1.5M barrels/day effective immediately, driving Brent crude above $100/bbl. Downstream refiners face margin compression while upstream E&P companies experience mixed impact depending on hedging positions and leverage. Energy transition narratives accelerate pressure on debt-heavy oil companies.",
-  "macro_indicators": {
-    "brent_crude_price_usd": 103.40,
-    "wti_crude_price_usd": 99.85,
-    "xle_1d_return_pct": 4.2,
-    "spy_1d_return_pct": -0.8,
-    "vix": 22.5,
-    "usd_index": 104.1
+  "sentiment_score": -0.74,
+  "anomaly_flag": true,
+  "news_headline": "OPEC+ Agrees to Surprise 1.5M bpd Production Cut, Sending Crude Above $100",
+  "news_summary": "OPEC+ members including Saudi Arabia and Russia announced a coordinated surprise production cut of 1.5 million barrels per day effective April 1, exceeding market expectations. Brent crude surged past $100 per barrel for the first time since 2022. Analysts warn of sustained energy price inflation, margin pressure for downstream refiners, and increased sovereign credit risk for oil-importing nations. The move caught energy traders off guard, with XLE rising 4.2% intraday while the broader S&P 500 fell 0.8% on inflation concerns.",
+  "market_impact": {
+    "xle_price_change_pct": 4.2,
+    "spy_price_change_pct": -0.8,
+    "sector_relative_performance": 5.0,
+    "brent_crude_usd": 103.40,
+    "wti_crude_usd": 99.85,
+    "anomaly_sigma": 2.8
   },
-  "primary_sector_affected": {
-    "gics_sector_id": "10",
-    "sector": "Energy",
-    "etf_ticker": "XLE",
-    "sector_stress_score": 78,
-    "stress_direction": "ESCALATING"
-  },
-  "portfolio_exposures": {
+  "contagion_analysis": {
     "direct_exposure": [
       {
         "deal_id": "DL-2024-001",
         "company": "Exxon Mobil Corporation",
         "ticker": "XOM",
-        "exposure_level": "HIGH",
-        "rationale": "XOM is a fully integrated major with significant upstream exposure to crude pricing. A sustained price increase improves revenue but OPEC+ instability raises geopolitical risk and supply chain uncertainty for long-term project financing. Hedging coverage estimated at 40% for 2024.",
-        "loan_amount": 750000000,
-        "current_risk_score": 62,
-        "revised_risk_score": 71,
-        "risk_delta": 9,
-        "alert_triggered": true,
-        "alert_message": "Energy sector stress elevated — review covenant compliance and borrowing base."
+        "exposure_type": "Direct commodity price exposure — upstream E&P and refining operations",
+        "severity_tier": "HIGH",
+        "estimated_impact_min": -2500000,
+        "estimated_impact_max": 1800000,
+        "rationale": "XOM is a fully integrated energy major with significant upstream crude oil exposure. While higher prices temporarily boost revenue, OPEC+ supply volatility introduces price reversal risk and geopolitical uncertainty. Hedging coverage estimated at 40% for 2024, leaving 60% exposed to spot price swings.",
+        "covenant_at_risk": "Leverage ratio covenant — at 3.8x vs 4.0x limit; 0.2x headroom",
+        "recommended_action": "Request updated hedging schedule and borrowing base certificate. Schedule covenant review within 10 business days.",
+        "urgency_level": "HIGH"
       },
       {
         "deal_id": "DL-2024-006",
         "company": "Occidental Petroleum Corporation",
         "ticker": "OXY",
-        "exposure_level": "CRITICAL",
-        "rationale": "OXY carries higher leverage than peers and is more sensitive to oil price swings. While higher crude prices temporarily improve cash flows, the company's $18B debt load and Permian Basin concentration make it vulnerable if OPEC+ reverses course. Existing CRITICAL rating now confirmed by external stress signal.",
-        "loan_amount": 350000000,
-        "current_risk_score": 81,
-        "revised_risk_score": 87,
-        "risk_delta": 6,
-        "alert_triggered": true,
-        "alert_message": "CRITICAL — OXY leverage ratio under stress. Immediate covenant review recommended. Escalate to credit committee."
+        "exposure_type": "Direct commodity price exposure — highly levered E&P with Permian concentration",
+        "severity_tier": "CRITICAL",
+        "estimated_impact_min": -4200000,
+        "estimated_impact_max": 800000,
+        "rationale": "OXY carries materially higher leverage than peers and is acutely sensitive to oil price reversals. Existing risk score of 71 reflects pre-event stress. The OPEC+ cut temporarily improves cash flow but the structural risk of a price reversal to sub-$75 WTI would breach the leverage covenant. Permian Basin concentration amplifies downside.",
+        "covenant_at_risk": "Leverage ratio covenant — at 4.9x vs 5.0x limit; less than 0.1x headroom. CRITICAL escalation required.",
+        "recommended_action": "Escalate to credit committee immediately. Request borrowing base certificate and stress test to $70 WTI. Covenant review call within 5 business days.",
+        "urgency_level": "CRITICAL"
       }
     ],
     "indirect_exposure": [
@@ -54,14 +50,14 @@
         "deal_id": "DL-2024-003",
         "company": "The Boeing Company",
         "ticker": "BA",
-        "exposure_level": "MEDIUM",
-        "rationale": "Boeing's aerospace manufacturing supply chain relies heavily on petrochemical inputs (composites, resins, lubricants). An OPEC+ shock elevates input costs and could delay airline customer orders if fuel cost pressure reduces airline capex. Boeing's existing WATCH status makes this an additive risk factor.",
-        "loan_amount": 400000000,
-        "current_risk_score": 71,
-        "revised_risk_score": 75,
-        "risk_delta": 4,
-        "alert_triggered": true,
-        "alert_message": "Indirect supply chain exposure to energy shock — monitor quarterly order book and customer deferrals."
+        "exposure_type": "Indirect — supply chain exposure to petrochemical inputs (composites, resins, lubricants)",
+        "severity_tier": "MEDIUM",
+        "estimated_impact_min": -800000,
+        "estimated_impact_max": 0,
+        "rationale": "Boeing's aerospace manufacturing supply chain relies on petrochemical-derived materials. An OPEC+ shock elevates input costs and may suppress airline customer capex if fuel cost pressure delays aircraft orders. Boeing's existing watchlist status makes this an additive risk factor that warrants monitoring.",
+        "covenant_at_risk": "None immediate — monitor quarterly order book and customer deferrals",
+        "recommended_action": "Add energy input cost monitoring to Boeing's quarterly review checklist. Watch for airline customer order deferrals in Q2 earnings.",
+        "urgency_level": "MEDIUM"
       }
     ],
     "no_exposure": [
@@ -69,40 +65,19 @@
         "deal_id": "DL-2024-002",
         "company": "JPMorgan Chase & Co.",
         "ticker": "JPM",
-        "exposure_level": "NONE",
-        "rationale": "JPMorgan is a diversified financial institution. While higher oil prices could marginally affect loan portfolio quality in energy-adjacent industries, JPM's diversification, strong capital ratios (CET1 ~15%), and investment-grade rating insulate it from this specific commodity shock. No direct commodity exposure.",
-        "loan_amount": 500000000,
-        "current_risk_score": 28,
-        "revised_risk_score": 28,
-        "risk_delta": 0,
-        "alert_triggered": false,
-        "alert_message": null
+        "rationale": "Diversified financial institution with strong capital ratios (CET1 ~15%) and no direct commodity exposure. Energy sector lending is a small portion of JPM's total loan book and well-collateralized."
       },
       {
         "deal_id": "DL-2024-004",
         "company": "Amazon.com, Inc.",
         "ticker": "AMZN",
-        "exposure_level": "NONE",
-        "rationale": "Amazon's primary revenue drivers (AWS cloud, e-commerce, advertising) are not materially correlated with crude oil prices. Logistics fuel costs represent a modest and manageable portion of COGS with significant hedging and fleet electrification underway. No meaningful risk uplift from this event.",
-        "loan_amount": 600000000,
-        "current_risk_score": 22,
-        "revised_risk_score": 22,
-        "risk_delta": 0,
-        "alert_triggered": false,
-        "alert_message": null
+        "rationale": "Amazon's primary revenue drivers (AWS, e-commerce, advertising) are not materially correlated with crude oil prices. Logistics fuel costs are manageable and partially hedged through fleet electrification programs."
       },
       {
         "deal_id": "DL-2024-005",
         "company": "Pfizer Inc.",
         "ticker": "PFE",
-        "exposure_level": "NONE",
-        "rationale": "Pfizer operates in pharmaceuticals where commodity energy prices have negligible impact on core business drivers (drug pipeline, patent lifecycle, regulatory approvals). Manufacturing energy costs are immaterial relative to R&D and SG&A. No exposure to OPEC+ scenario.",
-        "loan_amount": 350000000,
-        "current_risk_score": 45,
-        "revised_risk_score": 45,
-        "risk_delta": 0,
-        "alert_triggered": false,
-        "alert_message": null
+        "rationale": "Pharmaceutical business model is not sensitive to commodity energy prices. Manufacturing energy costs are immaterial relative to R&D and SG&A. No exposure to OPEC+ scenario."
       }
     ]
   },
@@ -111,22 +86,28 @@
       "priority": 1,
       "deal_id": "DL-2024-006",
       "company": "OXY",
-      "action": "ESCALATE",
-      "description": "Escalate to credit committee immediately. Request updated borrowing base certificate and review leverage covenant compliance given existing CRITICAL status."
+      "action": "ESCALATE TO CREDIT COMMITTEE",
+      "description": "Covenant headroom below 0.1x. Request borrowing base certificate and run $70 WTI stress scenario immediately.",
+      "urgency_level": "CRITICAL",
+      "due_within": "5 business days"
     },
     {
       "priority": 2,
       "deal_id": "DL-2024-001",
       "company": "XOM",
-      "action": "REVIEW",
-      "description": "Schedule covenant review within 10 business days. Obtain updated hedging schedule and assess borrowing base sensitivity to price reversal scenario."
+      "action": "COVENANT REVIEW",
+      "description": "Obtain updated hedging schedule. Assess borrowing base sensitivity to price reversal scenario below $75 WTI.",
+      "urgency_level": "HIGH",
+      "due_within": "10 business days"
     },
     {
       "priority": 3,
       "deal_id": "DL-2024-003",
       "company": "BA",
       "action": "MONITOR",
-      "description": "Add energy input cost to Boeing's quarterly monitoring checklist. Watch for airline customer order deferrals that could affect Boeing's revenue recognition and debt service capacity."
+      "description": "Add energy input cost to Boeing's quarterly monitoring checklist. No immediate action required.",
+      "urgency_level": "MEDIUM",
+      "due_within": "Next quarterly review"
     }
   ]
 }
