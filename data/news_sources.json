@@ -1,0 +1,204 @@
+{
+  "description": "Stress-signal keywords by GICS sector for news monitoring and alert generation",
+  "version": "1.0",
+  "sectors": [
+    {
+      "gics_sector_id": "10",
+      "sector": "Energy",
+      "keywords": [
+        "OPEC production cut",
+        "oil price collapse",
+        "refinery shutdown",
+        "pipeline disruption",
+        "energy sanctions",
+        "crude inventory surge",
+        "LNG terminal outage",
+        "oilfield regulatory halt",
+        "rig count decline",
+        "carbon tax energy",
+        "natural gas price shock",
+        "offshore drilling moratorium"
+      ]
+    },
+    {
+      "gics_sector_id": "15",
+      "sector": "Materials",
+      "keywords": [
+        "commodity price crash",
+        "mine closure",
+        "steel tariff",
+        "copper demand drop",
+        "chemical plant explosion",
+        "lithium supply shortage",
+        "mining strike",
+        "rare earth export ban",
+        "aluminum dumping",
+        "fertilizer price spike",
+        "deforestation regulation",
+        "metals market correction"
+      ]
+    },
+    {
+      "gics_sector_id": "20",
+      "sector": "Industrials",
+      "keywords": [
+        "defense contract cancellation",
+        "airline bankruptcy",
+        "supply chain disruption",
+        "freight rate collapse",
+        "factory shutdown",
+        "aerospace safety grounding",
+        "infrastructure spending cut",
+        "union strike manufacturing",
+        "logistics bottleneck",
+        "equipment recall",
+        "import tariff industrial",
+        "global trade slowdown"
+      ]
+    },
+    {
+      "gics_sector_id": "25",
+      "sector": "Consumer Discretionary",
+      "keywords": [
+        "consumer spending decline",
+        "retail sales miss",
+        "auto loan default surge",
+        "luxury goods slowdown",
+        "e-commerce regulation",
+        "hospitality revenue drop",
+        "consumer confidence low",
+        "housing market correction",
+        "discretionary spending cut",
+        "credit card delinquency",
+        "tourism collapse",
+        "apparel demand shock"
+      ]
+    },
+    {
+      "gics_sector_id": "30",
+      "sector": "Consumer Staples",
+      "keywords": [
+        "food inflation spike",
+        "supply chain food disruption",
+        "FDA product recall",
+        "drought crop failure",
+        "grocery shrinkflation",
+        "tobacco regulation",
+        "beverage tax increase",
+        "staples margin compression",
+        "private label shift",
+        "packaging cost surge",
+        "retailer delisting",
+        "palm oil ban"
+      ]
+    },
+    {
+      "gics_sector_id": "35",
+      "sector": "Health Care",
+      "keywords": [
+        "FDA drug approval rejection",
+        "patent cliff",
+        "drug pricing regulation",
+        "clinical trial failure",
+        "Medicare reimbursement cut",
+        "biosimilar competition",
+        "hospital system bankruptcy",
+        "pharmaceutical recall",
+        "insurance coverage denial",
+        "health care fraud investigation",
+        "pandemic supply shortage",
+        "opioid litigation"
+      ]
+    },
+    {
+      "gics_sector_id": "40",
+      "sector": "Financials",
+      "keywords": [
+        "bank stress test failure",
+        "credit default surge",
+        "interest rate shock",
+        "loan loss provision increase",
+        "bank run",
+        "regulatory capital breach",
+        "mortgage delinquency spike",
+        "fintech disruption",
+        "securities fraud investigation",
+        "liquidity crisis",
+        "shadow banking collapse",
+        "credit rating downgrade"
+      ]
+    },
+    {
+      "gics_sector_id": "45",
+      "sector": "Information Technology",
+      "keywords": [
+        "semiconductor shortage",
+        "data breach",
+        "antitrust tech investigation",
+        "cloud outage",
+        "AI regulation",
+        "chip export ban",
+        "software supply chain attack",
+        "cybersecurity incident",
+        "tech layoffs",
+        "hardware tariff",
+        "patent infringement ruling",
+        "open source licensing dispute"
+      ]
+    },
+    {
+      "gics_sector_id": "50",
+      "sector": "Communication Services",
+      "keywords": [
+        "spectrum auction disruption",
+        "content moderation regulation",
+        "streaming subscriber loss",
+        "telecom merger blocked",
+        "social media misinformation fine",
+        "broadband infrastructure cost",
+        "advertising revenue decline",
+        "net neutrality ruling",
+        "media consolidation review",
+        "5G rollout delay",
+        "digital privacy law",
+        "platform delisting"
+      ]
+    },
+    {
+      "gics_sector_id": "55",
+      "sector": "Utilities",
+      "keywords": [
+        "power grid failure",
+        "rate case denial",
+        "wildfire utility liability",
+        "nuclear plant shutdown",
+        "renewable energy subsidy cut",
+        "energy transition cost overrun",
+        "drought hydropower impact",
+        "utility bond downgrade",
+        "regulatory penalty utilities",
+        "natural gas price volatility",
+        "infrastructure aging failure",
+        "storm damage grid"
+      ]
+    },
+    {
+      "gics_sector_id": "60",
+      "sector": "Real Estate",
+      "keywords": [
+        "commercial real estate collapse",
+        "REIT dividend cut",
+        "office vacancy surge",
+        "mortgage rate spike",
+        "property value decline",
+        "rent control legislation",
+        "CMBS default",
+        "construction cost overrun",
+        "real estate developer bankruptcy",
+        "zoning regulation change",
+        "eviction moratorium",
+        "cap rate compression"
+      ]
+    }
+  ]
+}
