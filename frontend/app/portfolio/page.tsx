@@ -56,7 +56,6 @@ export default function Portfolio() {
                   )}>
                   <td className="px-4 py-3">
                     <p className="text-primary font-medium">{deal.company}</p>
-                    <p className="text-muted text-xs font-mono">{deal.ticker}</p>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs font-mono px-2 py-0.5 rounded-full border"
@@ -88,7 +87,7 @@ export default function Portfolio() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-navy-700">
             <div>
               <p className="text-primary font-semibold text-sm">{selected.company}</p>
-              <p className="text-muted text-xs font-mono">{selected.ticker}</p>
+              <p className="text-muted text-xs">{selected.deal_type}</p>
             </div>
             <button onClick={() => setSelected(null)} className="text-muted hover:text-primary transition-colors">
               <X size={16} />
