@@ -60,12 +60,12 @@ export default function Monitoring() {
       <div className="flex items-center gap-4">
         <label className="text-muted text-xs uppercase tracking-wider">Deal</label>
         <Select
-          value={deal ? `${deal.company} (${deal.ticker})` : "Select a deal"}
+          value={deal ? deal.company : "Select a deal"}
           onChange={(v) => {
-            const found = state.portfolio.find((d) => `${d.company} (${d.ticker})` === v);
+            const found = state.portfolio.find((d) => d.company === v);
             if (found) setDealId(found.deal_id);
           }}
-          options={state.portfolio.map((d) => `${d.company} (${d.ticker})`)}
+          options={state.portfolio.map((d) => d.company)}
           className="w-72"
         />
       </div>
