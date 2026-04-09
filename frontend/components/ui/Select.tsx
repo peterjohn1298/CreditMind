@@ -55,9 +55,7 @@ export default function Select({ value, onChange, options, className, capitalize
               className={cn(
                 "w-full text-left px-3 py-2 text-sm transition-colors",
                 capitalize && "capitalize",
-                opt === value
-                  ? "bg-[#0F2040] text-white font-semibold"
-                  : "text-black hover:bg-gray-100"
+                "text-black hover:bg-gray-100"
               )}
             >
               {opt}
