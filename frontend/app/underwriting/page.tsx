@@ -76,16 +76,22 @@ export default function Underwriting() {
     loan_amount: "", tenor: "5", facility: "Senior Secured",
   });
 
-  function loadDemo() {
-    setForm({
-      company:     DEMO_COMPANY.company,
-      ticker:      DEMO_COMPANY.ticker,
-      sponsor:     DEMO_COMPANY.sponsor,
-      deal_type:   DEMO_COMPANY.deal_type,
-      loan_amount: DEMO_COMPANY.loan_amount,
-      tenor:       DEMO_COMPANY.tenor,
-      facility:    DEMO_COMPANY.facility,
-    });
+  const isDemo = form.company === DEMO_COMPANY.company && form.ticker === DEMO_COMPANY.ticker;
+
+  function toggleDemo() {
+    if (isDemo) {
+      setForm({ company: "", ticker: "", sponsor: "", deal_type: "Term Loan B", loan_amount: "", tenor: "5", facility: "Senior Secured" });
+    } else {
+      setForm({
+        company:     DEMO_COMPANY.company,
+        ticker:      DEMO_COMPANY.ticker,
+        sponsor:     DEMO_COMPANY.sponsor,
+        deal_type:   DEMO_COMPANY.deal_type,
+        loan_amount: DEMO_COMPANY.loan_amount,
+        tenor:       DEMO_COMPANY.tenor,
+        facility:    DEMO_COMPANY.facility,
+      });
+    }
   }
 
   function toggleSection(key: string) {
@@ -155,10 +161,15 @@ export default function Underwriting() {
         <div className="bg-navy-800 border border-navy-700 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-primary font-semibold">Deal Information</p>
-            <button onClick={loadDemo}
-              className="flex items-center gap-1.5 bg-accent/10 border border-accent/30 text-accent rounded-md px-3 py-1.5 text-xs font-semibold hover:bg-accent/20 transition-all duration-150">
+            <button onClick={toggleDemo}
+              className={cn(
+                "flex items-center gap-1.5 border rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-150",
+                isDemo
+                  ? "bg-warning/10 border-warning/30 text-warning hover:bg-warning/20"
+                  : "bg-accent/10 border-accent/30 text-accent hover:bg-accent/20"
+              )}>
               <Zap size={12} />
-              Load Demo Deal
+              {isDemo ? "Clear Demo" : "Load Demo Deal"}
             </button>
           </div>
           <form onSubmit={handleSubmit} className="space-y-3">

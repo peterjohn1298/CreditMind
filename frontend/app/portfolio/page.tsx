@@ -8,7 +8,7 @@ import { useCredit } from "@/context/CreditContext";
 import { formatCurrency, formatDate, getRiskColor, cn } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
 
-const SECTORS  = ["All","Energy","Financials","Industrials","Consumer Discretionary","Health Care"];
+const SECTORS  = ["All","Aerospace & Defense","Healthcare","Industrials","Consumer & Retail","Technology Services","Energy","Food & Agriculture","Logistics","Specialty Chemicals","Financial Services"];
 const STATUSES = ["All","current","watchlist","stressed"];
 
 export default function Portfolio() {
