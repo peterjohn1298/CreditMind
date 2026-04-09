@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Play } from "lucide-react";
+import Select from "@/components/ui/Select";
 import SentimentChart from "@/components/ui/SentimentChart";
 import { useCredit } from "@/context/CreditContext";
 import { runDailyMonitor, runQuarterlyReview } from "@/lib/api";
@@ -58,12 +59,15 @@ export default function Monitoring() {
       {/* Deal selector */}
       <div className="flex items-center gap-4">
         <label className="text-muted text-xs uppercase tracking-wider">Deal</label>
-        <select value={dealId} onChange={(e) => setDealId(e.target.value)}
-          className="bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent">
-          {state.portfolio.map((d) => (
-            <option key={d.deal_id} value={d.deal_id}>{d.company} ({d.ticker})</option>
-          ))}
-        </select>
+        <Select
+          value={deal ? `${deal.company} (${deal.ticker})` : "Select a deal"}
+          onChange={(v) => {
+            const found = state.portfolio.find((d) => `${d.company} (${d.ticker})` === v);
+            if (found) setDealId(found.deal_id);
+          }}
+          options={state.portfolio.map((d) => `${d.company} (${d.ticker})`)}
+          className="w-72"
+        />
       </div>
 
       {/* Tabs */}
