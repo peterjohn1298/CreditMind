@@ -34,9 +34,9 @@ export default function Select({ value, onChange, options, className, capitalize
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "flex items-center justify-between gap-2 w-full bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent transition-colors hover:border-navy-600",
+          "flex items-center justify-between gap-2 w-full border rounded-md px-3 py-2 text-primary text-sm focus:outline-none transition-colors",
           capitalize && "capitalize",
-          open && "border-accent"
+          open ? "border-accent bg-navy-700" : "border-navy-600 bg-navy-700 hover:border-accent hover:bg-navy-600"
         )}
       >
         <span className={capitalize ? "capitalize" : ""}>{value}</span>
