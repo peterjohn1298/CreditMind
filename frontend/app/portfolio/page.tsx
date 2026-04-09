@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import Select from "@/components/ui/Select";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
 import { useCredit } from "@/context/CreditContext";
@@ -29,14 +30,8 @@ export default function Portfolio() {
       <div className="flex-1 min-w-0 space-y-4">
         {/* Filters */}
         <div className="flex gap-3">
-          <select value={sector} onChange={(e) => setSector(e.target.value)}
-            className="bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent [color-scheme:dark]">
-            {SECTORS.map((s) => <option key={s} className="bg-navy-800 text-primary">{s}</option>)}
-          </select>
-          <select value={status} onChange={(e) => setStatus(e.target.value)}
-            className="bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent capitalize [color-scheme:dark]">
-            {STATUSES.map((s) => <option key={s} className="bg-navy-800 text-primary capitalize">{s}</option>)}
-          </select>
+          <Select value={sector} onChange={setSector} options={SECTORS} className="w-52" />
+          <Select value={status} onChange={setStatus} options={STATUSES} className="w-36" capitalize />
           <div className="flex-1" />
           <p className="text-muted text-sm self-center font-mono">{deals.length} deals</p>
         </div>

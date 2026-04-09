@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Upload, CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp, Printer, Zap } from "lucide-react";
+import Select from "@/components/ui/Select";
 import AgentProgress from "@/components/ui/AgentProgress";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
@@ -196,21 +197,21 @@ export default function Underwriting() {
               </div>
               <div>
                 <label className="text-muted text-xs uppercase tracking-wider block mb-1">Tenor (years)</label>
-                <select value={form.tenor} onChange={(e) => setForm((f) => ({ ...f, tenor: e.target.value }))}
-                  className="w-full bg-navy-900 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent transition-colors [color-scheme:dark]">
-                  {["3","4","5","6","7","8"].map((v) => <option key={v} value={v}>{v} years</option>)}
-                </select>
+                <Select
+                  value={`${form.tenor} years`}
+                  onChange={(v) => setForm((f) => ({ ...f, tenor: v.replace(" years","") }))}
+                  options={["3 years","4 years","5 years","6 years","7 years","8 years"]}
+                  className="w-full" />
               </div>
             </div>
 
             <div>
               <label className="text-muted text-xs uppercase tracking-wider block mb-1">Facility Type</label>
-              <select value={form.facility} onChange={(e) => setForm((f) => ({ ...f, facility: e.target.value }))}
-                className="w-full bg-navy-900 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent transition-colors [color-scheme:dark]">
-                {["First Lien Term Loan","Unitranche","Term Loan A","Term Loan B","Revolving Credit Facility","Senior Secured","Senior Unsecured"].map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
+              <Select
+                value={form.facility}
+                onChange={(v) => setForm((f) => ({ ...f, facility: v }))}
+                options={["First Lien Term Loan","Unitranche","Term Loan A","Term Loan B","Revolving Credit Facility","Senior Secured","Senior Unsecured"]}
+                className="w-full" />
             </div>
 
             <button type="submit" disabled={phase !== "form"}
