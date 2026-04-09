@@ -1,0 +1,97 @@
+{
+  "benchmark": {
+    "ticker": "SPY",
+    "name": "SPDR S&P 500 ETF Trust",
+    "description": "Tracks the S&P 500 Index — used as the broad market benchmark"
+  },
+  "sector_etfs": [
+    {
+      "gics_sector_id": "10",
+      "sector": "Energy",
+      "etf_ticker": "XLE",
+      "etf_name": "Energy Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Energy Select Sector Index"
+    },
+    {
+      "gics_sector_id": "15",
+      "sector": "Materials",
+      "etf_ticker": "XLB",
+      "etf_name": "Materials Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Materials Select Sector Index"
+    },
+    {
+      "gics_sector_id": "20",
+      "sector": "Industrials",
+      "etf_ticker": "XLI",
+      "etf_name": "Industrial Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Industrial Select Sector Index"
+    },
+    {
+      "gics_sector_id": "25",
+      "sector": "Consumer Discretionary",
+      "etf_ticker": "XLY",
+      "etf_name": "Consumer Discretionary Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Consumer Discretionary Select Sector Index"
+    },
+    {
+      "gics_sector_id": "30",
+      "sector": "Consumer Staples",
+      "etf_ticker": "XLP",
+      "etf_name": "Consumer Staples Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Consumer Staples Select Sector Index"
+    },
+    {
+      "gics_sector_id": "35",
+      "sector": "Health Care",
+      "etf_ticker": "XLV",
+      "etf_name": "Health Care Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Health Care Select Sector Index"
+    },
+    {
+      "gics_sector_id": "40",
+      "sector": "Financials",
+      "etf_ticker": "XLF",
+      "etf_name": "Financial Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Financial Select Sector Index"
+    },
+    {
+      "gics_sector_id": "45",
+      "sector": "Information Technology",
+      "etf_ticker": "XLK",
+      "etf_name": "Technology Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Technology Select Sector Index"
+    },
+    {
+      "gics_sector_id": "50",
+      "sector": "Communication Services",
+      "etf_ticker": "XLC",
+      "etf_name": "Communication Services Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Communication Services Select Sector Index"
+    },
+    {
+      "gics_sector_id": "55",
+      "sector": "Utilities",
+      "etf_ticker": "XLU",
+      "etf_name": "Utilities Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Utilities Select Sector Index"
+    },
+    {
+      "gics_sector_id": "60",
+      "sector": "Real Estate",
+      "etf_ticker": "XLRE",
+      "etf_name": "Real Estate Select Sector SPDR Fund",
+      "issuer": "State Street Global Advisors",
+      "index_tracked": "Real Estate Select Sector Index"
+    }
+  ]
+}
