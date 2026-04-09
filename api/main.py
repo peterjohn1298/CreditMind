@@ -37,6 +37,11 @@ app.add_middleware(
 # In-memory portfolio store (replaces Streamlit session_state for API context)
 _portfolio: dict[str, dict] = {}
 
+# Seed the 50-company demo portfolio on startup
+from data.seed_portfolio import DEMO_PORTFOLIO
+for _deal in DEMO_PORTFOLIO:
+    _portfolio[_deal["deal_id"]] = _deal
+
 
 def _get_deal(deal_id: str) -> dict:
     deal = _portfolio.get(deal_id)
