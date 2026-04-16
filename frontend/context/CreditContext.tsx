@@ -10,6 +10,8 @@ interface CreditState {
   sectorData: HeatMapData | null;
   selectedDeal: Deal | null;
   alertSummary: { critical: number; high: number; medium: number; low: number };
+  isRefreshing: boolean;
+  lastRefreshed: string | null;
 }
 
 type Action =
@@ -17,7 +19,9 @@ type Action =
   | { type: "SET_ALERTS"; payload: Alert[] }
   | { type: "SET_SECTOR_DATA"; payload: HeatMapData }
   | { type: "SET_SELECTED_DEAL"; payload: Deal | null }
-  | { type: "RESOLVE_ALERT"; payload: string };
+  | { type: "RESOLVE_ALERT"; payload: string }
+  | { type: "SET_REFRESHING"; payload: boolean }
+  | { type: "SET_LAST_REFRESHED"; payload: string };
 
 function reducer(state: CreditState, action: Action): CreditState {
   switch (action.type) {
@@ -47,6 +51,10 @@ function reducer(state: CreditState, action: Action): CreditState {
           a.alert_id === action.payload ? { ...a, resolved: true } : a
         ),
       };
+    case "SET_REFRESHING":
+      return { ...state, isRefreshing: action.payload };
+    case "SET_LAST_REFRESHED":
+      return { ...state, lastRefreshed: action.payload };
     default:
       return state;
   }
@@ -58,11 +66,14 @@ const initial: CreditState = {
   sectorData:    MOCK_HEAT_MAP,
   selectedDeal:  null,
   alertSummary:  { critical: 1, high: 2, medium: 1, low: 0 },
+  isRefreshing:  false,
+  lastRefreshed: null,
 };
 
 const CreditContext = createContext<{
   state: CreditState;
   dispatch: React.Dispatch<Action>;
+  triggerRefresh: () => Promise<void>;
 } | null>(null);
 
 export function CreditProvider({ children }: { children: React.ReactNode }) {
@@ -114,15 +125,51 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Trigger sector monitoring agents + poll until complete
+  const triggerRefresh = useCallback(async () => {
+    dispatch({ type: "SET_REFRESHING", payload: true });
+    try {
+      const { triggerRefreshAlerts, getRefreshStatus, getAlerts } = await import("@/lib/api");
+      await triggerRefreshAlerts();
+
+      // Poll every 5 seconds until refresh is done
+      const poll = setInterval(async () => {
+        try {
+          const status = await getRefreshStatus();
+          if (!status.running) {
+            clearInterval(poll);
+            const data = await getAlerts();
+            dispatch({ type: "SET_ALERTS", payload: data.alerts });
+            dispatch({ type: "SET_LAST_REFRESHED", payload: new Date().toISOString() });
+            dispatch({ type: "SET_REFRESHING", payload: false });
+          }
+        } catch {
+          clearInterval(poll);
+          dispatch({ type: "SET_REFRESHING", payload: false });
+        }
+      }, 5000);
+
+      // Safety timeout — stop polling after 3 minutes
+      setTimeout(() => {
+        clearInterval(poll);
+        dispatch({ type: "SET_REFRESHING", payload: false });
+      }, 180_000);
+    } catch {
+      dispatch({ type: "SET_REFRESHING", payload: false });
+    }
+  }, []);
+
   useEffect(() => {
     refreshPortfolio();
     refreshAlerts();
+    // Auto-trigger sector monitoring on page load
+    triggerRefresh();
     const id = setInterval(refreshAlerts, 60_000);
     return () => clearInterval(id);
-  }, [refreshPortfolio, refreshAlerts]);
+  }, [refreshPortfolio, refreshAlerts, triggerRefresh]);
 
   return (
-    <CreditContext.Provider value={{ state, dispatch }}>
+    <CreditContext.Provider value={{ state, dispatch, triggerRefresh }}>
       {children}
     </CreditContext.Provider>
   );

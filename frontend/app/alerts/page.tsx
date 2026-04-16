@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RefreshCw } from "lucide-react";
 import AlertCard from "@/components/ui/AlertCard";
 import { useCredit } from "@/context/CreditContext";
 import { resolveAlert } from "@/lib/api";
@@ -88,7 +89,7 @@ function deriveEarlyWarnings(portfolio: Deal[]): EarlyWarning[] {
 }
 
 export default function Alerts() {
-  const { state, dispatch } = useCredit();
+  const { state, dispatch, triggerRefresh } = useCredit();
   const [tab, setTab] = useState<Tab>("company");
 
   const companyAlerts = state.activeAlerts.filter((a) => !a.resolved && a.alert_type !== "sector");
@@ -109,25 +110,50 @@ export default function Alerts() {
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-1 bg-navy-800 border border-navy-700 rounded-lg p-1 w-fit">
-        {([
-          ["company", "Company Alerts", companyAlerts.length],
-          ["sector",  "Sector Alerts",  sectorAlerts.length],
-          ["warning", "Early Warning",  earlyWarnings.length],
-        ] as [Tab, string, number][]).map(([t, label, count]) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={cn(
-              "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-150 flex items-center gap-2",
-              tab === t ? "bg-accent text-white" : "text-muted hover:text-primary"
-            )}>
-            {label}
-            <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full",
-              tab === t ? "bg-white/20 text-white" : "bg-navy-700 text-muted"
-            )}>
-              {count}
+      {/* Header row — tabs + refresh button */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex gap-1 bg-navy-800 border border-navy-700 rounded-lg p-1 w-fit">
+          {([
+            ["company", "Company Alerts", companyAlerts.length],
+            ["sector",  "Sector Alerts",  sectorAlerts.length],
+            ["warning", "Early Warning",  earlyWarnings.length],
+          ] as [Tab, string, number][]).map(([t, label, count]) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-150 flex items-center gap-2",
+                tab === t ? "bg-accent text-white" : "text-muted hover:text-primary"
+              )}>
+              {label}
+              <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full",
+                tab === t ? "bg-white/20 text-white" : "bg-navy-700 text-muted"
+              )}>
+                {count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Refresh button */}
+        <div className="flex items-center gap-3">
+          {state.lastRefreshed && (
+            <span className="text-muted text-xs">
+              Last refreshed: {new Date(state.lastRefreshed).toLocaleTimeString()}
             </span>
+          )}
+          <button
+            onClick={triggerRefresh}
+            disabled={state.isRefreshing}
+            className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium border transition-all duration-150",
+              state.isRefreshing
+                ? "border-navy-600 text-muted cursor-not-allowed"
+                : "border-accent text-accent hover:bg-accent hover:text-white"
+            )}
+          >
+            <RefreshCw size={13} className={state.isRefreshing ? "animate-spin" : ""} />
+            {state.isRefreshing ? "Running agents…" : "Refresh Alerts"}
           </button>
-        ))}
+        </div>
       </div>
 
       {tab === "company" && (

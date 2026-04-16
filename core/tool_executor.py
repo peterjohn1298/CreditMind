@@ -12,7 +12,7 @@ from data.financial_data import (
     get_sec_filings,
     _df_to_dict,
 )
-from data.news_data import get_company_news
+from data.news_data import get_company_news, get_sector_news
 from data.macro_data import get_macro_snapshot
 
 
@@ -59,6 +59,10 @@ def _dispatch(tool_name: str, tool_input: dict):
     elif tool_name == "get_company_news":
         limit = min(int(tool_input.get("limit", 15)), 20)
         return get_company_news(tool_input["ticker"], limit=limit)
+
+    elif tool_name == "get_sector_news":
+        limit = min(int(tool_input.get("limit", 15)), 20)
+        return get_sector_news(tool_input["keywords"], limit=limit)
 
     elif tool_name == "get_macro_snapshot":
         return get_macro_snapshot()

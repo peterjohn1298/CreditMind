@@ -41,6 +41,12 @@ export const getAlerts = (): Promise<{ alerts: Alert[]; summary: { critical: num
 export const getSectorAlerts = (): Promise<{ sector_alerts: Alert[] }> =>
   req("/api/alerts/sector");
 
+export const triggerRefreshAlerts = (): Promise<{ status: string; message: string; sectors?: number }> =>
+  req("/api/refresh-alerts", { method: "POST" });
+
+export const getRefreshStatus = (): Promise<{ running: boolean; last_run: string | null; last_error: string | null; alert_count: number }> =>
+  req("/api/refresh-status");
+
 export const resolveAlert = (alert_id: string, resolved_by = "user", notes = "") =>
   req<{ success: boolean; alert_id: string; resolved_at: string }>(
     "/api/alerts/resolve", { method: "POST", body: JSON.stringify({ alert_id, resolved_by, notes }) }
