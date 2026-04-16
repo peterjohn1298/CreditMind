@@ -7,6 +7,8 @@ import AlertCard from "@/components/ui/AlertCard";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
 import SectorHeatMap from "@/components/ui/SectorHeatMap";
+import PortfolioCharts from "@/components/ui/PortfolioCharts";
+import { SkeletonCard, SkeletonTable } from "@/components/ui/Skeleton";
 import { useCredit } from "@/context/CreditContext";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { resolveAlert } from "@/lib/api";
@@ -15,9 +17,11 @@ export default function Dashboard() {
   const { state, dispatch } = useCredit();
   const { portfolio, activeAlerts, sectorData } = state;
 
+  const loading = portfolio.length === 0;
+
   const totalExposure  = portfolio.reduce((s, d) => s + d.loan_amount, 0);
   const activeLoans    = portfolio.filter((d) => d.status !== "stressed").length;
-  const inDiligence    = 0;
+  const watchlist      = portfolio.filter((d) => d.status === "watchlist" || d.status === "stressed").length;
   const criticalAlerts = activeAlerts.filter((a) => a.severity === "CRITICAL" && !a.resolved).length;
 
   const topAlerts = activeAlerts.filter((a) => !a.resolved).slice(0, 5);
@@ -31,11 +35,20 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Metric Cards */}
       <div className="grid grid-cols-4 gap-4">
-        <MetricCard label="Total Exposure"   value={totalExposure}  isCurrency icon={DollarSign} />
-        <MetricCard label="Active Loans"     value={activeLoans}               icon={Briefcase} />
-        <MetricCard label="In Diligence"     value={inDiligence}               icon={FileSearch} />
-        <MetricCard label="Critical Alerts"  value={criticalAlerts}            icon={AlertTriangle} />
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+        ) : (
+          <>
+            <MetricCard label="Total Exposure"   value={formatCurrency(totalExposure)} icon={DollarSign} />
+            <MetricCard label="Active Loans"     value={activeLoans}                   icon={Briefcase} />
+            <MetricCard label="On Watchlist"     value={watchlist}                     icon={AlertTriangle} />
+            <MetricCard label="Critical Alerts"  value={criticalAlerts}                icon={AlertTriangle} />
+          </>
+        )}
       </div>
+
+      {/* Portfolio Analytics Charts */}
+      {!loading && <PortfolioCharts portfolio={portfolio} />}
 
       {/* Heat Map */}
       {sectorData && (
@@ -49,8 +62,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-3 gap-6">
         {/* Recent Deals */}
         <div className="col-span-2 bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
-          <div className="px-5 py-3 border-b border-navy-700">
+          <div className="px-5 py-3 border-b border-navy-700 flex items-center justify-between">
             <p className="text-primary text-sm font-semibold">Portfolio Deals</p>
+            <Link href="/portfolio" className="text-accent text-xs hover:underline">View all →</Link>
           </div>
           <table className="w-full text-sm">
             <thead>
@@ -61,20 +75,24 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {portfolio.map((deal, i) => (
-                <tr key={deal.deal_id} className={`border-b border-navy-700/50 hover:bg-navy-700/30 transition-colors ${i % 2 === 1 ? "bg-navy-900/30" : ""}`}>
-                  <td className="px-5 py-3">
-                    <p className="text-primary font-medium">{deal.company}</p>
-                    <p className="text-muted text-xs font-mono">{deal.ticker}</p>
-                  </td>
-                  <td className="px-5 py-3"><RatingBadge rating={deal.internal_rating} /></td>
-                  <td className="px-5 py-3"><RiskGauge score={deal.risk_score} size="sm" /></td>
-                  <td className="px-5 py-3">
-                    <span className="text-xs text-muted font-mono">{deal.sector}</span>
-                  </td>
-                  <td className="px-5 py-3 text-muted text-xs font-mono">{formatDate(deal.last_reviewed)}</td>
-                </tr>
-              ))}
+              {loading ? (
+                <SkeletonTable rows={8} />
+              ) : (
+                portfolio.slice(0, 10).map((deal, i) => (
+                  <tr key={deal.deal_id} className={`border-b border-navy-700/50 hover:bg-navy-700/30 transition-colors ${i % 2 === 1 ? "bg-navy-900/30" : ""}`}>
+                    <td className="px-5 py-3">
+                      <p className="text-primary font-medium text-xs">{deal.company}</p>
+                      <p className="text-muted text-[10px] font-mono">{deal.sponsor}</p>
+                    </td>
+                    <td className="px-5 py-3"><RatingBadge rating={deal.internal_rating} /></td>
+                    <td className="px-5 py-3"><RiskGauge score={deal.risk_score} size="sm" /></td>
+                    <td className="px-5 py-3">
+                      <span className="text-xs text-muted font-mono">{deal.sector}</span>
+                    </td>
+                    <td className="px-5 py-3 text-muted text-xs font-mono">{formatDate(deal.last_reviewed)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -85,10 +103,20 @@ export default function Dashboard() {
             <p className="text-primary text-sm font-semibold">Active Alerts</p>
             <Link href="/alerts" className="text-accent text-xs hover:underline">View all →</Link>
           </div>
-          {topAlerts.length === 0 && (
+          {loading && (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-navy-800 border border-navy-700 rounded-lg p-4 space-y-2 animate-pulse">
+                  <div className="h-3 bg-navy-700 rounded w-3/4" />
+                  <div className="h-3 bg-navy-700 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          )}
+          {!loading && topAlerts.length === 0 && (
             <p className="text-muted text-sm text-center py-8">No active alerts</p>
           )}
-          {topAlerts.map((a) => (
+          {!loading && topAlerts.map((a) => (
             <AlertCard key={a.alert_id} alert={a} onResolve={handleResolve} />
           ))}
         </div>

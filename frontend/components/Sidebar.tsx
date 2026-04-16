@@ -51,8 +51,11 @@ export default function Sidebar() {
               <Icon size={16} className={active ? "text-accent" : "text-muted group-hover:text-primary"} />
               <span className="flex-1">{label}</span>
               {badge && totalAlerts > 0 && (
-                <span className="bg-danger text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                  {totalAlerts}
+                <span className="relative inline-flex items-center justify-center w-6 h-5">
+                  <span className="absolute w-5 h-5 rounded-full animate-ping" style={{ backgroundColor: "#FF3B5C", opacity: 0.5 }} />
+                  <span className="relative z-10 text-white text-[10px] font-mono font-bold px-1 rounded-full text-center" style={{ backgroundColor: "#FF3B5C" }}>
+                    {totalAlerts > 9 ? "9+" : totalAlerts}
+                  </span>
                 </span>
               )}
             </Link>
