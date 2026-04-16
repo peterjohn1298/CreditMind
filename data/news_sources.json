@@ -1,0 +1,160 @@
+{
+  "sector_news_config": {
+    "Energy": {
+      "keywords": [
+        "crude oil",
+        "natural gas",
+        "OPEC",
+        "oil prices",
+        "energy sector",
+        "refinery",
+        "pipeline",
+        "petroleum",
+        "LNG",
+        "oil production",
+        "energy transition",
+        "carbon emissions"
+      ]
+    },
+    "Materials": {
+      "keywords": [
+        "commodity prices",
+        "steel tariff",
+        "copper demand",
+        "mining output",
+        "chemical industry",
+        "metals market",
+        "lithium supply",
+        "rare earth",
+        "aluminum production",
+        "raw materials"
+      ]
+    },
+    "Industrials": {
+      "keywords": [
+        "supply chain disruption",
+        "defense contracts",
+        "manufacturing output",
+        "aerospace orders",
+        "freight rates",
+        "industrial production",
+        "factory orders",
+        "logistics",
+        "infrastructure spending",
+        "airline capacity"
+      ]
+    },
+    "Consumer Discretionary": {
+      "keywords": [
+        "consumer spending",
+        "retail sales",
+        "auto sales",
+        "housing market",
+        "discretionary spending",
+        "consumer confidence",
+        "e-commerce",
+        "restaurant industry",
+        "luxury goods",
+        "travel demand"
+      ]
+    },
+    "Consumer Staples": {
+      "keywords": [
+        "food inflation",
+        "grocery prices",
+        "supply chain food",
+        "FDA recall",
+        "packaged goods",
+        "consumer staples earnings",
+        "food production",
+        "tobacco regulation",
+        "beverage demand",
+        "household products"
+      ]
+    },
+    "Health Care": {
+      "keywords": [
+        "FDA approval",
+        "drug pricing",
+        "pharmaceutical earnings",
+        "Medicare cuts",
+        "clinical trial",
+        "health care reform",
+        "biotech pipeline",
+        "patent expiry",
+        "hospital capacity",
+        "insurance coverage"
+      ]
+    },
+    "Financials": {
+      "keywords": [
+        "interest rates",
+        "Federal Reserve",
+        "bank earnings",
+        "credit default",
+        "loan losses",
+        "Basel",
+        "capital requirements",
+        "banking crisis",
+        "deposit flight",
+        "net interest margin"
+      ]
+    },
+    "Information Technology": {
+      "keywords": [
+        "semiconductor shortage",
+        "AI regulation",
+        "chip exports",
+        "data breach",
+        "antitrust tech",
+        "cloud computing",
+        "software earnings",
+        "cybersecurity",
+        "tech layoffs",
+        "hardware supply"
+      ]
+    },
+    "Communication Services": {
+      "keywords": [
+        "streaming subscribers",
+        "telecom regulation",
+        "advertising revenue",
+        "spectrum auction",
+        "social media",
+        "broadband infrastructure",
+        "media consolidation",
+        "5G rollout",
+        "content licensing",
+        "digital advertising"
+      ]
+    },
+    "Utilities": {
+      "keywords": [
+        "power grid",
+        "electricity rates",
+        "renewable energy",
+        "utility regulation",
+        "natural gas prices",
+        "nuclear plant",
+        "grid reliability",
+        "energy storage",
+        "wildfire liability",
+        "water shortage"
+      ]
+    },
+    "Real Estate": {
+      "keywords": [
+        "commercial real estate",
+        "REIT earnings",
+        "office vacancy",
+        "mortgage rates",
+        "property values",
+        "housing supply",
+        "real estate market",
+        "cap rates",
+        "construction costs",
+        "rent growth"
+      ]
+    }
+  }
+}

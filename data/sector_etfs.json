@@ -1,0 +1,16 @@
+{
+  "sector_etf_map": {
+    "Energy": "XLE",
+    "Materials": "XLB",
+    "Industrials": "XLI",
+    "Consumer Discretionary": "XLY",
+    "Consumer Staples": "XLP",
+    "Health Care": "XLV",
+    "Financials": "XLF",
+    "Information Technology": "XLK",
+    "Communication Services": "XLC",
+    "Utilities": "XLU",
+    "Real Estate": "XLRE"
+  },
+  "benchmark_etf": "SPY"
+}
