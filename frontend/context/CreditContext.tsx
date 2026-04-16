@@ -68,6 +68,41 @@ const CreditContext = createContext<{
 export function CreditProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial);
 
+  // Fetch portfolio from API on startup
+  const refreshPortfolio = useCallback(async () => {
+    try {
+      const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${BASE}/api/portfolio`);
+      if (!res.ok) throw new Error("portfolio fetch failed");
+      const data = await res.json();
+      if (data.deals && data.deals.length > 0) {
+        // Normalize API deal shape to match frontend Deal type
+        const deals = data.deals.map((d: any) => ({
+          deal_id:            d.deal_id,
+          company:            d.company,
+          sector:             d.sector,
+          sponsor:            d.sponsor,
+          loan_amount:        d.loan_amount,
+          loan_tenor:         d.loan_tenor,
+          loan_type:          d.loan_type,
+          status:             (d.loan_status ?? d.status ?? "current").toLowerCase(),
+          internal_rating:    d.internal_rating ?? d.current_rating ?? "B+",
+          risk_score:         d.live_risk_score ?? d.risk_score ?? 50,
+          sector_stress_score:d.sector_stress_score ?? 30,
+          alert_count:        (d.human_alerts ?? []).length,
+          disbursement_date:  d.disbursement_date,
+          maturity_date:      d.maturity_date,
+          ebitda:             d.ebitda_analysis?.conservative_adjusted_ebitda ?? d.credit_model?.ebitda,
+          leverage:           d.credit_model?.leverage_multiple,
+          covenants:          d.covenant_status ?? {},
+        }));
+        dispatch({ type: "SET_PORTFOLIO", payload: deals });
+      }
+    } catch {
+      // API not available — keep using mock data
+    }
+  }, []);
+
   // Poll alerts every 60 seconds
   const refreshAlerts = useCallback(async () => {
     try {
@@ -80,10 +115,11 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    refreshPortfolio();
     refreshAlerts();
     const id = setInterval(refreshAlerts, 60_000);
     return () => clearInterval(id);
-  }, [refreshAlerts]);
+  }, [refreshPortfolio, refreshAlerts]);
 
   return (
     <CreditContext.Provider value={{ state, dispatch }}>
