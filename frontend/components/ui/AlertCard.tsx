@@ -37,7 +37,7 @@ export default function AlertCard({ alert, onResolve }: Props) {
             {alert.severity}
           </span>
           <span className="text-primary text-sm font-medium truncate max-w-[220px]">
-            {alert.company ?? alert.sector_id ?? "Portfolio"}
+            {alert._company ?? alert.company ?? alert.sector_id ?? "Portfolio"}
           </span>
         </div>
         <div className="flex items-center gap-2 text-muted">
@@ -48,10 +48,23 @@ export default function AlertCard({ alert, onResolve }: Props) {
 
       {open && (
         <div className="px-4 pb-4 space-y-3">
-          <p className="text-muted text-sm leading-relaxed">{alert.message}</p>
+          {/* Issue */}
+          <div>
+            <p className="text-muted text-[10px] uppercase tracking-wider mb-1">Issue</p>
+            <p className="text-primary text-sm leading-relaxed">
+              {alert.trigger ?? alert.message ?? "No details available"}
+            </p>
+          </div>
+          {/* Action required */}
+          {alert.action_required && (
+            <div className="bg-navy-900 rounded-md p-3">
+              <p className="text-muted text-[10px] uppercase tracking-wider mb-1">Action Required</p>
+              <p className="text-warning text-xs leading-relaxed">{alert.action_required}</p>
+            </div>
+          )}
           {!alert.resolved && (
             <button
-              onClick={() => onResolve(alert.alert_id)}
+              onClick={() => onResolve(alert.alert_id ?? alert._deal_id ?? "")}
               className="flex items-center gap-1.5 text-xs text-success hover:text-success/80 transition-colors font-medium"
             >
               <CheckCircle size={13} />

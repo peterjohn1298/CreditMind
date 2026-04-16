@@ -10,6 +10,8 @@ interface CreditState {
   sectorData: HeatMapData | null;
   selectedDeal: Deal | null;
   alertSummary: { critical: number; high: number; medium: number; low: number };
+  isRefreshing: boolean;
+  lastRefreshed: string | null;
 }
 
 type Action =
@@ -17,7 +19,9 @@ type Action =
   | { type: "SET_ALERTS"; payload: Alert[] }
   | { type: "SET_SECTOR_DATA"; payload: HeatMapData }
   | { type: "SET_SELECTED_DEAL"; payload: Deal | null }
-  | { type: "RESOLVE_ALERT"; payload: string };
+  | { type: "RESOLVE_ALERT"; payload: string }
+  | { type: "SET_REFRESHING"; payload: boolean }
+  | { type: "SET_LAST_REFRESHED"; payload: string };
 
 function reducer(state: CreditState, action: Action): CreditState {
   switch (action.type) {
@@ -47,6 +51,10 @@ function reducer(state: CreditState, action: Action): CreditState {
           a.alert_id === action.payload ? { ...a, resolved: true } : a
         ),
       };
+    case "SET_REFRESHING":
+      return { ...state, isRefreshing: action.payload };
+    case "SET_LAST_REFRESHED":
+      return { ...state, lastRefreshed: action.payload };
     default:
       return state;
   }
@@ -58,15 +66,53 @@ const initial: CreditState = {
   sectorData:    MOCK_HEAT_MAP,
   selectedDeal:  null,
   alertSummary:  { critical: 1, high: 2, medium: 1, low: 0 },
+  isRefreshing:  false,
+  lastRefreshed: null,
 };
 
 const CreditContext = createContext<{
   state: CreditState;
   dispatch: React.Dispatch<Action>;
+  triggerRefresh: () => Promise<void>;
 } | null>(null);
 
 export function CreditProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial);
+
+  // Fetch portfolio from API on startup
+  const refreshPortfolio = useCallback(async () => {
+    try {
+      const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${BASE}/api/portfolio`);
+      if (!res.ok) throw new Error("portfolio fetch failed");
+      const data = await res.json();
+      if (data.deals && data.deals.length > 0) {
+        // Normalize API deal shape to match frontend Deal type
+        const deals = data.deals.map((d: any) => ({
+          deal_id:            d.deal_id,
+          company:            d.company,
+          sector:             d.sector,
+          sponsor:            d.sponsor,
+          loan_amount:        d.loan_amount,
+          loan_tenor:         d.loan_tenor,
+          loan_type:          d.loan_type,
+          status:             (d.loan_status ?? d.status ?? "current").toLowerCase(),
+          internal_rating:    d.internal_rating ?? d.current_rating ?? "B+",
+          risk_score:         d.live_risk_score ?? d.risk_score ?? 50,
+          sector_stress_score:d.sector_stress_score ?? 30,
+          alert_count:        (d.human_alerts ?? []).length,
+          disbursement_date:  d.disbursement_date,
+          maturity_date:      d.maturity_date,
+          ebitda:             d.ebitda_analysis?.conservative_adjusted_ebitda ?? d.credit_model?.ebitda,
+          leverage:           d.credit_model?.leverage_multiple,
+          covenants:          d.covenant_status ?? {},
+        }));
+        dispatch({ type: "SET_PORTFOLIO", payload: deals });
+      }
+    } catch {
+      // API not available — keep using mock data
+    }
+  }, []);
 
   // Poll alerts every 60 seconds
   const refreshAlerts = useCallback(async () => {
@@ -79,14 +125,51 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Trigger sector monitoring agents + poll until complete
+  const triggerRefresh = useCallback(async () => {
+    dispatch({ type: "SET_REFRESHING", payload: true });
+    try {
+      const { triggerRefreshAlerts, getRefreshStatus, getAlerts } = await import("@/lib/api");
+      await triggerRefreshAlerts();
+
+      // Poll every 5 seconds until refresh is done
+      const poll = setInterval(async () => {
+        try {
+          const status = await getRefreshStatus();
+          if (!status.running) {
+            clearInterval(poll);
+            const data = await getAlerts();
+            dispatch({ type: "SET_ALERTS", payload: data.alerts });
+            dispatch({ type: "SET_LAST_REFRESHED", payload: new Date().toISOString() });
+            dispatch({ type: "SET_REFRESHING", payload: false });
+          }
+        } catch {
+          clearInterval(poll);
+          dispatch({ type: "SET_REFRESHING", payload: false });
+        }
+      }, 5000);
+
+      // Safety timeout — stop polling after 3 minutes
+      setTimeout(() => {
+        clearInterval(poll);
+        dispatch({ type: "SET_REFRESHING", payload: false });
+      }, 180_000);
+    } catch {
+      dispatch({ type: "SET_REFRESHING", payload: false });
+    }
+  }, []);
+
   useEffect(() => {
+    refreshPortfolio();
     refreshAlerts();
+    // Auto-trigger sector monitoring on page load
+    triggerRefresh();
     const id = setInterval(refreshAlerts, 60_000);
     return () => clearInterval(id);
-  }, [refreshAlerts]);
+  }, [refreshPortfolio, refreshAlerts, triggerRefresh]);
 
   return (
-    <CreditContext.Provider value={{ state, dispatch }}>
+    <CreditContext.Provider value={{ state, dispatch, triggerRefresh }}>
       {children}
     </CreditContext.Provider>
   );

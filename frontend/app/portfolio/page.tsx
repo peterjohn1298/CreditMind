@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import Select from "@/components/ui/Select";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
 import { useCredit } from "@/context/CreditContext";
 import { formatCurrency, formatDate, getRiskColor, cn } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
 
-const SECTORS  = ["All","Energy","Financials","Industrials","Consumer Discretionary","Health Care"];
+const SECTORS  = ["All","Aerospace & Defense","Healthcare","Industrials","Consumer & Retail","Technology Services","Energy","Food & Agriculture","Logistics","Specialty Chemicals","Financial Services"];
 const STATUSES = ["All","current","watchlist","stressed"];
 
 export default function Portfolio() {
@@ -29,14 +30,8 @@ export default function Portfolio() {
       <div className="flex-1 min-w-0 space-y-4">
         {/* Filters */}
         <div className="flex gap-3">
-          <select value={sector} onChange={(e) => setSector(e.target.value)}
-            className="bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent">
-            {SECTORS.map((s) => <option key={s}>{s}</option>)}
-          </select>
-          <select value={status} onChange={(e) => setStatus(e.target.value)}
-            className="bg-navy-800 border border-navy-700 rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent capitalize">
-            {STATUSES.map((s) => <option key={s} className="capitalize">{s}</option>)}
-          </select>
+          <Select value={sector} onChange={setSector} options={SECTORS} className="w-52" />
+          <Select value={status} onChange={setStatus} options={STATUSES} className="w-36" capitalize />
           <div className="flex-1" />
           <p className="text-muted text-sm self-center font-mono">{deals.length} deals</p>
         </div>
@@ -61,7 +56,6 @@ export default function Portfolio() {
                   )}>
                   <td className="px-4 py-3">
                     <p className="text-primary font-medium">{deal.company}</p>
-                    <p className="text-muted text-xs font-mono">{deal.ticker}</p>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs font-mono px-2 py-0.5 rounded-full border"
@@ -93,7 +87,7 @@ export default function Portfolio() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-navy-700">
             <div>
               <p className="text-primary font-semibold text-sm">{selected.company}</p>
-              <p className="text-muted text-xs font-mono">{selected.ticker}</p>
+              <p className="text-muted text-xs">{selected.deal_type}</p>
             </div>
             <button onClick={() => setSelected(null)} className="text-muted hover:text-primary transition-colors">
               <X size={16} />

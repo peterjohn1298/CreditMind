@@ -120,6 +120,30 @@ GET_COMPANY_NEWS = {
     },
 }
 
+GET_SECTOR_NEWS = {
+    "name": "get_sector_news",
+    "description": (
+        "Fetch recent news articles for a sector using keyword search via NewsAPI. "
+        "Use this when monitoring a sector rather than a specific company. "
+        "Pass the most relevant keywords for the sector (e.g. ['crude oil', 'OPEC', 'oil prices'])."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "keywords": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Keywords to search (top 3 will be used). E.g. ['crude oil', 'OPEC']",
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Number of articles to fetch (1-20). Default 15.",
+            },
+        },
+        "required": ["keywords"],
+    },
+}
+
 GET_MACRO_SNAPSHOT = {
     "name": "get_macro_snapshot",
     "description": (
@@ -188,6 +212,11 @@ SENTIMENT_TOOLS = [
 EARLY_WARNING_TOOLS = [
     GET_COMPANY_NEWS,
     GET_KEY_METRICS,
+    GET_MACRO_SNAPSHOT,
+]
+
+SECTOR_MONITOR_TOOLS = [
+    GET_SECTOR_NEWS,
     GET_MACRO_SNAPSHOT,
 ]
 

@@ -35,12 +35,17 @@ export interface Deal {
 // ─── Alerts ──────────────────────────────────────────────────────────────────
 
 export interface Alert {
-  alert_id: string;
+  alert_id?: string;
   deal_id?: string;
+  _deal_id?: string;
   company?: string;
+  _company?: string;
   sector_id?: string;
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
-  message: string;
+  // API returns trigger + action_required; mock uses message
+  message?: string;
+  trigger?: string;
+  action_required?: string;
   timestamp: string;
   resolved: boolean;
   alert_type?: "company" | "sector";

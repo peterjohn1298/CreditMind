@@ -6,7 +6,7 @@ Adjusts live risk score and triggers alerts on threshold breaches.
 
 import json
 from agents.base_agent import BaseAgent
-from core.tools import EARLY_WARNING_TOOLS
+from core.tools import EARLY_WARNING_TOOLS, SECTOR_MONITOR_TOOLS
 from core.credit_state import log_agent, add_alert
 
 
@@ -103,3 +103,70 @@ Produce structured JSON early warning assessment:
 
         credit_state = log_agent(credit_state, self.name)
         return credit_state
+
+    def run_sector(self, sector_state: dict) -> dict:
+        """Sector-level early warning — assesses macro + sector news for deterioration signals."""
+        sector       = sector_state["sector"]
+        keywords     = sector_state["keywords"]
+        deals        = sector_state["deals_in_sector"]
+        news_signals = sector_state.get("news_signals", [])
+
+        role = (
+            "You are a portfolio risk manager running early warning surveillance by sector. "
+            "You detect early signs of credit deterioration across an entire sector before they appear "
+            "in company financials. Synthesize sector news and macro data to assess sector-wide risk. "
+            "Warning levels: GREEN (normal), AMBER (increased monitoring), RED (watchlist), BLACK (immediate action)."
+        )
+
+        task = f"""
+Sector early warning assessment for: {sector}
+Loans at risk: {len(deals)} ({', '.join(d.get('company', '') for d in deals[:5])}{'...' if len(deals) > 5 else ''})
+Keywords: {', '.join(keywords[:5])}
+
+Recent news signals:
+{json.dumps(news_signals[-1:], indent=2, default=str)[:800] if news_signals else "None yet — fetch fresh sector news first."}
+
+Use your tools to:
+1. Fetch fresh sector news for independent verification
+2. Fetch macro snapshot — assess if macro environment amplifies sector risk
+
+Produce structured JSON:
+{{
+  "warning_level": "GREEN | AMBER | RED | BLACK",
+  "sector_risk_score": integer 0-100,
+  "active_warnings": [
+    {{
+      "warning_type": "NEWS | MACRO | REGULATORY | COMMODITY | COMBINED",
+      "description": "specific signal detected",
+      "severity": "LOW | MEDIUM | HIGH | CRITICAL"
+    }}
+  ],
+  "macro_risk_contribution": "how macro environment affects this sector",
+  "affected_loan_count": integer,
+  "monitoring_recommendation": "NORMAL | INCREASED | WATCHLIST | IMMEDIATE_REVIEW",
+  "early_warning_summary": "concise 2-sentence summary for credit officer"
+}}
+"""
+        result = self.run_agentic_loop_json(role, task, SECTOR_MONITOR_TOOLS)
+
+        sector_state["sector_risk_score"] = result.get("sector_risk_score", 30)
+        sector_state["early_warning_flags"] = result.get("active_warnings", [])
+
+        warning_level = result.get("warning_level", "GREEN")
+        if warning_level in ["RED", "BLACK"]:
+            add_alert(
+                sector_state,
+                trigger=f"Early Warning {warning_level} — {sector} sector",
+                severity="CRITICAL" if warning_level == "BLACK" else "HIGH",
+                action_required=result.get("early_warning_summary", f"Review all {sector} loans immediately."),
+            )
+        elif warning_level == "AMBER":
+            add_alert(
+                sector_state,
+                trigger=f"Increased monitoring — {sector} sector showing stress signals",
+                severity="MEDIUM",
+                action_required=result.get("early_warning_summary", f"Increase monitoring frequency for {sector} loans."),
+            )
+
+        sector_state = log_agent(sector_state, self.name)
+        return sector_state

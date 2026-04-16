@@ -1,0 +1,113 @@
+{
+  "event_id": "EVT-2024-001",
+  "event_name": "OPEC+ Surprise Production Cut — Energy Sector Stress Event",
+  "trigger_date": "2024-03-19",
+  "sector": "Energy",
+  "severity": "HIGH",
+  "sentiment_score": -0.74,
+  "anomaly_flag": true,
+  "news_headline": "OPEC+ Agrees to Surprise 1.5M bpd Production Cut, Sending Crude Above $100",
+  "news_summary": "OPEC+ members including Saudi Arabia and Russia announced a coordinated surprise production cut of 1.5 million barrels per day effective April 1, exceeding market expectations. Brent crude surged past $100 per barrel for the first time since 2022. Analysts warn of sustained energy price inflation, margin pressure for downstream refiners, and increased sovereign credit risk for oil-importing nations. The move caught energy traders off guard, with XLE rising 4.2% intraday while the broader S&P 500 fell 0.8% on inflation concerns.",
+  "market_impact": {
+    "xle_price_change_pct": 4.2,
+    "spy_price_change_pct": -0.8,
+    "sector_relative_performance": 5.0,
+    "brent_crude_usd": 103.40,
+    "wti_crude_usd": 99.85,
+    "anomaly_sigma": 2.8
+  },
+  "contagion_analysis": {
+    "direct_exposure": [
+      {
+        "deal_id": "DL-2024-001",
+        "company": "Exxon Mobil Corporation",
+        "ticker": "XOM",
+        "exposure_type": "Direct commodity price exposure — upstream E&P and refining operations",
+        "severity_tier": "HIGH",
+        "estimated_impact_min": -2500000,
+        "estimated_impact_max": 1800000,
+        "rationale": "XOM is a fully integrated energy major with significant upstream crude oil exposure. While higher prices temporarily boost revenue, OPEC+ supply volatility introduces price reversal risk and geopolitical uncertainty. Hedging coverage estimated at 40% for 2024, leaving 60% exposed to spot price swings.",
+        "covenant_at_risk": "Leverage ratio covenant — at 3.8x vs 4.0x limit; 0.2x headroom",
+        "recommended_action": "Request updated hedging schedule and borrowing base certificate. Schedule covenant review within 10 business days.",
+        "urgency_level": "HIGH"
+      },
+      {
+        "deal_id": "DL-2024-006",
+        "company": "Occidental Petroleum Corporation",
+        "ticker": "OXY",
+        "exposure_type": "Direct commodity price exposure — highly levered E&P with Permian concentration",
+        "severity_tier": "CRITICAL",
+        "estimated_impact_min": -4200000,
+        "estimated_impact_max": 800000,
+        "rationale": "OXY carries materially higher leverage than peers and is acutely sensitive to oil price reversals. Existing risk score of 71 reflects pre-event stress. The OPEC+ cut temporarily improves cash flow but the structural risk of a price reversal to sub-$75 WTI would breach the leverage covenant. Permian Basin concentration amplifies downside.",
+        "covenant_at_risk": "Leverage ratio covenant — at 4.9x vs 5.0x limit; less than 0.1x headroom. CRITICAL escalation required.",
+        "recommended_action": "Escalate to credit committee immediately. Request borrowing base certificate and stress test to $70 WTI. Covenant review call within 5 business days.",
+        "urgency_level": "CRITICAL"
+      }
+    ],
+    "indirect_exposure": [
+      {
+        "deal_id": "DL-2024-003",
+        "company": "The Boeing Company",
+        "ticker": "BA",
+        "exposure_type": "Indirect — supply chain exposure to petrochemical inputs (composites, resins, lubricants)",
+        "severity_tier": "MEDIUM",
+        "estimated_impact_min": -800000,
+        "estimated_impact_max": 0,
+        "rationale": "Boeing's aerospace manufacturing supply chain relies on petrochemical-derived materials. An OPEC+ shock elevates input costs and may suppress airline customer capex if fuel cost pressure delays aircraft orders. Boeing's existing watchlist status makes this an additive risk factor that warrants monitoring.",
+        "covenant_at_risk": "None immediate — monitor quarterly order book and customer deferrals",
+        "recommended_action": "Add energy input cost monitoring to Boeing's quarterly review checklist. Watch for airline customer order deferrals in Q2 earnings.",
+        "urgency_level": "MEDIUM"
+      }
+    ],
+    "no_exposure": [
+      {
+        "deal_id": "DL-2024-002",
+        "company": "JPMorgan Chase & Co.",
+        "ticker": "JPM",
+        "rationale": "Diversified financial institution with strong capital ratios (CET1 ~15%) and no direct commodity exposure. Energy sector lending is a small portion of JPM's total loan book and well-collateralized."
+      },
+      {
+        "deal_id": "DL-2024-004",
+        "company": "Amazon.com, Inc.",
+        "ticker": "AMZN",
+        "rationale": "Amazon's primary revenue drivers (AWS, e-commerce, advertising) are not materially correlated with crude oil prices. Logistics fuel costs are manageable and partially hedged through fleet electrification programs."
+      },
+      {
+        "deal_id": "DL-2024-005",
+        "company": "Pfizer Inc.",
+        "ticker": "PFE",
+        "rationale": "Pharmaceutical business model is not sensitive to commodity energy prices. Manufacturing energy costs are immaterial relative to R&D and SG&A. No exposure to OPEC+ scenario."
+      }
+    ]
+  },
+  "recommended_actions": [
+    {
+      "priority": 1,
+      "deal_id": "DL-2024-006",
+      "company": "OXY",
+      "action": "ESCALATE TO CREDIT COMMITTEE",
+      "description": "Covenant headroom below 0.1x. Request borrowing base certificate and run $70 WTI stress scenario immediately.",
+      "urgency_level": "CRITICAL",
+      "due_within": "5 business days"
+    },
+    {
+      "priority": 2,
+      "deal_id": "DL-2024-001",
+      "company": "XOM",
+      "action": "COVENANT REVIEW",
+      "description": "Obtain updated hedging schedule. Assess borrowing base sensitivity to price reversal scenario below $75 WTI.",
+      "urgency_level": "HIGH",
+      "due_within": "10 business days"
+    },
+    {
+      "priority": 3,
+      "deal_id": "DL-2024-003",
+      "company": "BA",
+      "action": "MONITOR",
+      "description": "Add energy input cost to Boeing's quarterly monitoring checklist. No immediate action required.",
+      "urgency_level": "MEDIUM",
+      "due_within": "Next quarterly review"
+    }
+  ]
+}

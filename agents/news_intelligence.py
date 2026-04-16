@@ -6,7 +6,7 @@ Can also pull SEC filings to cross-reference regulatory disclosures.
 
 import json
 from agents.base_agent import BaseAgent
-from core.tools import NEWS_INTEL_TOOLS
+from core.tools import NEWS_INTEL_TOOLS, SECTOR_MONITOR_TOOLS
 from core.credit_state import log_agent, add_alert
 
 
@@ -73,3 +73,58 @@ Produce structured JSON news analysis:
 
         credit_state = log_agent(credit_state, self.name)
         return credit_state
+
+    def run_sector(self, sector_state: dict) -> dict:
+        """Sector-level news surveillance — uses keyword search instead of ticker."""
+        sector   = sector_state["sector"]
+        keywords = sector_state["keywords"]
+        deals    = sector_state["deals_in_sector"]
+        total_exposure = sum(d.get("loan_amount", 0) for d in deals)
+
+        role = (
+            "You are a credit surveillance analyst monitoring a private credit portfolio by sector. "
+            "You scan sector-level news to detect material events that could affect the creditworthiness "
+            "of loans in that sector. Focus on: regulatory changes, commodity shocks, supply chain disruptions, "
+            "industry-wide financial stress, major bankruptcies, policy changes. "
+            "Do not flag routine business news — only events a credit officer must act on today."
+        )
+
+        task = f"""
+Sector news surveillance for: {sector}
+Portfolio exposure: {len(deals)} loans totalling ${total_exposure:,.0f}
+Search keywords: {', '.join(keywords[:5])}
+
+Fetch recent sector news using the keywords above. Identify material events that could affect
+creditworthiness of loans in this sector.
+
+Produce structured JSON:
+{{
+  "total_articles_reviewed": integer,
+  "material_events_detected": [
+    {{
+      "headline": "article title",
+      "event_type": "REGULATORY | COMMODITY | SUPPLY_CHAIN | FINANCIAL_STRESS | POLICY | MACRO | OTHER",
+      "severity": "LOW | MEDIUM | HIGH | CRITICAL",
+      "credit_implication": "how this affects loans in {sector}",
+      "published_at": "date"
+    }}
+  ],
+  "overall_news_tone": "POSITIVE | NEUTRAL | NEGATIVE | MIXED",
+  "credit_relevant_summary": "2-3 sentence summary for portfolio manager",
+  "escalation_required": true or false,
+  "escalation_reason": "reason if escalation_required is true, else null"
+}}
+"""
+        result = self.run_agentic_loop_json(role, task, SECTOR_MONITOR_TOOLS)
+        sector_state["news_signals"] = [result]
+
+        if result.get("escalation_required"):
+            add_alert(
+                sector_state,
+                trigger=f"{sector}: {result.get('escalation_reason', 'Material sector event detected')}",
+                severity="HIGH",
+                action_required=f"Review {len(deals)} {sector} loans. {result.get('credit_relevant_summary', '')}",
+            )
+
+        sector_state = log_agent(sector_state, self.name)
+        return sector_state

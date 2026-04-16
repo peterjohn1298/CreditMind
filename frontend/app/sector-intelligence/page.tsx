@@ -168,7 +168,6 @@ export default function SectorIntelligence() {
                 <tr key={deal.deal_id} className={`border-b border-navy-700/50 hover:bg-navy-700/20 transition-colors ${i % 2 === 1 ? "bg-navy-900/20" : ""}`}>
                   <td className="px-5 py-3">
                     <p className="text-primary font-medium">{deal.company}</p>
-                    <p className="text-muted text-xs font-mono">{deal.ticker}</p>
                   </td>
                   <td className="px-5 py-3">
                     <span className="text-xs font-mono px-2 py-0.5 rounded-full border" style={{ borderColor: color + "50", color }}>
