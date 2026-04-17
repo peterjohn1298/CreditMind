@@ -69,12 +69,12 @@ def _deal(
         "ic_conditions":      [],
         "ic_decision_date":   disbursement_date,
         "ic_decision_by":     "Investment Committee",
-        "news_signals":       news_signals or [],
-        "sentiment_score":    sentiment_score,
+        "news_signals":       [],  # populated by monitoring agents at runtime
+        "sentiment_score":    None,
         "sentiment_trend":    [],
-        "early_warning_flags": early_warning_flags or [],
+        "early_warning_flags": [],  # populated by monitoring agents at runtime
         "portfolio_health":   None,
-        "human_alerts":       human_alerts or [],
+        "human_alerts":       [],  # populated by monitoring agents at runtime
         "divergence_flags":   [],
         "agent_log":          [],
         "routing_notes":      [],

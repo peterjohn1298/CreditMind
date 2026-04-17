@@ -85,6 +85,13 @@ for _deal in DEMO_PORTFOLIO:
     _portfolio[_deal["deal_id"]] = _deal
 
 
+@app.on_event("startup")
+async def startup_monitoring():
+    """Trigger sector monitoring on startup so the portfolio shows real signals immediately."""
+    thread = threading.Thread(target=_run_sector_monitoring, daemon=True)
+    thread.start()
+
+
 def _get_deal(deal_id: str) -> dict:
     deal = _portfolio.get(deal_id)
     if not deal:
@@ -445,9 +452,26 @@ def _run_sector_monitoring():
             ew_agent = EarlyWarningAgent()
             sector_state = ew_agent.run_sector(sector_state)
 
+            # Push real signals back to each individual deal in this sector
+            sector_news   = sector_state.get("news_signals", [])[:5]
+            sector_flags  = sector_state.get("early_warning_flags", [])
+            sector_halerts = sector_state.get("human_alerts", [])
+
+            for deal in deals:
+                deal_id = deal.get("deal_id")
+                if deal_id in _portfolio:
+                    _portfolio[deal_id]["news_signals"]       = sector_news
+                    _portfolio[deal_id]["early_warning_flags"] = sector_flags
+                    for alert in sector_halerts:
+                        _portfolio[deal_id]["human_alerts"].append({
+                            **alert,
+                            "alert_type": "sector",
+                            "sector_id":  sector_name,
+                        })
+
             # Tag alerts with sector metadata and unique IDs
             alerts = []
-            for i, alert in enumerate(sector_state.get("human_alerts", [])):
+            for i, alert in enumerate(sector_halerts):
                 alerts.append({
                     **alert,
                     "alert_id":   f"sector-{sector_name[:6].lower().replace(' ', '')}-{int(datetime.now().timestamp())}-{i}",
