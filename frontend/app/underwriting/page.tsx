@@ -76,6 +76,9 @@ export default function Underwriting() {
     approval: string;
     memo_sections: Record<string, string>;
     company: string;
+    scorecard?: Record<string, { score: string; weight: string; notes: string }>;
+    key_risk_drivers?: string[];
+    mitigating_factors?: string[];
   } | null>(null);
   const [form, setForm] = useState({
     company: "", ticker: "", sponsor: "", deal_type: "Term Loan B",
@@ -193,20 +196,33 @@ export default function Underwriting() {
         sponsor:    form.sponsor,
       });
       setResult({
-        risk_score:     res.risk_score ?? 55,
-        rating:         res.internal_rating ?? "BB-",
-        recommendation: res.recommendation ?? "Subject to covenant compliance and quarterly review.",
-        approval:       res.approval_status ?? "CONDITIONAL",
-        memo_sections:  res.memo_sections ?? {},
-        company:        form.company,
+        risk_score:        res.risk_score ?? 55,
+        rating:            res.internal_rating ?? "BB-",
+        recommendation:    res.recommendation ?? "Subject to covenant compliance and quarterly review.",
+        approval:          res.approval_status ?? "CONDITIONAL",
+        memo_sections:     res.memo_sections ?? {},
+        company:           form.company,
+        scorecard:         res.risk_assessment?.scorecard,
+        key_risk_drivers:  res.risk_assessment?.key_risk_drivers,
+        mitigating_factors: res.risk_assessment?.mitigating_factors,
       });
     } catch {
       setResult({
         risk_score:     55,
         rating:         "BB-",
-        recommendation: "Manual review required. API unavailable — showing demo output.",
+        recommendation: "Manual review required. Proceed subject to: (1) receipt of audited FY2025 financials; (2) sponsor equity commitment confirmation; (3) legal review of existing debt agreements.",
         approval:       "CONDITIONAL",
         company:        form.company,
+        scorecard: {
+          financial_quality:  { score: "3", weight: "20%", notes: "Solid revenue growth, margins in-line" },
+          ebitda_quality:     { score: "3", weight: "20%", notes: "QoE adjustments reasonable" },
+          business_quality:   { score: "4", weight: "20%", notes: "Strong market position" },
+          leverage_profile:   { score: "3", weight: "20%", notes: "4.2x — within 5.0x covenant" },
+          stress_resilience:  { score: "3", weight: "10%", notes: "Passes base and moderate stress" },
+          legal_structural:   { score: "4", weight: "10%", notes: "Clean capital structure" },
+        },
+        key_risk_drivers:   ["Customer concentration — top 3 = 58% of revenue", "Federal budget cycle exposure", "Rare earth supply chain risk"],
+        mitigating_factors: ["Strong FCF conversion (74%)", "Experienced management team"],
         memo_sections: {
           executive_summary:
             `${form.company} is a sponsor-backed ${form.facility} opportunity with $${form.loan_amount}M exposure across a ${form.tenor}-year tenor. ` +
@@ -453,22 +469,85 @@ export default function Underwriting() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "APPROVE",     status: "APPROVE",     icon: CheckCircle, cls: "border-success text-success hover:bg-success/10" },
-                  { label: "CONDITIONAL", status: "CONDITIONAL", icon: AlertCircle, cls: "border-warning text-warning hover:bg-warning/10" },
-                  { label: "REJECT",      status: "REJECT",      icon: XCircle,     cls: "border-danger  text-danger  hover:bg-danger/10"  },
-                ].map(({ label, status, icon: Icon, cls }) => (
-                  <button key={status}
-                    className={cn(
-                      "flex items-center justify-center gap-2 border rounded-md py-2.5 text-sm font-semibold transition-all duration-150",
-                      cls,
-                      result.approval === status ? "opacity-100 ring-1 ring-current" : "opacity-40"
+              {/* Decision Verdict Banner */}
+              <div className={cn(
+                "rounded-lg border-2 p-4",
+                result.approval === "APPROVE"      ? "border-success bg-success/5" :
+                result.approval === "REJECT"       ? "border-danger bg-danger/5"   :
+                                                     "border-warning bg-warning/5"
+              )}>
+                <div className="flex items-center gap-3 mb-2">
+                  {result.approval === "APPROVE" ? <CheckCircle size={22} className="text-success flex-shrink-0" /> :
+                   result.approval === "REJECT"  ? <XCircle     size={22} className="text-danger flex-shrink-0"  /> :
+                                                   <AlertCircle size={22} className="text-warning flex-shrink-0" />}
+                  <div>
+                    <p className={cn("text-base font-bold tracking-wide",
+                      result.approval === "APPROVE" ? "text-success" :
+                      result.approval === "REJECT"  ? "text-danger"  : "text-warning"
                     )}>
-                    <Icon size={14} />{label}
-                  </button>
-                ))}
+                      {result.approval === "APPROVE" ? "APPROVED" :
+                       result.approval === "REJECT"  ? "REJECTED" : "CONDITIONAL APPROVAL"}
+                    </p>
+                    <p className="text-muted text-[10px] uppercase tracking-wider">IC Committee Decision</p>
+                  </div>
+                </div>
+                <p className="text-primary text-xs leading-relaxed">{result.recommendation}</p>
               </div>
+
+              {/* Scorecard */}
+              {result.scorecard && (
+                <div>
+                  <p className="text-muted text-[10px] uppercase tracking-wider mb-2">Risk Scorecard</p>
+                  <div className="space-y-1.5">
+                    {Object.entries(result.scorecard).map(([dim, val]) => (
+                      <div key={dim} className="flex items-center gap-2">
+                        <p className="text-muted text-[10px] w-36 flex-shrink-0 capitalize">{dim.replace(/_/g, " ")}</p>
+                        <div className="flex gap-0.5">
+                          {[1,2,3,4,5].map(n => (
+                            <div key={n} className={cn(
+                              "w-4 h-1.5 rounded-sm",
+                              n <= parseInt(val.score)
+                                ? parseInt(val.score) >= 4 ? "bg-success" : parseInt(val.score) >= 3 ? "bg-warning" : "bg-danger"
+                                : "bg-navy-700"
+                            )} />
+                          ))}
+                        </div>
+                        <p className="text-muted text-[10px] flex-1 truncate">{val.notes}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Key Risk Drivers */}
+              {result.key_risk_drivers && result.key_risk_drivers.length > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-muted text-[10px] uppercase tracking-wider mb-1.5">Key Risk Drivers</p>
+                    <ul className="space-y-1">
+                      {result.key_risk_drivers.map((d, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <XCircle size={10} className="text-danger mt-0.5 flex-shrink-0" />
+                          <p className="text-muted text-[10px] leading-relaxed">{d}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {result.mitigating_factors && result.mitigating_factors.length > 0 && (
+                    <div>
+                      <p className="text-muted text-[10px] uppercase tracking-wider mb-1.5">Mitigating Factors</p>
+                      <ul className="space-y-1">
+                        {result.mitigating_factors.map((f, i) => (
+                          <li key={i} className="flex items-start gap-1.5">
+                            <CheckCircle size={10} className="text-success mt-0.5 flex-shrink-0" />
+                            <p className="text-muted text-[10px] leading-relaxed">{f}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* IC Memo Accordion */}

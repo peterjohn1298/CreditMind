@@ -86,6 +86,8 @@ Return JSON risk assessment:
         credit_state["internal_rating"] = result.get("internal_rating")
         credit_state["live_risk_score"] = result.get("composite_risk_score")
         credit_state["risk_assessment"] = result
+        credit_state["approval_status"] = result.get("recommendation", "CONDITIONAL")
+        credit_state["recommendation"] = result.get("recommendation_rationale", "")
 
         score = result.get("composite_risk_score", 50)
         if score >= 65:
