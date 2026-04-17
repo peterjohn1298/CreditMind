@@ -123,7 +123,7 @@ GET_COMPANY_NEWS = {
 GET_SECTOR_NEWS = {
     "name": "get_sector_news",
     "description": (
-        "Fetch recent news articles for a sector using keyword search via NewsAPI. "
+        "Fetch recent finance news from Finnhub filtered by sector keywords. "
         "Use this when monitoring a sector rather than a specific company. "
         "Pass the most relevant keywords for the sector (e.g. ['crude oil', 'OPEC', 'oil prices'])."
     ),
