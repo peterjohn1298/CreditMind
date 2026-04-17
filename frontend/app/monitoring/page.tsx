@@ -89,8 +89,12 @@ export default function Monitoring() {
   const [tab, setTab]         = useState<Tab>("monitoring");
 
   // Daily Monitor state
-  const [dailyRunning, setDailyRunning]   = useState(false);
-  const [dailySummary, setDailySummary]   = useState<string | null>(null);
+  const [dailyRunning,     setDailyRunning]     = useState(false);
+  const [dailySummary,     setDailySummary]     = useState<string | null>(null);
+  const [warningFlags,     setWarningFlags]     = useState<any[]>([]);
+  const [jobSignals,       setJobSignals]       = useState<any | null>(null);
+  const [consumerSignals,  setConsumerSignals]  = useState<any | null>(null);
+  const [liveNewsSignals,  setLiveNewsSignals]  = useState<any[]>([]);
 
   // Quarterly Review state
   const [qRunning, setQRunning]     = useState(false);
@@ -115,7 +119,11 @@ export default function Monitoring() {
     setDailySummary(null);
     try {
       const res = await runDailyMonitor(deal.deal_id, deal.ticker);
-      setDailySummary(res.monitoring_summary);
+      setDailySummary(res.monitoring_summary ?? null);
+      setWarningFlags(res.early_warning_flags ?? []);
+      setLiveNewsSignals(res.news_signals ?? []);
+      setJobSignals(res.job_signals ?? null);
+      setConsumerSignals(res.consumer_signals ?? null);
     } catch {
       setDailySummary("Monitoring complete. No significant changes detected in the last 24 hours. Sentiment stable across coverage universe.");
     } finally {
@@ -198,21 +206,47 @@ export default function Monitoring() {
             <div className="p-5 grid grid-cols-2 gap-5">
               <div className="space-y-4">
                 <SentimentChart data={sentimentData} sector={deal?.sector ?? "Portfolio"} />
+                {/* News Signals — real data from deal state, live signals after monitor runs */}
                 <div className="space-y-1">
-                  <p className="text-primary text-xs font-semibold mb-2">Recent Headlines</p>
-                  {[
-                    { headline: "OPEC+ announces surprise production cut, crude jumps 8%", score: 28, negative: true },
-                    { headline: "Energy sector ETF (XLE) falls 3.2% on demand concerns",   score: 31, negative: true },
-                    { headline: "Company reports Q1 performance in line with expectations", score: 62, negative: false },
-                  ].map((h, i) => (
-                    <div key={i} className="flex items-start gap-3 py-2 border-b border-navy-700/50 last:border-0">
-                      <span className={cn("text-xs font-mono font-bold px-1.5 py-0.5 rounded shrink-0",
-                        h.negative ? "bg-danger/20 text-danger" : "bg-success/20 text-success"
-                      )}>{h.score}</span>
-                      <p className="text-primary text-xs leading-relaxed">{h.headline}</p>
-                    </div>
-                  ))}
+                  <p className="text-primary text-xs font-semibold mb-2">News Signals</p>
+                  {(() => {
+                    const signals = liveNewsSignals.length > 0
+                      ? liveNewsSignals
+                      : (deal?.news_signals ?? []);
+                    if (signals.length === 0) return (
+                      <p className="text-muted text-xs py-2">No news signals — run Daily Monitor to fetch live headlines.</p>
+                    );
+                    return signals.slice(0, 5).map((h: any, i: number) => {
+                      const negative = h.sentiment === "negative" || h.score < 40;
+                      return (
+                        <div key={i} className="flex items-start gap-3 py-2 border-b border-navy-700/50 last:border-0">
+                          <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 uppercase",
+                            negative ? "bg-danger/20 text-danger" : "bg-success/20 text-success"
+                          )}>{h.sentiment ?? (negative ? "neg" : "pos")}</span>
+                          <p className="text-primary text-xs leading-relaxed">{h.headline ?? h.title ?? h}</p>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
+
+                {/* Early Warning Flags — shown after monitor runs */}
+                {warningFlags.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-primary text-xs font-semibold mb-2">Active Warning Flags</p>
+                    {warningFlags.map((f: any, i: number) => (
+                      <div key={i} className={cn(
+                        "rounded px-3 py-2 text-xs border-l-2",
+                        f.severity === "CRITICAL" ? "border-danger bg-danger/5 text-danger" :
+                        f.severity === "HIGH"     ? "border-warning bg-warning/5 text-warning" :
+                                                    "border-muted bg-navy-900 text-muted"
+                      )}>
+                        <span className="font-semibold">{f.warning_type ?? f.flag_type} — </span>
+                        {f.description}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="space-y-4">
                 <div className="bg-navy-900 rounded-lg p-4 space-y-2">
@@ -238,6 +272,45 @@ export default function Monitoring() {
                   <div className="bg-navy-900 rounded-lg p-4">
                     <p className="text-primary text-xs font-semibold mb-1.5">Monitor Summary</p>
                     <p className="text-muted text-xs leading-relaxed">{dailySummary}</p>
+                  </div>
+                )}
+
+                {/* Alternative Data Panel */}
+                {(jobSignals || consumerSignals) && (
+                  <div className="bg-navy-900 rounded-lg p-4 space-y-3">
+                    <p className="text-primary text-xs font-semibold">Alternative Data Signals</p>
+
+                    {jobSignals && !jobSignals.error && (
+                      <div>
+                        <p className="text-muted text-[10px] uppercase tracking-wider mb-1">Job Postings (Arbeitnow)</p>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-primary text-xs">{jobSignals.open_positions} open positions</span>
+                          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded font-mono",
+                            jobSignals.hiring_signal === "DISTRESS"     ? "bg-danger/20 text-danger" :
+                            jobSignals.hiring_signal === "CONTRACTING"  ? "bg-warning/20 text-warning" :
+                            jobSignals.hiring_signal === "SURGE"        ? "bg-success/20 text-success" :
+                                                                          "bg-navy-700 text-muted"
+                          )}>{jobSignals.hiring_signal}</span>
+                        </div>
+                        <p className="text-muted text-[10px] leading-relaxed">{jobSignals.signal_rationale}</p>
+                      </div>
+                    )}
+
+                    {consumerSignals && !consumerSignals.error && (
+                      <div className="border-t border-navy-700 pt-3">
+                        <p className="text-muted text-[10px] uppercase tracking-wider mb-1">Consumer Sentiment (Yelp)</p>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-primary text-xs">{consumerSignals.rating}★ · {consumerSignals.review_count?.toLocaleString()} reviews</span>
+                          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded font-mono",
+                            consumerSignals.consumer_signal === "DISTRESS"   ? "bg-danger/20 text-danger" :
+                            consumerSignals.consumer_signal === "WEAKENING"  ? "bg-warning/20 text-warning" :
+                            consumerSignals.consumer_signal === "STRONG"     ? "bg-success/20 text-success" :
+                                                                               "bg-navy-700 text-muted"
+                          )}>{consumerSignals.consumer_signal}</span>
+                        </div>
+                        <p className="text-muted text-[10px] leading-relaxed">{consumerSignals.signal_rationale}</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

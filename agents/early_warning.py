@@ -8,6 +8,10 @@ import json
 from agents.base_agent import BaseAgent
 from core.tools import EARLY_WARNING_TOOLS, SECTOR_MONITOR_TOOLS
 from core.credit_state import log_agent, add_alert
+from data.jobs_data import get_job_signals
+from data.consumer_signals import get_consumer_signals
+
+_CONSUMER_SECTORS = {"Consumer & Retail", "Healthcare", "Food & Agriculture"}
 
 
 class EarlyWarningAgent(BaseAgent):
@@ -38,6 +42,17 @@ class EarlyWarningAgent(BaseAgent):
         news_signals = credit_state.get("news_signals", [])
         internal_rating = credit_state.get("internal_rating", "BB")
 
+        # Pre-fetch alternative data and store in credit_state for UI display
+        sector = credit_state.get("sector", "")
+        job_data = get_job_signals(company)
+        credit_state["job_signals"] = job_data
+
+        if sector in _CONSUMER_SECTORS:
+            consumer_data = get_consumer_signals(company)
+            credit_state["consumer_signals"] = consumer_data
+        else:
+            consumer_data = None
+
         task = f"""
 Early warning assessment for {company} (ticker: {ticker}).
 
@@ -52,6 +67,10 @@ CURRENT STATE:
 
 RECENT NEWS SIGNALS:
 {json.dumps(news_signals[-3:], indent=2, default=str)[:1000]}
+
+ALTERNATIVE DATA (pre-fetched):
+Job Signal: {json.dumps(job_data, default=str)}
+{f"Consumer Signal (Yelp): {json.dumps(consumer_data, default=str)}" if consumer_data else "Consumer Signal: N/A — B2B or non-consumer sector"}
 
 Use your tools to:
 1. Fetch fresh company news independently — look for anything the other agents may have missed

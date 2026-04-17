@@ -135,6 +135,10 @@ class MonitorResponse(BaseModel):
     alerts: list
     sentiment: Optional[dict]
     monitoring_summary: Optional[str]
+    early_warning_flags: Optional[list]
+    news_signals: Optional[list]
+    job_signals: Optional[dict]
+    consumer_signals: Optional[dict]
 
 
 class QuarterlyReviewResponse(BaseModel):
@@ -209,6 +213,10 @@ def daily_monitor(req: MonitorRequest):
             alerts=get_pending_alerts(credit_state),
             sentiment=credit_state.get("sentiment_analysis"),
             monitoring_summary=credit_state.get("early_warning_summary"),
+            early_warning_flags=credit_state.get("early_warning_flags", []),
+            news_signals=credit_state.get("news_signals", []),
+            job_signals=credit_state.get("job_signals"),
+            consumer_signals=credit_state.get("consumer_signals"),
         )
     except HTTPException:
         raise
