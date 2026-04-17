@@ -14,6 +14,7 @@ from data.financial_data import (
 )
 from data.news_data import get_company_news, get_sector_news
 from data.macro_data import get_macro_snapshot
+from data.jobs_data import get_job_signals
 
 
 def execute_tool(tool_name: str, tool_input: dict) -> str:
@@ -66,6 +67,9 @@ def _dispatch(tool_name: str, tool_input: dict):
 
     elif tool_name == "get_macro_snapshot":
         return get_macro_snapshot()
+
+    elif tool_name == "get_job_signals":
+        return get_job_signals(tool_input["company"])
 
     else:
         return {"error": f"Unknown tool: {tool_name}"}

@@ -144,6 +144,22 @@ GET_SECTOR_NEWS = {
     },
 }
 
+GET_JOB_SIGNALS = {
+    "name": "get_job_signals",
+    "description": (
+        "Fetch alternative data: open job posting count and hiring signal for a company via Adzuna. "
+        "A surge in postings signals growth; a sharp drop or distress keywords (restructuring, RIF, layoffs) "
+        "signals potential credit deterioration. Use this as a leading indicator in early warning monitoring."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "company": {"type": "string", "description": "Full company name, e.g. 'Ducommun Incorporated'"},
+        },
+        "required": ["company"],
+    },
+}
+
 GET_MACRO_SNAPSHOT = {
     "name": "get_macro_snapshot",
     "description": (
@@ -213,6 +229,7 @@ EARLY_WARNING_TOOLS = [
     GET_COMPANY_NEWS,
     GET_KEY_METRICS,
     GET_MACRO_SNAPSHOT,
+    GET_JOB_SIGNALS,
 ]
 
 SECTOR_MONITOR_TOOLS = [
