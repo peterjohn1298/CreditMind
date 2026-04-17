@@ -148,9 +148,9 @@ GET_CONSUMER_SIGNALS = {
     "name": "get_consumer_signals",
     "description": (
         "Fetch alternative data: Yelp rating, review count, and recent review sentiment for a consumer-facing business. "
-        "Use for retail, restaurant, healthcare, gym, or hospitality borrowers — NOT for B2B or industrial companies. "
-        "Declining ratings or negative recent reviews are leading indicators of foot traffic and revenue deterioration "
-        "before they appear in financial statements."
+        "ONLY USE for companies with physical consumer locations: retail stores, clinics, gyms, restaurants, pharmacies, bariatric/behavioral health centers. "
+        "DO NOT use for: defense contractors, manufacturers, logistics operators, chemical companies, energy infrastructure, B2B tech, or financial services — these have no Yelp presence. "
+        "Declining ratings or negative recent reviews are leading indicators of foot traffic and revenue deterioration before financials reflect it."
     ),
     "input_schema": {
         "type": "object",
@@ -165,9 +165,11 @@ GET_CONSUMER_SIGNALS = {
 GET_JOB_SIGNALS = {
     "name": "get_job_signals",
     "description": (
-        "Fetch alternative data: open job posting count and hiring signal for a company via Arbeitnow (no API key required). "
-        "A surge in postings signals growth; a sharp drop or distress keywords (restructuring, RIF, layoffs) "
-        "signals potential credit deterioration. Use this as a leading indicator in early warning monitoring."
+        "Fetch alternative data: open job posting count and hiring signal via Arbeitnow. "
+        "BEST FOR: technology services, BPO, software, managed services, and consumer-facing companies that post jobs publicly. "
+        "AVOID FOR: defense contractors, industrial manufacturers, oilfield services, chemical plants, logistics operators — "
+        "these post on industry-specific boards not covered here, and low counts would be a false distress signal. "
+        "A surge signals growth; distress keywords (restructuring, RIF, layoffs) signal deterioration."
     ),
     "input_schema": {
         "type": "object",
