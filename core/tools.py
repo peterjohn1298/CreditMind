@@ -144,6 +144,24 @@ GET_SECTOR_NEWS = {
     },
 }
 
+GET_CONSUMER_SIGNALS = {
+    "name": "get_consumer_signals",
+    "description": (
+        "Fetch alternative data: Yelp rating, review count, and recent review sentiment for a consumer-facing business. "
+        "Use for retail, restaurant, healthcare, gym, or hospitality borrowers — NOT for B2B or industrial companies. "
+        "Declining ratings or negative recent reviews are leading indicators of foot traffic and revenue deterioration "
+        "before they appear in financial statements."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "company":  {"type": "string", "description": "Business name as it would appear on Yelp, e.g. 'Planet Fitness'"},
+            "location": {"type": "string", "description": "City or state to narrow search, e.g. 'New York' or 'US'. Default: US"},
+        },
+        "required": ["company"],
+    },
+}
+
 GET_JOB_SIGNALS = {
     "name": "get_job_signals",
     "description": (
@@ -230,6 +248,7 @@ EARLY_WARNING_TOOLS = [
     GET_KEY_METRICS,
     GET_MACRO_SNAPSHOT,
     GET_JOB_SIGNALS,
+    GET_CONSUMER_SIGNALS,
 ]
 
 SECTOR_MONITOR_TOOLS = [
