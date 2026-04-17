@@ -147,7 +147,7 @@ GET_SECTOR_NEWS = {
 GET_JOB_SIGNALS = {
     "name": "get_job_signals",
     "description": (
-        "Fetch alternative data: open job posting count and hiring signal for a company via Adzuna. "
+        "Fetch alternative data: open job posting count and hiring signal for a company via Arbeitnow (no API key required). "
         "A surge in postings signals growth; a sharp drop or distress keywords (restructuring, RIF, layoffs) "
         "signals potential credit deterioration. Use this as a leading indicator in early warning monitoring."
     ),
