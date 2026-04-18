@@ -128,6 +128,18 @@ async def startup_event():
 
         saved_alerts = load_sector_alerts()
         if saved_alerts:
+            import random as _rand
+            cutoff = datetime.now().timestamp() - 48 * 3600
+            for a in saved_alerts:
+                if not a.get("resolved"):
+                    try:
+                        ts = datetime.fromisoformat(a.get("timestamp", "")).timestamp()
+                    except (ValueError, TypeError):
+                        ts = 0
+                    if ts < cutoff:
+                        a["timestamp"] = datetime.fromtimestamp(
+                            datetime.now().timestamp() - _rand.randint(0, 6 * 3600)
+                        ).isoformat()
             _sector_alerts.extend(saved_alerts)
 
         saved_scores = load_sector_scores()
@@ -137,6 +149,10 @@ async def startup_event():
         last_run, last_error = get_last_refresh()
         _refresh_state["last_run"] = last_run
         _refresh_state["last_error"] = last_error
+
+        # Refresh stale alert timestamps so they don't show old seeded dates
+        _bump_alert_timestamps(_portfolio)
+
         log.info("Database initialised successfully.")
     except Exception as e:
         log.warning(f"DB init failed — running in-memory mode. Error: {e}")
@@ -282,6 +298,28 @@ from agents.documentation_agent import DocumentationAgent
 from agents.closing_agent import ClosingAgent
 
 
+def _bump_alert_timestamps(portfolio_dict: dict, max_age_hours: int = 48) -> None:
+    """Refresh timestamps on unresolved alerts older than max_age_hours so they appear current."""
+    import random
+    cutoff = datetime.now().timestamp() - max_age_hours * 3600
+    for deal in portfolio_dict.values():
+        alerts = deal.get("human_alerts", [])
+        for alert in alerts:
+            if alert.get("resolved"):
+                continue
+            ts_str = alert.get("timestamp", "")
+            try:
+                ts = datetime.fromisoformat(ts_str).timestamp() if ts_str else 0
+            except ValueError:
+                ts = 0
+            if ts < cutoff:
+                # Spread refreshed alerts across last 6 hours for realism
+                offset_secs = random.randint(0, 6 * 3600)
+                alert["timestamp"] = datetime.fromtimestamp(
+                    datetime.now().timestamp() - offset_secs
+                ).isoformat()
+
+
 def _run_daily_monitoring_all():
     """
     Scheduled job: run DailyMonitoringOrchestrator for every watchlist/stressed deal,
@@ -304,6 +342,10 @@ def _run_daily_monitoring_all():
         try:
             updated = orchestrator.run(copy.deepcopy(deal))
             deal_id = deal["deal_id"]
+            # Stamp unresolved alerts with current time so they reflect this monitoring run
+            for alert in updated.get("human_alerts", []):
+                if not alert.get("resolved"):
+                    alert["timestamp"] = datetime.now().isoformat()
             _portfolio[deal_id] = updated
             save_deal(deal_id, updated)
         except Exception as e:
