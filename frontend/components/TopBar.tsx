@@ -24,7 +24,7 @@ function minutesAgo(iso: string | null): string {
 
 export default function TopBar() {
   const path = usePathname();
-  if (path === "/") return null;
+  if (path === "/" || path === "/home") return null;
   const title = Object.entries(TITLES).find(([k]) => path.startsWith(k))?.[1] ?? "CreditMind";
   const { state } = useCredit();
   const { isRefreshing, lastRefreshed, portfolio } = state;

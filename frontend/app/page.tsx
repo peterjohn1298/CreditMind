@@ -231,7 +231,7 @@ export default function LandingPage() {
         pointerEvents: showEnter ? "auto" : "none",
       }}>
         <button
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push("/home")}
           style={{
             background: "rgba(201,168,76,0.08)",
             border: "1px solid rgba(201,168,76,0.5)",
@@ -259,7 +259,7 @@ export default function LandingPage() {
             btn.style.borderColor = "rgba(201,168,76,0.5)";
           }}
         >
-          Enter Dashboard →
+          Launch →
         </button>
         <p style={{ color: "rgba(255,255,255,0.18)", fontSize: 11, fontFamily: "monospace", letterSpacing: "0.05em" }}>
           move cursor over text · double-click to reset sphere
