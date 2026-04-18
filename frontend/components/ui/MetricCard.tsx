@@ -57,7 +57,7 @@ export default function MetricCard({
 
   return (
     <div
-      className="glass glass-hover rounded-lg p-6 flex flex-col gap-3 transition-all duration-200 cursor-default"
+      className="glass glass-hover shimmer rounded-lg p-6 flex flex-col gap-3 transition-all duration-200 cursor-default"
       style={{ borderLeft: `3px solid ${color}`, boxShadow: glow || undefined }}
     >
       <div className="flex items-center justify-between">

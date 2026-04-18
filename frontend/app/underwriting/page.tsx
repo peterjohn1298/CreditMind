@@ -13,6 +13,7 @@ import type { AgentStatus } from "@/lib/types";
 import { underwrite } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { generateDeckHTML, DECK_TEMPLATES, type DeckTemplate } from "@/lib/deckTemplates";
+import TypewriterText from "@/components/ui/TypewriterText";
 
 const UPLOAD_ZONES = [
   { key: "financials", label: "Financial Statements", sub: "3-year audited financials" },
@@ -69,6 +70,7 @@ export default function Underwriting() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(["executive_summary", "recommendation"])
   );
+  const [typedSections, setTypedSections] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<{
     risk_score: number;
     rating: string;
@@ -120,6 +122,7 @@ export default function Underwriting() {
       next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
+    setTypedSections((prev) => new Set(prev).add(key));
   }
 
   // PDF Upload → AI extraction simulation
@@ -573,7 +576,11 @@ export default function Underwriting() {
                         </button>
                         {isOpen && (
                           <div className="px-5 pb-4">
-                            <p className="text-muted text-xs leading-relaxed whitespace-pre-wrap">{content}</p>
+                            <p className="text-muted text-xs leading-relaxed whitespace-pre-wrap">
+                              {typedSections.has(key)
+                                ? <TypewriterText text={content} speed={8} />
+                                : content}
+                            </p>
                           </div>
                         )}
                       </div>

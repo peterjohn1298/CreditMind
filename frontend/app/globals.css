@@ -28,6 +28,50 @@ body {
   border-color: rgba(255, 255, 255, 0.14) !important;
 }
 
+/* ── Gold animated border ── */
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes goldBorderSpin {
+  to { --border-angle: 360deg; }
+}
+.gold-border {
+  --border-angle: 0deg;
+  border: 1px solid transparent !important;
+  background:
+    linear-gradient(rgba(12,26,54,0.72), rgba(12,26,54,0.72)) padding-box,
+    conic-gradient(from var(--border-angle), transparent 55%, #C9A84C 70%, #F0D080 78%, #C9A84C 86%, transparent 100%) border-box !important;
+  animation: goldBorderSpin 4s linear infinite;
+}
+
+/* ── Gold shimmer sweep ── */
+@keyframes shimmerSweep {
+  0%   { left: -75%; }
+  100% { left: 125%; }
+}
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -75%;
+  width: 50%; height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.07), transparent);
+  transform: skewX(-20deg);
+  animation: shimmerSweep 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Cursor blink ── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
 /* ── Entrance animations ── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(18px); }
