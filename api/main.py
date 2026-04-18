@@ -53,11 +53,7 @@ app = FastAPI(title="CreditMind API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://frontend-chi-lac-14.vercel.app",
-        "https://creditmind-production.up.railway.app",
-    ],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
