@@ -425,6 +425,11 @@ def credit_memo(req: CreditMemoRequest):
         raise HTTPException(status_code=500, detail={"error": str(e)})
 
 
+@app.get("/")
+def health():
+    return {"status": "ok"}
+
+
 @app.get("/api/alerts", response_model=AlertsResponse)
 def get_alerts():
     """Return all pending alerts — company-level from portfolio + sector-level from last refresh."""
