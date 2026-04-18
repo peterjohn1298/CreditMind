@@ -26,6 +26,10 @@ _DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if _DATABASE_URL.startswith("postgres://"):
     _DATABASE_URL = _DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+# Railway public Postgres URLs require SSL
+if _DATABASE_URL and "sslmode" not in _DATABASE_URL:
+    _DATABASE_URL += "?sslmode=require"
+
 _engine: Engine | None = None
 
 
@@ -34,7 +38,7 @@ def _get_engine() -> Engine | None:
     if not _DATABASE_URL:
         return None
     if _engine is None:
-        _engine = create_engine(_DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=10)
+        _engine = create_engine(_DATABASE_URL, pool_pre_ping=True, pool_size=3, max_overflow=5)
     return _engine
 
 

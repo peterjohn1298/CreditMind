@@ -118,32 +118,32 @@ async def startup_event():
     4. Register scheduled jobs
     5. Trigger sector monitoring immediately if no previous run recorded
     """
-    # 1. DB
-    init_db()
+    # 1. DB — wrapped so any connection failure falls back to in-memory gracefully
+    try:
+        init_db()
+        persisted = load_portfolio()
+        if persisted:
+            _portfolio.clear()
+            _portfolio.update(persisted)
+            log.info(f"Loaded {len(persisted)} deals from database.")
+        else:
+            save_portfolio(_portfolio)
+            log.info("No persisted portfolio found — seeded DB with demo portfolio.")
 
-    # 2. Load persisted state — only overwrite seed if DB has actual data
-    persisted = load_portfolio()
-    if persisted:
-        _portfolio.clear()
-        _portfolio.update(persisted)
-        log.info(f"Loaded {len(persisted)} deals from database.")
-    else:
-        # First boot: persist the seed portfolio so subsequent restarts load from DB
-        save_portfolio(_portfolio)
-        log.info("No persisted portfolio found — seeded DB with demo portfolio.")
+        saved_alerts = load_sector_alerts()
+        if saved_alerts:
+            _sector_alerts.extend(saved_alerts)
 
-    saved_alerts = load_sector_alerts()
-    if saved_alerts:
-        _sector_alerts.extend(saved_alerts)
+        saved_scores = load_sector_scores()
+        if saved_scores:
+            _sector_scores.update(saved_scores)
 
-    saved_scores = load_sector_scores()
-    if saved_scores:
-        _sector_scores.update(saved_scores)
-
-    # 3. Restore refresh timestamp
-    last_run, last_error = get_last_refresh()
-    _refresh_state["last_run"] = last_run
-    _refresh_state["last_error"] = last_error
+        last_run, last_error = get_last_refresh()
+        _refresh_state["last_run"] = last_run
+        _refresh_state["last_error"] = last_error
+        log.info("Database initialised successfully.")
+    except Exception as e:
+        log.warning(f"DB init failed — running in-memory mode. Error: {e}")
 
     # 4. Schedule recurring jobs
     #    - Sector monitoring: every 6 hours
