@@ -39,29 +39,31 @@ export default function Dashboard() {
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
-            <MetricCard label="Total Exposure"  rawValue={totalExposure}  formatter={formatCurrency} icon={DollarSign}    variant="accent" />
-            <MetricCard label="Active Loans"    rawValue={activeLoans}                                     icon={Briefcase}     variant="success" />
-            <MetricCard label="On Watchlist"    rawValue={watchlist}                                       icon={AlertTriangle} variant="warning" />
-            <MetricCard label="Critical Alerts" rawValue={criticalAlerts}                                  icon={AlertTriangle} variant="danger" />
+            <div className="animate-fade-up delay-100"><MetricCard label="Total Exposure"  rawValue={totalExposure}  formatter={formatCurrency} icon={DollarSign}    variant="accent" /></div>
+            <div className="animate-fade-up delay-200"><MetricCard label="Active Loans"    rawValue={activeLoans}                                     icon={Briefcase}     variant="success" /></div>
+            <div className="animate-fade-up delay-300"><MetricCard label="On Watchlist"    rawValue={watchlist}                                       icon={AlertTriangle} variant="warning" /></div>
+            <div className="animate-fade-up delay-400"><MetricCard label="Critical Alerts" rawValue={criticalAlerts}                                  icon={AlertTriangle} variant="danger" /></div>
           </>
         )}
       </div>
 
       {/* Portfolio Analytics Charts */}
-      {!loading && <PortfolioCharts portfolio={portfolio} />}
+      {!loading && <div className="animate-fade-up delay-200"><PortfolioCharts portfolio={portfolio} /></div>}
 
       {/* Heat Map */}
       {sectorData && (
-        <Link href="/sector-intelligence" className="block hover:opacity-90 transition-opacity">
-          <SectorHeatMap data={sectorData} mini />
-          <p className="text-muted text-[10px] text-right mt-1 font-mono">Click to open Sector Intelligence Hub →</p>
-        </Link>
+        <div className="animate-fade-up delay-300">
+          <Link href="/sector-intelligence" className="block hover:opacity-90 transition-opacity">
+            <SectorHeatMap data={sectorData} mini />
+            <p className="text-muted text-[10px] text-right mt-1 font-mono">Click to open Sector Intelligence Hub →</p>
+          </Link>
+        </div>
       )}
 
       {/* Bottom Row */}
       <div className="grid grid-cols-3 gap-6">
         {/* Recent Deals */}
-        <div className="col-span-2 glass rounded-lg overflow-hidden">
+        <div className="col-span-2 glass rounded-lg overflow-hidden animate-fade-up delay-400">
           <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <p className="text-primary text-sm font-semibold">Portfolio Deals</p>
             <Link href="/portfolio" className="text-accent text-xs hover:underline">View all →</Link>
@@ -98,7 +100,7 @@ export default function Dashboard() {
         </div>
 
         {/* Alerts */}
-        <div className="space-y-3">
+        <div className="space-y-3 animate-fade-up delay-500">
           <div className="flex items-center justify-between">
             <p className="text-primary text-sm font-semibold">Active Alerts</p>
             <Link href="/alerts" className="text-accent text-xs hover:underline">View all →</Link>
