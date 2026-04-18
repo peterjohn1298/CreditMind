@@ -78,7 +78,7 @@ export default function Portfolio() {
                       </span>
                     ) : <span className="text-muted font-mono text-xs">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-muted text-xs font-mono">{formatDate(deal.last_reviewed)}</td>
+                  <td className="px-4 py-3 text-muted text-xs font-mono">{formatDate(deal.last_reviewed ?? "")}</td>
                 </tr>
               ))}
             </tbody>
@@ -121,8 +121,8 @@ export default function Portfolio() {
                   ["Tenor",       `${selected.loan_tenor} years`],
                   ["Loan Type",   selected.loan_type],
                   ["Status",      selected.status],
-                  ["Disbursed",   formatDate(selected.disbursement_date)],
-                  ["Maturity",    formatDate(selected.maturity_date)],
+                  ["Disbursed",   formatDate(selected.disbursement_date ?? "")],
+                  ["Maturity",    formatDate(selected.maturity_date ?? "")],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between">
                     <p className="text-muted text-xs">{k}</p>

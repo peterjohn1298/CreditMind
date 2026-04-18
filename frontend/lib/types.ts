@@ -157,6 +157,11 @@ export interface UnderwriteResponse {
   recommendation: string;
   approval_status: "APPROVE" | "CONDITIONAL" | "REJECT";
   memo_sections?: Record<string, string>;
+  risk_assessment?: {
+    scorecard?: any;
+    key_risk_drivers?: any;
+    mitigating_factors?: any;
+  };
 }
 
 export interface MonitorResponse {
@@ -165,6 +170,10 @@ export interface MonitorResponse {
   alerts: Alert[];
   sentiment: Record<string, number>;
   monitoring_summary: string;
+  early_warning_flags?: Array<{ flag_type?: string; warning_type?: string; description: string; severity: string }>;
+  news_signals?: Array<{ headline: string; sentiment: string }>;
+  job_signals?: any;
+  consumer_signals?: any;
 }
 
 export interface QuarterlyResponse {

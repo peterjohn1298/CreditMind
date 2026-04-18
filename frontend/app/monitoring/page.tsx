@@ -118,7 +118,7 @@ export default function Monitoring() {
     setDailyRunning(true);
     setDailySummary(null);
     try {
-      const res = await runDailyMonitor(deal.deal_id, deal.ticker);
+      const res = await runDailyMonitor(deal.deal_id, deal.ticker ?? "");
       setDailySummary(res.monitoring_summary ?? null);
       setWarningFlags(res.early_warning_flags ?? []);
       setLiveNewsSignals(res.news_signals ?? []);
@@ -136,7 +136,7 @@ export default function Monitoring() {
     setQRunning(true);
     setQSummary(null);
     try {
-      const res = await runQuarterlyReview(deal.deal_id, deal.ticker);
+      const res = await runQuarterlyReview(deal.deal_id, deal.ticker ?? "");
       setQSummary(res.review_summary);
     } catch {
       setQSummary("Quarterly review complete. Rating maintained at current level. All covenants compliant. Next review scheduled Q3 2026.");
