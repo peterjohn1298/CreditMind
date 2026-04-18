@@ -21,6 +21,7 @@ const NAV = [
 export default function Sidebar() {
   const path = usePathname();
   const { state } = useCredit();
+  if (path === "/") return null;
   const totalAlerts = state.alertSummary.critical + state.alertSummary.high;
 
   return (
