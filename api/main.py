@@ -208,14 +208,52 @@ class UnderwriteRequest(BaseModel):
     loan_type:     str   # any alias from loan_types.LOAN_TYPE_ALIASES is accepted
     sponsor:       str   = ""
     # Project finance extras
-    project_type:        Optional[str] = None
-    offtake_type:        Optional[str] = None
+    project_type:        Optional[str]   = None
+    offtake_type:        Optional[str]   = None
     total_project_capex: Optional[float] = None
     equity_pct:          Optional[float] = None
     # Bridge extras
-    bridge_exit_type:    Optional[str] = None
+    bridge_exit_type:    Optional[str]   = None
     # Growth capital
-    founder_led:         Optional[bool] = None
+    founder_led:         Optional[bool]  = None
+
+    # ── Application form — borrower ──────────────────────────────────────
+    sector:              Optional[str]   = None
+    description:         Optional[str]   = None
+    jurisdiction:        Optional[str]   = None
+
+    # ── Application form — transaction ───────────────────────────────────
+    purpose:             Optional[str]   = None
+    total_facility:      Optional[float] = None
+    pricing_spread_bps:  Optional[int]   = None
+    oid_pct:             Optional[float] = None
+    call_protection:     Optional[str]   = None
+    expected_close:      Optional[str]   = None
+
+    # ── Application form — financials (LTM) ──────────────────────────────
+    revenue_ltm:         Optional[float] = None
+    ebitda_ltm:          Optional[float] = None
+    adj_ebitda_ltm:      Optional[float] = None
+    revenue_growth_pct:  Optional[float] = None
+    capex:               Optional[float] = None
+    fcf:                 Optional[float] = None
+    total_debt_proforma: Optional[float] = None
+    equity_contribution: Optional[float] = None
+    enterprise_value:    Optional[float] = None
+
+    # ── Application form — covenants ─────────────────────────────────────
+    leverage_covenant:   Optional[float] = None
+    icr_covenant:        Optional[float] = None
+    min_liquidity:       Optional[float] = None
+
+    # ── Application form — qualitative ───────────────────────────────────
+    customer_concentration_pct: Optional[float] = None
+    recurring_revenue_pct:      Optional[float] = None
+    management_tenure_years:    Optional[float] = None
+    backlog:             Optional[float] = None
+    key_risks:           Optional[str]   = None
+    esg_flags:           Optional[str]   = None
+    notes:               Optional[str]   = None
 
 
 class MonitorRequest(BaseModel):
@@ -366,6 +404,22 @@ def underwrite(req: UnderwriteRequest):
         from core.loan_types import normalize_loan_type
         canonical = normalize_loan_type(req.loan_type)
 
+        # Build prefilled financial context from application form so agents
+        # can reference submitted data and cross-check against live research.
+        prefilled = {}
+        for attr in (
+            "sector", "description", "jurisdiction", "purpose",
+            "total_facility", "pricing_spread_bps", "oid_pct", "call_protection", "expected_close",
+            "revenue_ltm", "ebitda_ltm", "adj_ebitda_ltm", "revenue_growth_pct",
+            "capex", "fcf", "total_debt_proforma", "equity_contribution", "enterprise_value",
+            "leverage_covenant", "icr_covenant", "min_liquidity",
+            "customer_concentration_pct", "recurring_revenue_pct",
+            "management_tenure_years", "backlog", "key_risks", "esg_flags", "notes",
+        ):
+            val = getattr(req, attr, None)
+            if val is not None:
+                prefilled[attr] = val
+
         credit_state = run_full_underwriting(
             company=req.company,
             ticker=req.ticker,
@@ -374,9 +428,10 @@ def underwrite(req: UnderwriteRequest):
             loan_type=canonical,
             sponsor=req.sponsor,
             portfolio=_portfolio,
+            prefilled_application=prefilled,
         )
 
-        # Inject loan-type-specific fields before pipeline runs
+        # Inject loan-type-specific fields
         if req.project_type:        credit_state["project_type"]        = req.project_type
         if req.offtake_type:        credit_state["offtake_type"]        = req.offtake_type
         if req.total_project_capex: credit_state["total_project_capex"] = req.total_project_capex

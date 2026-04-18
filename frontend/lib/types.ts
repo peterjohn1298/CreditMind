@@ -142,12 +142,51 @@ export interface AgentStatus {
 // ─── API Request / Response ──────────────────────────────────────────────────
 
 export interface UnderwriteRequest {
+  // Core
   company: string;
   ticker: string;
   loan_amount: number;
   loan_tenor: number;
   loan_type: string;
   sponsor: string;
+
+  // Borrower
+  sector?: string;
+  description?: string;
+  jurisdiction?: string;
+
+  // Transaction
+  purpose?: string;
+  total_facility?: number;
+  pricing_spread_bps?: number;
+  oid_pct?: number;
+  call_protection?: string;
+  expected_close?: string;
+
+  // Financials (LTM)
+  revenue_ltm?: number;
+  ebitda_ltm?: number;
+  adj_ebitda_ltm?: number;
+  revenue_growth_pct?: number;
+  capex?: number;
+  fcf?: number;
+  total_debt_proforma?: number;
+  equity_contribution?: number;
+  enterprise_value?: number;
+
+  // Covenants
+  leverage_covenant?: number;
+  icr_covenant?: number;
+  min_liquidity?: number;
+
+  // Risk & qualitative
+  customer_concentration_pct?: number;
+  recurring_revenue_pct?: number;
+  management_tenure_years?: number;
+  backlog?: number;
+  key_risks?: string;
+  esg_flags?: string;
+  notes?: string;
 }
 
 export interface UnderwriteResponse {

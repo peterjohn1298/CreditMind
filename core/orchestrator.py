@@ -326,9 +326,10 @@ def run_due_diligence(
 
 # Legacy compatibility — kept for any existing references
 def run_full_underwriting(company, ticker, loan_amount, loan_tenor, loan_type,
-                          sponsor=None, on_agent_complete=None, portfolio=None):
+                          sponsor=None, on_agent_complete=None, portfolio=None,
+                          prefilled_application: dict = None):
     """Legacy wrapper. New code should use run_due_diligence()."""
-    return run_due_diligence(
+    credit_state = run_due_diligence(
         company=company,
         loan_amount=loan_amount,
         loan_tenor=loan_tenor,
@@ -338,3 +339,13 @@ def run_full_underwriting(company, ticker, loan_amount, loan_tenor, loan_type,
         on_agent_complete=on_agent_complete,
         portfolio=portfolio,
     )
+    # Inject submitted application data so it persists on the deal record
+    if prefilled_application:
+        credit_state["prefilled_application"] = prefilled_application
+        # Promote key financial fields to top-level for agent/monitoring use
+        for k in ("sector", "description", "revenue_ltm", "ebitda_ltm",
+                  "adj_ebitda_ltm", "total_debt_proforma", "enterprise_value",
+                  "leverage_covenant", "icr_covenant", "key_risks", "esg_flags"):
+            if k in prefilled_application:
+                credit_state.setdefault(k, prefilled_application[k])
+    return credit_state
