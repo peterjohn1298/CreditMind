@@ -21,6 +21,7 @@ Dynamic routing:
 
 from core.credit_state import create_credit_state, log_agent, add_alert, add_routing_note
 from core.parallel_runner import run_parallel_wave
+from core.credit_policy import check_new_deal, check_existing_deal, get_policy_context_for_agents
 
 from agents.financial_analyst import FinancialAnalystAgent
 from agents.ebitda_analyst import EBITDAAnalystAgent
@@ -39,6 +40,34 @@ from agents.portfolio_monitor import PortfolioMonitorAgent
 from agents.covenant_compliance import CovenantComplianceAgent
 from agents.rating_reviewer import RatingReviewerAgent
 
+from agents.credit_underwriter import CreditUnderwriterAgent
+from agents.industry_benchmarker import IndustryBenchmarkerAgent
+
+from agents.growth_capital_analyst import GrowthCapitalAnalystAgent
+from agents.unitranche_analyst import UnitrancheAnalystAgent
+from agents.mezzanine_analyst import MezzanineAnalystAgent
+from agents.borrowing_base_analyst import BorrowingBaseAnalystAgent
+from agents.bridge_exit_analyst import BridgeExitAnalystAgent
+from agents.distressed_analyst import DistressedAnalystAgent
+from agents.project_finance_analyst import ProjectFinanceAnalystAgent
+
+from core.loan_types import (
+    get_config, normalize_loan_type,
+    SENIOR_SECURED, GROWTH_CAPITAL, UNITRANCHE,
+    MEZZANINE, REVOLVER, BRIDGE, DISTRESSED, PROJECT_FINANCE,
+)
+
+# Map loan type → specialist agent class
+_SPECIALIST_AGENTS = {
+    GROWTH_CAPITAL:  GrowthCapitalAnalystAgent,
+    UNITRANCHE:      UnitrancheAnalystAgent,
+    MEZZANINE:       MezzanineAnalystAgent,
+    REVOLVER:        BorrowingBaseAnalystAgent,
+    BRIDGE:          BridgeExitAnalystAgent,
+    DISTRESSED:      DistressedAnalystAgent,
+    PROJECT_FINANCE: ProjectFinanceAnalystAgent,
+}
+
 
 class DueDiligenceOrchestrator:
     """
@@ -47,16 +76,52 @@ class DueDiligenceOrchestrator:
     Dynamic routing based on outputs at each stage.
     """
 
-    def run(self, credit_state: dict, on_agent_complete=None) -> dict:
+    def run(self, credit_state: dict, on_agent_complete=None, portfolio: dict = None) -> dict:
 
         def _complete(name, state):
             if on_agent_complete:
                 on_agent_complete(name, state)
 
-        # --- Guard: require at least one document ---
+        # --- Resolve loan type config and inject into state ---
+        raw_loan_type = credit_state.get("loan_type", SENIOR_SECURED)
+        canonical     = normalize_loan_type(raw_loan_type)
+        cfg           = get_config(canonical)
+        credit_state["loan_type_canonical"]   = canonical
+        credit_state["loan_type_config"]      = {
+            "display_name":         cfg.display_name,
+            "max_leverage":         cfg.max_leverage,
+            "min_dscr":             cfg.min_dscr,
+            "typical_spread_bps":   cfg.typical_spread_bps,
+            "covenant_type":        cfg.covenant_type,
+            "auto_reject_score":    cfg.auto_reject_risk_score,
+            "primary_metric":       cfg.primary_metric,
+            "primary_metric_label": cfg.primary_metric_label,
+        }
+        add_routing_note(credit_state, f"Loan type: {cfg.display_name} ({canonical})")
+
+        # --- Policy compliance check ---
+        _live_portfolio = portfolio or {}
+        try:
+            policy_result = check_new_deal(credit_state, _live_portfolio)
+            credit_state["policy_check"] = policy_result.to_dict()
+            if not policy_result.can_proceed:
+                add_routing_note(credit_state, f"POLICY BLOCK: {policy_result.policy_summary}")
+                for v in policy_result.hard_blocks:
+                    add_alert(credit_state, trigger=v.description, severity="CRITICAL",
+                              action_required=f"Policy hard block: {v.rule}. Deal cannot proceed.")
+                credit_state["status"] = "POLICY_BLOCKED"
+                return credit_state
+            if policy_result.escalations:
+                for v in policy_result.escalations:
+                    add_alert(credit_state, trigger=v.description, severity="HIGH",
+                              action_required=f"Policy escalation required: {v.rule}")
+        except Exception:
+            pass  # policy check failure must never block DD
+
+        # --- Guard: project finance has no docs requirement (SPV) ---
         docs = credit_state.get("documents", {})
         has_docs = any(v is not None for v in docs.values())
-        if not has_docs:
+        if not has_docs and canonical not in (PROJECT_FINANCE, DISTRESSED, BRIDGE):
             add_routing_note(credit_state, "Aborted: no documents uploaded.")
             add_alert(
                 credit_state,
@@ -86,6 +151,9 @@ class DueDiligenceOrchestrator:
         # Legal Analyst if legal docs available
         if docs.get("legal"):
             wave1_agents.append(LegalAnalystAgent())
+
+        # Industry Benchmarker: always run — uses ticker if available, else sector benchmarks
+        wave1_agents.append(IndustryBenchmarkerAgent())
 
         if not wave1_agents:
             add_routing_note(credit_state, "No agents could run — insufficient documents.")
@@ -128,24 +196,45 @@ class DueDiligenceOrchestrator:
         credit_state = agent7.run(credit_state)
         _complete(agent7.name, credit_state)
 
-        risk_score = credit_state.get("risk_score", 50)
+        risk_score    = credit_state.get("risk_score", 50)
+        reject_thresh = cfg.auto_reject_risk_score
 
-        # Auto-reject routing: skip covenant design if risk >= 75
-        if risk_score >= 75:
+        # Auto-reject routing: threshold varies by loan type
+        if risk_score >= reject_thresh:
             add_routing_note(
                 credit_state,
-                f"Auto-reject path: risk score {risk_score}/100. Covenant design skipped."
+                f"Auto-reject path: risk score {risk_score}/100 ≥ {reject_thresh} threshold for {cfg.display_name}. Covenant design skipped."
             )
             credit_state["covenant_package"] = {
                 "skipped": True,
-                "reason": f"Risk score {risk_score}/100 exceeds threshold — deal recommended for rejection.",
+                "reason": f"Risk score {risk_score}/100 exceeds {cfg.display_name} threshold of {reject_thresh} — deal recommended for rejection.",
             }
             _complete("Covenant Designer", credit_state)
         else:
-            # Agent 8: Covenant Designer
+            # Agent 8: Covenant Designer (uses loan_type_config for covenant_type)
             agent8 = CovenantStructurerAgent()
             credit_state = agent8.run(credit_state)
             _complete(agent8.name, credit_state)
+
+        # ============================================================
+        # SPECIALIST AGENT — loan-type-specific analysis
+        # Runs after Wave 2 so it has risk score, covenants, and credit model
+        # ============================================================
+        specialist_cls = _SPECIALIST_AGENTS.get(canonical)
+        if specialist_cls:
+            specialist = specialist_cls()
+            add_routing_note(credit_state, f"Running specialist agent: {specialist.name}")
+            credit_state = specialist.run(credit_state)
+            _complete(specialist.name, credit_state)
+
+        # ============================================================
+        # CREDIT UNDERWRITER — synthesizes final serviceability assessment
+        # Runs after all analysis + specialist so it has the full picture
+        # ============================================================
+        underwriter = CreditUnderwriterAgent()
+        add_routing_note(credit_state, "Running credit underwriter: final serviceability synthesis")
+        credit_state = underwriter.run(credit_state)
+        _complete(underwriter.name, credit_state)
 
         # ============================================================
         # OUTPUT: IC Memo
@@ -219,6 +308,7 @@ def run_due_diligence(
     sponsor: str = None,
     deal_type: str = "sponsor_backed",
     on_agent_complete=None,
+    portfolio: dict = None,
 ) -> dict:
     """Entry point for due diligence pipeline."""
     credit_state = create_credit_state(
@@ -231,11 +321,12 @@ def run_due_diligence(
     )
     credit_state["documents"] = documents
     orchestrator = DueDiligenceOrchestrator()
-    return orchestrator.run(credit_state, on_agent_complete=on_agent_complete)
+    return orchestrator.run(credit_state, on_agent_complete=on_agent_complete, portfolio=portfolio)
 
 
 # Legacy compatibility — kept for any existing references
-def run_full_underwriting(company, ticker, loan_amount, loan_tenor, loan_type, on_agent_complete=None):
+def run_full_underwriting(company, ticker, loan_amount, loan_tenor, loan_type,
+                          sponsor=None, on_agent_complete=None, portfolio=None):
     """Legacy wrapper. New code should use run_due_diligence()."""
     return run_due_diligence(
         company=company,
@@ -243,5 +334,7 @@ def run_full_underwriting(company, ticker, loan_amount, loan_tenor, loan_type, o
         loan_tenor=loan_tenor,
         loan_type=loan_type,
         documents={},
+        sponsor=sponsor,
         on_agent_complete=on_agent_complete,
+        portfolio=portfolio,
     )

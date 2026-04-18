@@ -11,6 +11,21 @@ body {
   color: var(--foreground);
   font-family: Inter, sans-serif;
   -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(circle, #253d6e 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+}
+
+.glass {
+  background: rgba(12, 26, 54, 0.72) !important;
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.glass-hover:hover {
+  background: rgba(12, 26, 54, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
 }
 
 * {

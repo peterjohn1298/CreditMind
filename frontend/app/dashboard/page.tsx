@@ -39,10 +39,10 @@ export default function Dashboard() {
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
-            <MetricCard label="Total Exposure"   value={formatCurrency(totalExposure)} icon={DollarSign} />
-            <MetricCard label="Active Loans"     value={activeLoans}                   icon={Briefcase} />
-            <MetricCard label="On Watchlist"     value={watchlist}                     icon={AlertTriangle} />
-            <MetricCard label="Critical Alerts"  value={criticalAlerts}                icon={AlertTriangle} />
+            <MetricCard label="Total Exposure"  rawValue={totalExposure}  formatter={formatCurrency} icon={DollarSign}    variant="accent" />
+            <MetricCard label="Active Loans"    rawValue={activeLoans}                                     icon={Briefcase}     variant="success" />
+            <MetricCard label="On Watchlist"    rawValue={watchlist}                                       icon={AlertTriangle} variant="warning" />
+            <MetricCard label="Critical Alerts" rawValue={criticalAlerts}                                  icon={AlertTriangle} variant="danger" />
           </>
         )}
       </div>
@@ -61,14 +61,14 @@ export default function Dashboard() {
       {/* Bottom Row */}
       <div className="grid grid-cols-3 gap-6">
         {/* Recent Deals */}
-        <div className="col-span-2 bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
-          <div className="px-5 py-3 border-b border-navy-700 flex items-center justify-between">
+        <div className="col-span-2 glass rounded-lg overflow-hidden">
+          <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <p className="text-primary text-sm font-semibold">Portfolio Deals</p>
             <Link href="/portfolio" className="text-accent text-xs hover:underline">View all →</Link>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-navy-700">
+              <tr className="border-b border-white/[0.06]">
                 {["Company","Rating","Risk","Sector","Reviewed"].map((h) => (
                   <th key={h} className="text-left px-5 py-2 text-muted text-xs font-semibold uppercase tracking-wider">{h}</th>
                 ))}
@@ -79,7 +79,7 @@ export default function Dashboard() {
                 <SkeletonTable rows={8} />
               ) : (
                 portfolio.slice(0, 10).map((deal, i) => (
-                  <tr key={deal.deal_id} className={`border-b border-navy-700/50 hover:bg-navy-700/30 transition-colors ${i % 2 === 1 ? "bg-navy-900/30" : ""}`}>
+                  <tr key={deal.deal_id} className={`border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors ${i % 2 === 1 ? "bg-white/[0.02]" : ""}`}>
                     <td className="px-5 py-3">
                       <p className="text-primary font-medium text-xs">{deal.company}</p>
                       <p className="text-muted text-[10px] font-mono">{deal.sponsor}</p>

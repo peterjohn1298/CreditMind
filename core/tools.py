@@ -194,6 +194,90 @@ GET_MACRO_SNAPSHOT = {
     },
 }
 
+GET_ENTERPRISE_VALUE = {
+    "name": "get_enterprise_value",
+    "description": (
+        "Fetch enterprise value, EV/EBITDA multiple, market cap, and total debt for a company. "
+        "Critical for mezzanine and distressed analysis — determines whether EV exceeds total debt "
+        "(i.e., whether subordinated lenders have any recovery in a default scenario). "
+        "Also use for unitranche exit multiple analysis."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "ticker": {"type": "string", "description": "Stock ticker symbol"},
+        },
+        "required": ["ticker"],
+    },
+}
+
+GET_RECEIVABLES_METRICS = {
+    "name": "get_receivables_metrics",
+    "description": (
+        "Fetch accounts receivable, days sales outstanding (DSO), inventory, inventory turnover, "
+        "and working capital metrics. Essential for revolving credit / ABL borrowing base analysis — "
+        "determines how much the fund can advance against receivables and inventory. "
+        "Also use for bridge loans where working capital is the primary liquidity source."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "ticker": {"type": "string", "description": "Stock ticker symbol"},
+        },
+        "required": ["ticker"],
+    },
+}
+
+SCAN_MA_NEWS = {
+    "name": "scan_ma_news",
+    "description": (
+        "Scan Finnhub finance news for M&A activity and deal flow signals in target sectors. "
+        "Pass sector names and deal-type keywords to find acquisition targets, PE-backed companies, "
+        "leveraged buyout announcements, and management buyouts. Use for origination intelligence."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "sectors": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Target sectors to scan, e.g. ['Healthcare', 'Technology', 'Industrials']",
+            },
+            "keywords": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Additional M&A keywords, e.g. ['acquisition', 'buyout', 'private equity', 'leveraged']",
+            },
+        },
+        "required": ["sectors"],
+    },
+}
+
+SCAN_SEC_EDGAR = {
+    "name": "scan_sec_edgar",
+    "description": (
+        "Search SEC EDGAR full-text for recent 8-K material event filings. Free API, no key required. "
+        "Use to find companies that recently filed material events: acquisitions, debt issuances, "
+        "management changes, covenant waivers, or going-concern disclosures. "
+        "Pass M&A keywords and sector names to surface origination opportunities."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "keywords": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Keywords to search in 8-K filings, e.g. ['acquisition', 'credit agreement', 'term loan']",
+            },
+            "days_back": {
+                "type": "integer",
+                "description": "How many days back to search. Default 30.",
+            },
+        },
+        "required": ["keywords"],
+    },
+}
+
 # --- Tool sets by agent ---
 # Each agent only gets the tools relevant to its job.
 
@@ -275,4 +359,96 @@ RATING_REVIEWER_TOOLS = [
     GET_KEY_METRICS,
     GET_COMPANY_NEWS,
     GET_MACRO_SNAPSHOT,
+]
+
+ORIGINATION_TOOLS = [
+    SCAN_MA_NEWS,
+    SCAN_SEC_EDGAR,
+    GET_SECTOR_NEWS,
+    GET_MACRO_SNAPSHOT,
+    GET_COMPANY_INFO,
+    GET_COMPANY_NEWS,
+]
+
+SCREENING_TOOLS = [
+    GET_COMPANY_INFO,
+    GET_KEY_METRICS,
+    GET_INCOME_STATEMENT,
+    GET_COMPANY_NEWS,
+    GET_MACRO_SNAPSHOT,
+]
+
+IC_COMMITTEE_TOOLS = [
+    GET_KEY_METRICS,
+    GET_MACRO_SNAPSHOT,
+    GET_COMPANY_NEWS,
+    GET_INCOME_STATEMENT,
+    GET_CASH_FLOW,
+]
+
+DOCUMENTATION_TOOLS = [
+    GET_MACRO_SNAPSHOT,
+    GET_KEY_METRICS,
+]
+
+GROWTH_CAPITAL_TOOLS = [
+    GET_COMPANY_INFO,
+    GET_INCOME_STATEMENT,
+    GET_KEY_METRICS,
+    GET_CASH_FLOW,
+    GET_COMPANY_NEWS,
+    GET_JOB_SIGNALS,
+    GET_MACRO_SNAPSHOT,
+]
+
+MEZZANINE_TOOLS = [
+    GET_ENTERPRISE_VALUE,
+    GET_KEY_METRICS,
+    GET_INCOME_STATEMENT,
+    GET_BALANCE_SHEET,
+    GET_CASH_FLOW,
+    GET_MACRO_SNAPSHOT,
+]
+
+UNITRANCHE_TOOLS = [
+    GET_KEY_METRICS,
+    GET_INCOME_STATEMENT,
+    GET_BALANCE_SHEET,
+    GET_CASH_FLOW,
+    GET_MACRO_SNAPSHOT,
+]
+
+REVOLVER_TOOLS = [
+    GET_RECEIVABLES_METRICS,
+    GET_BALANCE_SHEET,
+    GET_KEY_METRICS,
+    GET_INCOME_STATEMENT,
+    GET_MACRO_SNAPSHOT,
+]
+
+BRIDGE_TOOLS = [
+    GET_KEY_METRICS,
+    GET_INCOME_STATEMENT,
+    GET_CASH_FLOW,
+    GET_COMPANY_NEWS,
+    GET_MACRO_SNAPSHOT,
+]
+
+DISTRESSED_TOOLS = [
+    GET_ENTERPRISE_VALUE,
+    GET_KEY_METRICS,
+    GET_INCOME_STATEMENT,
+    GET_BALANCE_SHEET,
+    GET_CASH_FLOW,
+    GET_SEC_FILINGS,
+    GET_COMPANY_NEWS,
+    GET_MACRO_SNAPSHOT,
+]
+
+PROJECT_FINANCE_TOOLS = [
+    GET_SECTOR_NEWS,
+    GET_MACRO_SNAPSHOT,
+    GET_KEY_METRICS,
+    GET_INCOME_STATEMENT,
+    GET_CASH_FLOW,
 ]

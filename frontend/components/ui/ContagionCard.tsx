@@ -28,7 +28,7 @@ export default function ContagionCard({ loan }: { loan: ContagionEvent }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
+    <div className="glass rounded-lg overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           <AlertTriangle size={14} className={SEVERITY_STYLE[loan.severity_tier] ?? "text-muted"} />
@@ -63,7 +63,7 @@ export default function ContagionCard({ loan }: { loan: ContagionEvent }) {
       </div>
 
       {open && (
-        <div className="px-4 pb-4 space-y-2 border-t border-navy-700 pt-3">
+        <div className="px-4 pb-4 space-y-2 border-t border-white/[0.06] pt-3">
           <p className="text-muted text-xs leading-relaxed">{loan.rationale}</p>
           {loan.covenant_at_risk && (
             <div className="bg-danger/10 border border-danger/20 rounded px-3 py-2">

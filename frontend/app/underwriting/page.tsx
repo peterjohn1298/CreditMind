@@ -265,7 +265,7 @@ export default function Underwriting() {
     <div className="grid grid-cols-2 gap-6">
       {/* ── Left — Form ──────────────────────────────────────────────────── */}
       <div className="space-y-5">
-        <div className="bg-navy-800 border border-navy-700 rounded-lg p-6">
+        <div className="glass rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <p className="text-primary font-semibold">Deal Information</p>
@@ -352,7 +352,7 @@ export default function Underwriting() {
         </div>
 
         {/* ── Document Upload ── */}
-        <div className="bg-navy-800 border border-navy-700 rounded-lg p-6">
+        <div className="glass rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-primary font-semibold">Document Upload</p>
             <p className="text-muted text-[10px]">AI extracts deal data automatically</p>
@@ -418,7 +418,7 @@ export default function Underwriting() {
       {/* ── Right — Progress / Result ────────────────────────────────────── */}
       <div className="space-y-5">
         {phase === "form" && (
-          <div className="bg-navy-800 border border-navy-700 rounded-lg p-8 flex flex-col items-center justify-center text-center gap-3">
+          <div className="glass rounded-lg p-8 flex flex-col items-center justify-center text-center gap-3">
             <Zap size={32} className="text-accent opacity-40" />
             <p className="text-muted text-sm">
               Fill in the deal information and click Run, or use{" "}
@@ -429,7 +429,7 @@ export default function Underwriting() {
         )}
 
         {(phase === "running" || phase === "done") && (
-          <div className="bg-navy-800 border border-navy-700 rounded-lg p-6">
+          <div className="glass rounded-lg p-6">
             <p className="text-primary font-semibold mb-4">Agent Pipeline</p>
             <p className="text-muted text-[10px] uppercase tracking-widest mb-2">Wave 1 — Parallel Analysis</p>
             <AgentProgress agents={agents.slice(0, 4)} />
@@ -442,7 +442,7 @@ export default function Underwriting() {
         {phase === "done" && result && (
           <>
             {/* Score + Decision */}
-            <div className="bg-navy-800 border border-navy-700 rounded-lg p-6 space-y-5">
+            <div className="glass rounded-lg p-6 space-y-5">
               <div className="flex items-center justify-between">
                 <p className="text-primary font-semibold">Underwriting Result</p>
                 <button onClick={handlePrint}
@@ -552,8 +552,8 @@ export default function Underwriting() {
 
             {/* IC Memo Accordion */}
             {Object.keys(result.memo_sections).length > 0 && (
-              <div className="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
-                <div className="px-5 py-3 border-b border-navy-700">
+              <div className="glass rounded-lg overflow-hidden">
+                <div className="px-5 py-3 border-b border-white/[0.06]">
                   <p className="text-primary text-sm font-semibold">IC Credit Memo — {result.company}</p>
                   <p className="text-muted text-[10px] font-mono mt-0.5">Investment Committee Memorandum · Confidential</p>
                 </div>
@@ -584,7 +584,7 @@ export default function Underwriting() {
             )}
 
             {/* ── CC Deck Generator ── */}
-            <div className="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
+            <div className="glass rounded-lg overflow-hidden">
               <button
                 onClick={() => setShowDeck(v => !v)}
                 className="w-full flex items-center justify-between px-5 py-3 hover:bg-navy-700/30 transition-colors">

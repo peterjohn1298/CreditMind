@@ -112,7 +112,7 @@ export default function Alerts() {
     <div className="space-y-5">
       {/* Header row — tabs + refresh button */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex gap-1 bg-navy-800 border border-navy-700 rounded-lg p-1 w-fit">
+        <div className="flex gap-1 glass rounded-lg p-1 w-fit">
           {([
             ["company", "Company Alerts", companyAlerts.length],
             ["sector",  "Sector Alerts",  sectorAlerts.length],
@@ -159,7 +159,7 @@ export default function Alerts() {
       {tab === "company" && (
         <div className="space-y-3 max-w-2xl">
           {sorted.length === 0 && (
-            <div className="bg-navy-800 border border-navy-700 rounded-lg p-8 text-center">
+            <div className="glass rounded-lg p-8 text-center">
               <p className="text-success font-medium">No active company alerts</p>
               <p className="text-muted text-sm mt-1">All deals within normal parameters</p>
             </div>
@@ -173,7 +173,7 @@ export default function Alerts() {
       {tab === "sector" && (
         <div className="space-y-3 max-w-2xl">
           {sectorAlerts.length === 0 && (
-            <div className="bg-navy-800 border border-navy-700 rounded-lg p-8 text-center">
+            <div className="glass rounded-lg p-8 text-center">
               <p className="text-success font-medium">No active sector alerts</p>
               <p className="text-muted text-sm mt-1">All 11 sectors within baseline parameters</p>
             </div>
@@ -187,7 +187,7 @@ export default function Alerts() {
       {tab === "warning" && (
         <div className="space-y-3 max-w-2xl">
           {/* Header */}
-          <div className="bg-navy-800 border border-navy-700 rounded-lg p-4">
+          <div className="glass rounded-lg p-4">
             <p className="text-primary text-xs font-semibold mb-1">AI Predictive Analysis</p>
             <p className="text-muted text-xs leading-relaxed">
               Predictive signals based on risk score trajectory, sector stress indicators, and alert patterns across all {state.portfolio.length} portfolio loans.
@@ -196,14 +196,14 @@ export default function Alerts() {
           </div>
 
           {earlyWarnings.length === 0 && (
-            <div className="bg-navy-800 border border-navy-700 rounded-lg p-8 text-center">
+            <div className="glass rounded-lg p-8 text-center">
               <p className="text-success font-medium">No early warning signals</p>
               <p className="text-muted text-sm mt-1">Portfolio trajectory stable across all {state.portfolio.length} loans</p>
             </div>
           )}
 
           {earlyWarnings.map((w) => (
-            <div key={w.deal_id} className="bg-navy-800 border border-navy-700 rounded-lg p-4">
+            <div key={w.deal_id} className="glass rounded-lg p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-primary font-semibold text-sm">{w.company}</p>

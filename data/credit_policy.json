@@ -1,0 +1,344 @@
+{
+  "_meta": {
+    "document":  "CreditMind Capital — Internal Credit Policy",
+    "version":   "1.0",
+    "effective": "2025-01-01",
+    "owner":     "Credit Committee",
+    "review_cycle": "Annual — next review January 2026",
+    "purpose":   "Govern all lending activity of CreditMind Capital Fund I. All agents, analysts, and IC members must operate within these parameters. Exceptions require written IC approval and must be documented in the credit memo."
+  },
+
+  "fund_mandate": {
+    "fund_name":          "CreditMind Capital Fund I",
+    "strategy":           "Senior secured direct lending to US middle-market companies",
+    "target_fund_size":   "$1,000,000,000",
+    "target_deployment":  "$850,000,000 (85% of commitments)",
+    "geographic_focus":   "United States — all 50 states",
+    "international":      "Prohibited without unanimous IC approval. No EM or frontier market exposure.",
+    "primary_instruments": [
+      "Senior secured term loans (first lien)",
+      "Unitranche facilities",
+      "Revolving credit facilities (alongside term loans only)"
+    ],
+    "permitted_with_ic_waiver": [
+      "Second lien term loans (max 10% of portfolio)",
+      "Mezzanine finance (max 10% of portfolio)",
+      "Bridge loans (max 5% of portfolio, 18-month max term)",
+      "Distressed / special situations (max 10% of portfolio)"
+    ],
+    "prohibited_instruments": [
+      "Unsecured debt of any kind",
+      "Equity investments (warrants permitted as kicker only, not primary return driver)",
+      "Project finance / infrastructure debt (requires separate fund mandate)",
+      "Public market securities",
+      "Convertible notes to non-sponsored companies without IC approval"
+    ]
+  },
+
+  "target_borrower_profile": {
+    "ownership":          "PE-sponsored preferred. Non-sponsored permitted up to 20% of portfolio.",
+    "ebitda_range":       { "min_usd": 10000000, "max_usd": 150000000 },
+    "revenue_range":      { "min_usd": 25000000, "max_usd": 750000000 },
+    "employee_count":     "No minimum. Large headcount reductions in diligence period are a watch flag.",
+    "business_age":       "Minimum 3 years operating history. Pre-revenue companies prohibited.",
+    "profitability":      "EBITDA positive required at close. Negative EBITDA permitted only for distressed / rescue finance with IC approval.",
+    "sponsor_standards":  "Institutional PE sponsors preferred. Independent sponsors permitted with enhanced DD. First-time funds require unanimous IC approval."
+  },
+
+  "loan_parameters": {
+    "senior_secured": {
+      "min_loan_size":      25000000,
+      "max_loan_size":      300000000,
+      "max_single_borrower_pct_nav": 8.0,
+      "max_leverage":       6.5,
+      "min_dscr":           1.50,
+      "min_interest_coverage": 2.0,
+      "max_tenor_years":    7,
+      "min_internal_rating": "B-",
+      "pricing_floor_bps":  450,
+      "amortization":       "Minimum 1% per annum mandatory amortization",
+      "security":           "First priority lien on all assets including IP, receivables, and equity of all subsidiaries"
+    },
+    "unitranche": {
+      "min_loan_size":      50000000,
+      "max_loan_size":      400000000,
+      "max_single_borrower_pct_nav": 10.0,
+      "max_leverage":       7.0,
+      "min_dscr":           1.25,
+      "min_interest_coverage": 1.75,
+      "max_tenor_years":    7,
+      "min_internal_rating": "B-",
+      "pricing_floor_bps":  550,
+      "notes":              "First-out/last-out split permitted. AAL required if selling FO tranche to third party."
+    },
+    "growth_capital": {
+      "min_loan_size":      15000000,
+      "max_loan_size":      150000000,
+      "max_single_borrower_pct_nav": 5.0,
+      "max_leverage":       5.0,
+      "min_dscr":           1.75,
+      "min_interest_coverage": 2.5,
+      "max_tenor_years":    5,
+      "min_internal_rating": "B",
+      "pricing_floor_bps":  575,
+      "notes":              "Key-man clause mandatory. Equity warrant required (minimum 2% fully diluted). Tighter covenants than sponsored deals."
+    },
+    "mezzanine": {
+      "min_loan_size":      20000000,
+      "max_loan_size":      150000000,
+      "max_portfolio_pct":  10.0,
+      "max_total_leverage": 8.0,
+      "min_ev_to_total_debt": 1.30,
+      "max_tenor_years":    8,
+      "min_internal_rating": "CCC+",
+      "pricing_floor_bps":  900,
+      "notes":              "EV analysis required. Recovery must exceed mezz amount in base case. PIK toggle permitted. Equity warrant required."
+    },
+    "revolver": {
+      "min_facility_size":  10000000,
+      "max_facility_size":  150000000,
+      "max_portfolio_pct":  15.0,
+      "standalone_permitted": false,
+      "notes":              "Revolvers permitted only alongside term loan facilities. Standalone ABL requires IC waiver. Borrowing base certificate required monthly."
+    },
+    "bridge": {
+      "min_loan_size":      25000000,
+      "max_loan_size":      200000000,
+      "max_portfolio_pct":  5.0,
+      "max_tenor_months":   18,
+      "max_leverage":       7.0,
+      "min_internal_rating": "B-",
+      "pricing_floor_bps":  650,
+      "notes":              "Exit analysis mandatory. Exit milestones required in credit agreement. Break fee minimum 1%. One extension option only."
+    },
+    "distressed": {
+      "min_loan_size":      20000000,
+      "max_loan_size":      200000000,
+      "max_portfolio_pct":  10.0,
+      "max_tenor_years":    3,
+      "min_internal_rating": "CCC",
+      "pricing_floor_bps":  1000,
+      "notes":              "Forensic DD required. Recovery analysis mandatory. External restructuring advisor review required for loans > $50M. Cash dominion required."
+    }
+  },
+
+  "concentration_limits": {
+    "_note": "All limits measured as % of total fund NAV (committed capital). Breaches require IC approval before close.",
+    "single_borrower":       { "limit_pct": 8.0,  "hard_limit_pct": 10.0, "note": "Hard limit requires unanimous IC" },
+    "single_sector":         { "limit_pct": 20.0, "hard_limit_pct": 25.0, "note": "Sector = GICS level-1 classification" },
+    "single_sponsor":        { "limit_pct": 15.0, "hard_limit_pct": 20.0, "note": "Includes all deals with same PE firm" },
+    "non_sponsored":         { "limit_pct": 20.0, "hard_limit_pct": 25.0, "note": "All growth capital + founder-owned deals combined" },
+    "cov_lite":              { "limit_pct": 10.0, "note": "Incurrence-only covenant deals" },
+    "pik_non_cash_pay":      { "limit_pct": 15.0, "note": "Any deal where interest can be PIK" },
+    "distressed_special_sit":{ "limit_pct": 10.0, "note": "Includes DIP and rescue finance" },
+    "single_state":          { "limit_pct": 30.0, "note": "Borrower HQ state concentration" },
+    "floating_rate":         { "min_pct": 80.0,   "note": "Minimum 80% of portfolio must be floating rate" }
+  },
+
+  "prohibited_investments": {
+    "_note": "The fund will not lend to any entity in these categories under any circumstances without unanimous IC vote and LP advisory board notification.",
+    "sectors": [
+      "Cannabis and marijuana (federally illegal)",
+      "Payday lending / predatory consumer finance",
+      "Adult entertainment",
+      "Tobacco manufacturing",
+      "Landmine and cluster munition manufacturing",
+      "Coal mining and coal-fired power generation",
+      "Private prison operators",
+      "Pyramid / multi-level marketing schemes"
+    ],
+    "company_conditions": [
+      "Active SEC investigation or DOJ criminal proceeding",
+      "Sanctions — OFAC SDN list or any subsidiary thereof",
+      "Active material litigation exceeding 20% of loan value with adverse ruling likely",
+      "Ongoing restatement of financial statements",
+      "Negative stockholders equity without clear path to recovery",
+      "Management team with prior fraud conviction",
+      "Known material ESG violation under active regulatory review"
+    ],
+    "structural": [
+      "Third lien or lower in capital structure",
+      "Lending to a fund or financial holding company (not operating company)",
+      "Non-US borrower without substantial US operations and US-law governed credit agreement",
+      "SPV with no recourse to operating entity (project finance — separate mandate required)"
+    ]
+  },
+
+  "minimum_underwriting_standards": {
+    "_note": "All conditions below must be met or documented as waived by IC before commitment.",
+    "financial_documentation": [
+      "3 years audited financial statements (2 years for companies < 5 years old)",
+      "Most recent interim financials no older than 90 days at close",
+      "Quality of Earnings report from Big 4 or recognized advisory firm for deals > $50M",
+      "Management-prepared financial model with 3-year projections",
+      "Detailed EBITDA bridge from reported to adjusted"
+    ],
+    "legal_documentation": [
+      "Corporate structure chart with all entities",
+      "Cap table fully diluted",
+      "Copies of all existing debt agreements and intercreditor agreements",
+      "IP ownership confirmation",
+      "Material contracts review (top 3 customers, top 3 suppliers, key leases)"
+    ],
+    "operational_diligence": [
+      "Management presentation and Q&A (in-person for deals > $75M)",
+      "Reference checks on CEO and CFO",
+      "Background checks on all C-suite officers",
+      "Customer reference calls (minimum 2 for deals > $50M)"
+    ],
+    "financial_tests_at_close": [
+      "Leverage at close must not exceed loan type maximum",
+      "DSCR at close must meet loan type minimum",
+      "Minimum unrestricted liquidity of 3 months operating expenses",
+      "No material adverse change since start of diligence"
+    ]
+  },
+
+  "approval_authority_matrix": {
+    "_note": "Approval authority is determined by total committed loan amount (not drawn). Waiver of any credit policy term requires one level above standard approval.",
+    "levels": [
+      {
+        "authority":   "Analyst / Associate",
+        "max_amount":  0,
+        "role":        "Prepare analysis. No approval authority."
+      },
+      {
+        "authority":   "VP / Director",
+        "max_amount":  25000000,
+        "role":        "Can approve deals ≤ $25M with MD co-sign. Routine follow-on commitments only."
+      },
+      {
+        "authority":   "Managing Director",
+        "max_amount":  75000000,
+        "role":        "Can approve deals ≤ $75M solo. Standard mid-market direct lending."
+      },
+      {
+        "authority":   "IC — Simple Majority (3 of 5 members)",
+        "max_amount":  200000000,
+        "role":        "Required for all deals $75M–$200M. Standard IC vote."
+      },
+      {
+        "authority":   "IC — Supermajority (4 of 5 members)",
+        "max_amount":  350000000,
+        "role":        "Required for deals $200M–$350M, any concentration limit waiver, any prohibited investment waiver."
+      },
+      {
+        "authority":   "IC — Unanimous (5 of 5 members)",
+        "max_amount":  null,
+        "role":        "Required for deals > $350M, any deal that breaches hard concentration limits, any international deal, any project finance deal."
+      }
+    ]
+  },
+
+  "watch_list_criteria": {
+    "_note": "A deal meeting ANY of the following criteria must be placed on the Watch List within 2 business days of trigger. Watch list deals receive monthly monitoring vs. standard quarterly.",
+    "automatic_triggers": [
+      { "trigger": "Risk score ≥ 65",                      "action": "Watch list — monthly monitoring" },
+      { "trigger": "Leverage exceeds closing leverage + 1.0x", "action": "Watch list + MD notification" },
+      { "trigger": "DSCR falls below minimum - 0.25x",        "action": "Watch list + MD notification" },
+      { "trigger": "Any financial covenant breach",            "action": "Watch list + IC notification within 2 business days" },
+      { "trigger": "Internal rating downgraded 2+ notches",   "action": "Watch list + IC review within 5 business days" },
+      { "trigger": "CEO or CFO departure",                    "action": "Watch list + MD notification within 1 business day" },
+      { "trigger": "Material litigation filed > $10M",        "action": "Watch list + legal review" },
+      { "trigger": "Missed interest payment",                 "action": "Immediate IC notification — potential default" },
+      { "trigger": "Borrower requests covenant waiver",       "action": "Watch list + IC approval required for waiver" },
+      { "trigger": "Sector stress score ≥ 70",               "action": "Sector watch — enhanced monitoring for all sector deals" },
+      { "trigger": "Negative news score 3 consecutive months", "action": "Watch list — analyst review required" }
+    ],
+    "removal_criteria": "Deal may be removed from watch list when all trigger conditions are resolved and risk score returns below 60. Removal requires MD approval."
+  },
+
+  "covenant_standards": {
+    "_note": "Minimum covenant package by loan type. Agents may recommend tighter covenants based on deal specifics but may not recommend looser than these minimums without IC waiver.",
+    "maintenance_covenants_required": [
+      "senior_secured",
+      "growth_capital",
+      "unitranche"
+    ],
+    "incurrence_permitted": [
+      "mezzanine",
+      "bridge"
+    ],
+    "borrowing_base_required": [
+      "revolver"
+    ],
+    "minimum_financial_covenants": {
+      "max_net_leverage":         "Closing leverage + 0.50x maximum step-up. Must step down to closing leverage by year 3.",
+      "min_interest_coverage":    "Per loan type minimums. No waiver below 1.50x for any loan type.",
+      "min_liquidity":            "Greater of $5M or 3 months of cash operating expenses.",
+      "capex_limit":              "Required for all deals. Maximum = prior year capex + 20% growth allowance.",
+      "restricted_payments":      "No distributions unless leverage ≤ closing leverage and no covenant breach."
+    },
+    "reporting_covenants": [
+      "Monthly management accounts within 30 days of month-end",
+      "Quarterly financial statements within 45 days of quarter-end",
+      "Annual audited financial statements within 90 days of fiscal year-end",
+      "Annual budget delivered 30 days before fiscal year start",
+      "Prompt notification of material events (litigation, management change, regulatory action)"
+    ]
+  },
+
+  "esg_policy": {
+    "framework":      "CreditMind Capital is a signatory to the UN Principles for Responsible Investment (PRI).",
+    "screening":      "ESG screening required for all deals > $75M. Dedicated ESG section in IC memo.",
+    "hard_exclusions": "See prohibited_investments.sectors above.",
+    "soft_flags":     [
+      "High carbon intensity industries (energy, materials, industrials) — ESG risk section required",
+      "Companies with > 500 employees — labor practices review",
+      "Food & agriculture — supply chain and land use review",
+      "Healthcare — patient safety and pricing practices review"
+    ],
+    "reporting":      "Annual ESG report to LPs. Portfolio carbon footprint disclosed annually."
+  },
+
+  "conflict_of_interest": {
+    "gp_co_investment":     "GP principals may co-invest in deals alongside the fund at the same terms. Minimum $500K co-investment required for deals where GP principal sits on borrower board.",
+    "related_party":        "Lending to any entity in which a GP principal holds equity requires LP advisory board approval and independent IC member vote.",
+    "broker_dealer":        "No brokerage commissions paid to GP principals or affiliates on portfolio company transactions.",
+    "information_barrier":  "Fund personnel with access to material non-public information may not trade public securities of related issuers."
+  },
+
+  "risk_rating_scale": {
+    "_note": "CreditMind internal rating scale. Mapped to equivalent public ratings for LP reporting.",
+    "ratings": [
+      { "rating": "A",   "description": "Exceptional quality. Minimal credit risk.",                         "public_equiv": "BBB+ or better", "risk_score_range": "0-25"  },
+      { "rating": "A-",  "description": "Strong quality. Low credit risk.",                                  "public_equiv": "BBB",            "risk_score_range": "25-35" },
+      { "rating": "B+",  "description": "Good quality. Moderate credit risk. Standard mid-market.",         "public_equiv": "BB+",            "risk_score_range": "35-45" },
+      { "rating": "B",   "description": "Adequate quality. Some credit risk. Enhanced monitoring.",         "public_equiv": "BB",             "risk_score_range": "45-55" },
+      { "rating": "B-",  "description": "Acceptable quality. Elevated risk. Tight covenants required.",     "public_equiv": "BB-",            "risk_score_range": "55-62" },
+      { "rating": "C+",  "description": "Weak quality. High risk. Watch list consideration.",               "public_equiv": "B+",             "risk_score_range": "62-68" },
+      { "rating": "C",   "description": "Speculative. Very high risk. IC review required.",                 "public_equiv": "B",              "risk_score_range": "68-75" },
+      { "rating": "C-",  "description": "Highly speculative. Near-distressed.",                             "public_equiv": "B-",             "risk_score_range": "75-82" },
+      { "rating": "D",   "description": "Distressed or in default. Workout / recovery mode.",               "public_equiv": "CCC or below",   "risk_score_range": "82-100"}
+    ]
+  },
+
+  "portfolio_construction_targets": {
+    "_note": "Target portfolio composition at full deployment. Deviations > 10% require IC review.",
+    "by_loan_type": {
+      "senior_secured_and_unitranche": "65-75% of NAV",
+      "growth_capital":               "10-20% of NAV",
+      "mezzanine":                    "5-10% of NAV",
+      "revolver":                     "5-10% of NAV",
+      "bridge_and_distressed":        "0-10% of NAV"
+    },
+    "by_sector": {
+      "technology_and_software":      "15-25%",
+      "healthcare":                   "15-25%",
+      "industrials_and_aerospace":    "10-20%",
+      "consumer_and_retail":          "10-20%",
+      "financial_services":           "5-15%",
+      "energy":                       "5-10%",
+      "other":                        "0-15%"
+    },
+    "by_rating": {
+      "A_to_B_plus":                  "30-40% of NAV — core conservative book",
+      "B_to_B_minus":                 "40-50% of NAV — standard mid-market",
+      "C_plus_and_below":             "10-20% of NAV — higher yield, higher risk"
+    },
+    "weighted_avg_portfolio_rating":  "Target B+ or better",
+    "weighted_avg_risk_score":        "Target < 50",
+    "target_gross_yield":             "9.5-11.5%",
+    "target_net_yield_to_lp":         "8.0-10.0% (after 1.5% management fee)"
+  }
+}

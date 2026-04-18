@@ -162,7 +162,7 @@ export default function Monitoring() {
   return (
     <div className="space-y-5">
       {/* Tabs */}
-      <div className="flex gap-1 bg-navy-800 border border-navy-700 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 glass rounded-lg p-1 w-fit">
         {([["monitoring","Portfolio Monitoring"],["stress","Stress Testing"]] as [Tab,string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)}
             className={cn("px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-150",
@@ -191,8 +191,8 @@ export default function Monitoring() {
           </div>
 
           {/* ── Daily Monitor Box ── */}
-          <div className="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-navy-700">
+          <div className="glass rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
               <div>
                 <p className="text-primary font-semibold text-sm">Daily Monitor</p>
                 <p className="text-muted text-[10px] uppercase tracking-wider mt-0.5">News intelligence · Sentiment scoring · Early warning signals</p>
@@ -219,7 +219,7 @@ export default function Monitoring() {
                     return signals.slice(0, 5).map((h: any, i: number) => {
                       const negative = h.sentiment === "negative" || h.score < 40;
                       return (
-                        <div key={i} className="flex items-start gap-3 py-2 border-b border-navy-700/50 last:border-0">
+                        <div key={i} className="flex items-start gap-3 py-2 border-b border-white/[0.06]/50 last:border-0">
                           <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 uppercase",
                             negative ? "bg-danger/20 text-danger" : "bg-success/20 text-success"
                           )}>{h.sentiment ?? (negative ? "neg" : "pos")}</span>
@@ -297,7 +297,7 @@ export default function Monitoring() {
                     )}
 
                     {consumerSignals && !consumerSignals.error && (
-                      <div className="border-t border-navy-700 pt-3">
+                      <div className="border-t border-white/[0.06] pt-3">
                         <p className="text-muted text-[10px] uppercase tracking-wider mb-1">Consumer Sentiment (Yelp)</p>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-primary text-xs">{consumerSignals.rating}★ · {consumerSignals.review_count?.toLocaleString()} reviews</span>
@@ -318,8 +318,8 @@ export default function Monitoring() {
           </div>
 
           {/* ── Quarterly Review Box ── */}
-          <div className="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-navy-700">
+          <div className="glass rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
               <div>
                 <p className="text-primary font-semibold text-sm">Quarterly Review</p>
                 <p className="text-muted text-[10px] uppercase tracking-wider mt-0.5">Covenant compliance · Rating review · Portfolio health check</p>
@@ -335,7 +335,7 @@ export default function Monitoring() {
                 <p className="text-primary text-xs font-semibold mb-3">Covenant Compliance</p>
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-navy-700">
+                    <tr className="border-b border-white/[0.06]">
                       {["Covenant","Threshold","Current","Status"].map(h => (
                         <th key={h} className="text-left pb-2 text-muted font-semibold uppercase tracking-wider text-[10px]">{h}</th>
                       ))}
@@ -348,7 +348,7 @@ export default function Monitoring() {
                       { name: "Min Liquidity",      threshold: "≥ $25M", current: "$31M", ok: true  },
                       { name: "Capex Limit",        threshold: "≤ $15M", current: "$11M", ok: true  },
                     ].map(c => (
-                      <tr key={c.name} className="border-b border-navy-700/50 last:border-0">
+                      <tr key={c.name} className="border-b border-white/[0.06]/50 last:border-0">
                         <td className="py-2 text-primary">{c.name}</td>
                         <td className="py-2 font-mono text-muted">{c.threshold}</td>
                         <td className="py-2 font-mono text-primary">{c.current}</td>
@@ -385,7 +385,7 @@ export default function Monitoring() {
       {tab === "stress" && (
         <div className="space-y-5">
           {/* Scenario Selection */}
-          <div className="bg-navy-800 border border-navy-700 rounded-lg p-5">
+          <div className="glass rounded-lg p-5">
             <p className="text-primary font-semibold mb-1">Portfolio Stress Testing</p>
             <p className="text-muted text-xs mb-4">
               Apply macro scenarios across all {state.portfolio.length} portfolio loans to identify covenant breaches and rating migrations.
@@ -430,7 +430,7 @@ export default function Monitoring() {
                   { label: "Exposure at Risk",  value: formatCurrency(stressImpact.exposure),                  color: "#FF8C00" },
                   { label: "Covenant Breaches", value: `${stressImpact.covenantBreaches} loans`,               color: stressImpact.covenantBreaches > 5 ? "#FF3B5C" : "#FFB300" },
                 ].map(stat => (
-                  <div key={stat.label} className="bg-navy-800 border border-navy-700 rounded-lg p-4">
+                  <div key={stat.label} className="glass rounded-lg p-4">
                     <p className="text-muted text-[10px] uppercase tracking-wider">{stat.label}</p>
                     <p className="font-mono text-xl font-bold mt-1" style={{ color: stat.color }}>{stat.value}</p>
                   </div>
@@ -438,8 +438,8 @@ export default function Monitoring() {
               </div>
 
               {/* Results Table */}
-              <div className="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
-                <div className="px-5 py-3 border-b border-navy-700 flex items-center justify-between">
+              <div className="glass rounded-lg overflow-hidden">
+                <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
                   <p className="text-primary text-sm font-semibold">
                     Impacted Loans — {STRESS_SCENARIOS.find(s => s.id === scenario)?.label}
                   </p>
@@ -448,7 +448,7 @@ export default function Monitoring() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-navy-700">
+                      <tr className="border-b border-white/[0.06]">
                         {["Company","Sector","Rating","Stressed","Coverage","Leverage","Severity"].map(h => (
                           <th key={h} className="text-left px-4 py-2.5 text-muted font-semibold uppercase tracking-wider text-[10px]">{h}</th>
                         ))}
@@ -456,7 +456,7 @@ export default function Monitoring() {
                     </thead>
                     <tbody>
                       {stressResults.map((r, i) => (
-                        <tr key={r.deal_id} className={cn("border-b border-navy-700/50 last:border-0", i % 2 === 1 && "bg-navy-900/30")}>
+                        <tr key={r.deal_id} className={cn("border-b border-white/[0.06]/50 last:border-0", i % 2 === 1 && "bg-white/[0.02]")}>
                           <td className="px-4 py-2.5 text-primary font-medium">{r.company}</td>
                           <td className="px-4 py-2.5 text-muted">{r.sector}</td>
                           <td className="px-4 py-2.5 font-mono text-muted">{r.current_rating}</td>

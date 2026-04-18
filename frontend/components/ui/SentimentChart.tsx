@@ -9,7 +9,7 @@ interface Props {
 
 export default function SentimentChart({ data, sector }: Props) {
   return (
-    <div className="bg-navy-800 border border-navy-700 rounded-lg p-4">
+    <div className="glass rounded-lg p-4">
       <p className="text-muted text-xs font-semibold uppercase tracking-widest mb-3">{sector} — Sentiment Score</p>
       <ResponsiveContainer width="100%" height={160}>
         <AreaChart data={data} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>

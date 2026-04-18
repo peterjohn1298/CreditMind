@@ -27,15 +27,16 @@ class CreditUnderwriterAgent(BaseAgent):
         )
 
     def run(self, credit_state: dict) -> dict:
-        company = credit_state["company"]
-        ticker = credit_state["ticker"]
-        loan_amount = credit_state["loan_amount"]
-        loan_tenor = credit_state["loan_tenor"]
-        loan_type = credit_state["loan_type"]
+        company = credit_state.get("company", "Unknown")
+        ticker = credit_state.get("ticker", "")
+        loan_amount = credit_state.get("loan_amount", 0)
+        loan_tenor = credit_state.get("loan_tenor", 5)
+        loan_type = credit_state.get("loan_type", "Term Loan")
         financial_analysis = credit_state.get("financial_analysis", {})
 
+        ticker_label = f"ticker: {ticker}" if ticker else "private company — no public ticker"
         task = f"""
-Underwrite a loan for {company} (ticker: {ticker}).
+Underwrite a loan for {company} ({ticker_label}).
 
 LOAN PARAMETERS:
 - Amount: ${loan_amount:,.0f}

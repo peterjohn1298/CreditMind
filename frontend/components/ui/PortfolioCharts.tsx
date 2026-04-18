@@ -1,9 +1,8 @@
 "use client";
 
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Treemap, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import type { Deal } from "@/lib/types";
 
-// ── Colours ────────────────────────────────────────────────────────────────
 const SECTOR_COLORS: Record<string, string> = {
   "Aerospace & Defense": "#1B7FE5",
   "Healthcare":          "#FF3B5C",
@@ -27,23 +26,61 @@ function fmt(v: number) {
   return `$${(v / 1_000_000).toFixed(0)}M`;
 }
 
-// ── Custom tooltip ─────────────────────────────────────────────────────────
-function PieTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { count: number } }> }) {
-  if (!active || !payload?.length) return null;
-  const { name, value, payload: p } = payload[0];
+// ── Treemap custom cell ────────────────────────────────────────────────────
+function TreemapCell(props: {
+  x?: number; y?: number; width?: number; height?: number;
+  name?: string; value?: number; depth?: number;
+}) {
+  const { x = 0, y = 0, width = 0, height = 0, name = "", value = 0, depth } = props;
+  if (depth !== 1) return null;
+  const color = SECTOR_COLORS[name] ?? "#6B7FA3";
+  const showName  = width > 52 && height > 26;
+  const showValue = width > 52 && height > 42;
+
   return (
-    <div className="bg-navy-900 border border-navy-600 rounded-md px-3 py-2 shadow-xl text-xs">
-      <p className="text-primary font-semibold">{name}</p>
-      <p className="text-muted font-mono">{fmt(value)}</p>
-      <p className="text-muted font-mono">{p.count} loan{p.count !== 1 ? "s" : ""}</p>
-    </div>
+    <g>
+      <rect
+        x={x + 1} y={y + 1} width={width - 2} height={height - 2}
+        rx={4}
+        fill={color}
+        fillOpacity={0.82}
+        stroke="rgba(10,22,40,0.35)"
+        strokeWidth={1}
+      />
+      {showName && (
+        <text
+          x={x + width / 2}
+          y={y + height / 2 + (showValue ? -7 : 4)}
+          textAnchor="middle"
+          fill="white"
+          fontSize={10}
+          fontFamily="Inter"
+          fontWeight={600}
+        >
+          {name.length > 16 ? name.slice(0, 14) + "…" : name}
+        </text>
+      )}
+      {showValue && (
+        <text
+          x={x + width / 2}
+          y={y + height / 2 + 9}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.72)"
+          fontSize={9}
+          fontFamily="JetBrains Mono"
+        >
+          {fmt(value)}
+        </text>
+      )}
+    </g>
   );
 }
 
+// ── Bar tooltip ────────────────────────────────────────────────────────────
 function BarTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-navy-900 border border-navy-600 rounded-md px-3 py-2 shadow-xl text-xs">
+    <div className="glass rounded-md px-3 py-2 shadow-xl text-xs">
       <p className="text-primary font-mono font-semibold">{payload[0].value} loans</p>
     </div>
   );
@@ -51,7 +88,6 @@ function BarTooltip({ active, payload }: { active?: boolean; payload?: Array<{ v
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function PortfolioCharts({ portfolio }: { portfolio: Deal[] }) {
-  // Sector breakdown by exposure
   const sectorMap: Record<string, { value: number; count: number }> = {};
   portfolio.forEach((d) => {
     if (!sectorMap[d.sector]) sectorMap[d.sector] = { value: 0, count: 0 };
@@ -62,7 +98,6 @@ export default function PortfolioCharts({ portfolio }: { portfolio: Deal[] }) {
     .map(([name, { value, count }]) => ({ name, value, count }))
     .sort((a, b) => b.value - a.value);
 
-  // Rating distribution by count
   const ratingOrder = ["BB+", "BB", "BB-", "B+", "B", "B-"];
   const ratingMap: Record<string, number> = {};
   portfolio.forEach((d) => {
@@ -74,55 +109,52 @@ export default function PortfolioCharts({ portfolio }: { portfolio: Deal[] }) {
 
   return (
     <div className="grid grid-cols-2 gap-5">
-      {/* Sector Exposure Donut */}
-      <div className="bg-navy-800 border border-navy-700 rounded-lg p-5">
+      {/* Sector Exposure Treemap */}
+      <div className="glass rounded-lg p-5">
         <p className="text-primary text-sm font-semibold mb-1">Sector Exposure</p>
-        <p className="text-muted text-[10px] font-mono mb-3">By loan amount ($)</p>
-        <div className="flex items-center gap-4">
-          <ResponsiveContainer width={160} height={160}>
-            <PieChart>
-              <Pie data={sectorData} cx="50%" cy="50%" innerRadius={45} outerRadius={72}
-                dataKey="value" paddingAngle={2}>
-                {sectorData.map((entry) => (
-                  <Cell key={entry.name} fill={SECTOR_COLORS[entry.name] ?? "#6B7FA3"} stroke="transparent" />
-                ))}
-              </Pie>
-              <Tooltip content={<PieTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex flex-col gap-1.5 min-w-0 flex-1">
-            {sectorData.slice(0, 6).map((s) => (
-              <div key={s.name} className="flex items-center gap-2 min-w-0">
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: SECTOR_COLORS[s.name] ?? "#6B7FA3" }} />
-                <span className="text-muted text-[10px] truncate">{s.name}</span>
-                <span className="text-primary text-[10px] font-mono ml-auto flex-shrink-0">{fmt(s.value)}</span>
-              </div>
-            ))}
-            {sectorData.length > 6 && (
-              <p className="text-muted text-[10px]">+{sectorData.length - 6} more</p>
-            )}
-          </div>
+        <p className="text-muted text-[10px] font-mono mb-3">By loan amount ($) — hover for details</p>
+        <ResponsiveContainer width="100%" height={178}>
+          <Treemap
+            data={sectorData}
+            dataKey="value"
+            aspectRatio={16 / 7}
+            isAnimationActive={false}
+            content={<TreemapCell />}
+          />
+        </ResponsiveContainer>
+        {/* Compact legend */}
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+          {sectorData.slice(0, 5).map((s) => (
+            <span key={s.name} className="flex items-center gap-1 text-[9px] text-muted">
+              <span className="w-2 h-2 rounded-sm flex-shrink-0"
+                style={{ backgroundColor: SECTOR_COLORS[s.name] ?? "#6B7FA3" }} />
+              {s.name.split(" ")[0]}
+            </span>
+          ))}
+          {sectorData.length > 5 && (
+            <span className="text-[9px] text-muted">+{sectorData.length - 5} more</span>
+          )}
         </div>
       </div>
 
       {/* Rating Distribution Bar */}
-      <div className="bg-navy-800 border border-navy-700 rounded-lg p-5">
+      <div className="glass rounded-lg p-5">
         <p className="text-primary text-sm font-semibold mb-1">Rating Distribution</p>
         <p className="text-muted text-[10px] font-mono mb-3">Number of loans by internal rating</p>
-        <ResponsiveContainer width="100%" height={140}>
+        <ResponsiveContainer width="100%" height={160}>
           <BarChart data={ratingData} barSize={28} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
             <XAxis dataKey="rating" tick={{ fill: "#6B7FA3", fontSize: 11, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: "#6B7FA3", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-            <Tooltip content={<BarTooltip />} cursor={{ fill: "rgba(107,127,163,0.1)" }} />
-            <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+            <Tooltip content={<BarTooltip />} cursor={{ fill: "rgba(107,127,163,0.08)" }} />
+            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
               {ratingData.map((entry) => (
-                <Cell key={entry.rating} fill={entry.fill} />
+                <Cell key={entry.rating} fill={entry.fill} fillOpacity={0.85} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className="flex gap-3 mt-2 flex-wrap">
-          {[["BB+/BB/BB-","#00D4A4"],["B+/B","#FFB300"],["B-","#FF3B5C"]].map(([label, color]) => (
+        <div className="flex gap-3 mt-1 flex-wrap">
+          {[["BB+/BB/BB-", "#00D4A4"], ["B+/B", "#FFB300"], ["B-", "#FF3B5C"]].map(([label, color]) => (
             <span key={label} className="flex items-center gap-1 text-[10px] text-muted">
               <span className="w-2 h-2 rounded-sm inline-block" style={{ backgroundColor: color }} />
               {label}

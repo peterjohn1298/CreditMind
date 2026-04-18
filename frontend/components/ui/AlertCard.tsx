@@ -24,12 +24,12 @@ export default function AlertCard({ alert, onResolve }: Props) {
 
   return (
     <div className={cn(
-      "bg-navy-800 border border-navy-700 border-l-4 rounded-lg overflow-hidden",
+      "glass border-l-4 rounded-lg overflow-hidden",
       border
     )}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-navy-700/40 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.04] transition-colors"
       >
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded"
@@ -57,7 +57,7 @@ export default function AlertCard({ alert, onResolve }: Props) {
           </div>
           {/* Action required */}
           {alert.action_required && (
-            <div className="bg-navy-900 rounded-md p-3">
+            <div className="bg-black/20 rounded-md p-3">
               <p className="text-muted text-[10px] uppercase tracking-wider mb-1">Action Required</p>
               <p className="text-warning text-xs leading-relaxed">{alert.action_required}</p>
             </div>

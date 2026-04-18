@@ -1,6 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useCredit } from "@/context/CreditContext";
+import { cn } from "@/lib/utils";
 
 const TITLES: Record<string, string> = {
   "/dashboard":           "Dashboard",
@@ -9,20 +11,46 @@ const TITLES: Record<string, string> = {
   "/monitoring":          "Monitoring",
   "/alerts":              "Alert Center",
   "/sector-intelligence": "Sector Intelligence Hub",
+  "/deal":                "Deal Detail",
 };
+
+function minutesAgo(iso: string | null): string {
+  if (!iso) return "never";
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (diff < 1) return "just now";
+  if (diff === 1) return "1 min ago";
+  return `${diff} min ago`;
+}
 
 export default function TopBar() {
   const path = usePathname();
   const title = Object.entries(TITLES).find(([k]) => path.startsWith(k))?.[1] ?? "CreditMind";
-  const now = new Date().toLocaleString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
+  const { state } = useCredit();
+  const { isRefreshing, lastRefreshed, portfolio } = state;
 
   return (
-    <header className="h-16 bg-navy-900 border-b border-navy-700 flex items-center justify-between px-6 shrink-0">
+    <header className="h-16 border-b border-white/[0.06] flex items-center justify-between px-6 shrink-0" style={{ background: "rgba(10, 22, 40, 0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
       <h1 className="text-primary font-semibold text-base">{title}</h1>
-      <p className="text-muted text-xs font-mono">Last updated: {now}</p>
+
+      <div className="flex items-center gap-3">
+        {/* Live status pulse */}
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            "w-2 h-2 rounded-full",
+            isRefreshing
+              ? "bg-accent animate-pulse"
+              : lastRefreshed
+                ? "bg-success"
+                : "bg-muted"
+          )} />
+          <span className="text-xs font-mono text-muted">
+            {isRefreshing
+              ? "Monitoring agents running…"
+              : `Last monitored ${minutesAgo(lastRefreshed)} · ${portfolio.length} loans · 11 sectors`
+            }
+          </span>
+        </div>
+      </div>
     </header>
   );
 }

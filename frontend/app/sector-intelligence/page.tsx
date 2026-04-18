@@ -102,7 +102,7 @@ export default function SectorIntelligence() {
             const loans = portfolio.filter((d) => d.sector === sector).length;
             return (
               <button key={sector} onClick={() => handleSectorClick(sector)}
-                className="w-full bg-navy-800 border border-navy-700 rounded-lg p-4 text-left hover:border-navy-600 transition-colors">
+                className="w-full glass rounded-lg p-4 text-left hover:border-navy-600 transition-colors">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-primary text-sm font-semibold">{sector}</p>
                   <span className="font-mono text-lg font-bold" style={{ color }}>{score}</span>
@@ -122,12 +122,12 @@ export default function SectorIntelligence() {
             {selectedSector ? `Contagion — ${selectedSector}` : "Contagion Analysis"}
           </p>
           {!selectedSector && (
-            <div className="bg-navy-800 border border-navy-700 rounded-lg p-5 text-center">
+            <div className="glass rounded-lg p-5 text-center">
               <p className="text-muted text-xs">Click a sector on the heat map or an alert card to run contagion analysis</p>
             </div>
           )}
           {loading && (
-            <div className="bg-navy-800 border border-navy-700 rounded-lg p-5 text-center">
+            <div className="glass rounded-lg p-5 text-center">
               <p className="text-accent text-xs">Analyzing portfolio exposure…</p>
             </div>
           )}
@@ -135,7 +135,7 @@ export default function SectorIntelligence() {
             <ContagionCard key={loan.deal_id} loan={loan} />
           ))}
           {!loading && selectedSector && contagion.length === 0 && (
-            <div className="bg-navy-800 border border-navy-700 rounded-lg p-5 text-center">
+            <div className="glass rounded-lg p-5 text-center">
               <p className="text-success text-xs">No portfolio exposure to {selectedSector} sector event</p>
             </div>
           )}
@@ -149,13 +149,13 @@ export default function SectorIntelligence() {
       </div>
 
       {/* Portfolio Sector Exposure Table */}
-      <div className="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
-        <div className="px-5 py-3 border-b border-navy-700">
+      <div className="glass rounded-lg overflow-hidden">
+        <div className="px-5 py-3 border-b border-white/[0.06]">
           <p className="text-primary text-sm font-semibold">Portfolio Sector Exposure</p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-navy-700">
+            <tr className="border-b border-white/[0.06]">
               {["Company","Sector","Industry","Loan Amount","Sector Stress","Status"].map((h) => (
                 <th key={h} className="text-left px-5 py-2 text-muted text-xs font-semibold uppercase tracking-wider">{h}</th>
               ))}
@@ -165,7 +165,7 @@ export default function SectorIntelligence() {
             {portfolio.map((deal, i) => {
               const color = getRiskColor(deal.sector_stress_score);
               return (
-                <tr key={deal.deal_id} className={`border-b border-navy-700/50 hover:bg-navy-700/20 transition-colors ${i % 2 === 1 ? "bg-navy-900/20" : ""}`}>
+                <tr key={deal.deal_id} className={`border-b border-white/[0.06]/50 hover:bg-white/[0.03] transition-colors ${i % 2 === 1 ? "bg-white/[0.02]" : ""}`}>
                   <td className="px-5 py-3">
                     <p className="text-primary font-medium">{deal.company}</p>
                   </td>

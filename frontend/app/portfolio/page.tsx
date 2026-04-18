@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
 import Select from "@/components/ui/Select";
 import RatingBadge from "@/components/ui/RatingBadge";
@@ -37,10 +38,10 @@ export default function Portfolio() {
         </div>
 
         {/* Table */}
-        <div className="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
+        <div className="glass rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-navy-700">
+              <tr className="border-b border-white/[0.06]">
                 {["Company","Sector","Rating","Risk","Loan Amount","Alerts","Reviewed"].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-muted text-xs font-semibold uppercase tracking-wider">{h}</th>
                 ))}
@@ -51,11 +52,15 @@ export default function Portfolio() {
                 <tr key={deal.deal_id}
                   onClick={() => { setSelected(deal); setTab("summary"); }}
                   className={cn(
-                    "border-b border-navy-700/50 cursor-pointer transition-colors",
-                    selected?.deal_id === deal.deal_id ? "bg-navy-700/60" : i % 2 === 1 ? "bg-navy-900/30 hover:bg-navy-700/30" : "hover:bg-navy-700/30"
+                    "border-b border-white/[0.04] cursor-pointer transition-colors",
+                    selected?.deal_id === deal.deal_id ? "bg-white/[0.06]" : i % 2 === 1 ? "bg-white/[0.02] hover:bg-white/[0.04]" : "hover:bg-white/[0.03]"
                   )}>
                   <td className="px-4 py-3">
-                    <p className="text-primary font-medium">{deal.company}</p>
+                    <Link href={`/deal/${deal.deal_id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-primary font-medium hover:text-accent transition-colors">
+                      {deal.company}
+                    </Link>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs font-mono px-2 py-0.5 rounded-full border"
@@ -83,8 +88,8 @@ export default function Portfolio() {
 
       {/* Side panel */}
       {selected && (
-        <div className="w-80 shrink-0 bg-navy-800 border border-navy-700 rounded-lg flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-navy-700">
+        <div className="w-80 shrink-0 glass rounded-lg flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
             <div>
               <p className="text-primary font-semibold text-sm">{selected.company}</p>
               <p className="text-muted text-xs">{selected.deal_type}</p>
@@ -95,7 +100,7 @@ export default function Portfolio() {
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-navy-700">
+          <div className="flex border-b border-white/[0.06]">
             {(["summary","covenants","sector"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)}
                 className={cn("flex-1 py-2 text-xs font-semibold capitalize transition-colors",
@@ -124,7 +129,7 @@ export default function Portfolio() {
                     <p className="text-primary text-xs font-mono capitalize">{v}</p>
                   </div>
                 ))}
-                <div className="pt-2 border-t border-navy-700 flex items-center justify-between">
+                <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
                   <div className="text-center">
                     <RiskGauge score={selected.risk_score} size="lg" />
                     <p className="text-muted text-[10px] uppercase tracking-wider mt-1">Risk Score</p>

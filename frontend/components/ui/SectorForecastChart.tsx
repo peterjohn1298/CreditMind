@@ -40,7 +40,7 @@ export default function SectorForecastChart({ forecasts }: Props) {
   };
 
   return (
-    <div className="bg-navy-800 border border-navy-700 rounded-lg p-4">
+    <div className="glass rounded-lg p-4">
       <p className="text-muted text-xs font-semibold uppercase tracking-widest mb-3">30-Day Sector Forecast</p>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>

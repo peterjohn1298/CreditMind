@@ -18,7 +18,7 @@ streamlit run streamlit_app.py
 uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**Required env vars:** `ANTHROPIC_API_KEY`, `FRED_API_KEY`, `FINNHUB_API_KEY`
+**Required env vars:** `ANTHROPIC_API_KEY`, `FRED_API_KEY`, `FINNHUB_API_KEY`, `DATABASE_URL` (Railway Postgres — auto-injected), `YELP_API_KEY` (optional)
 
 ## Architecture
 
@@ -29,6 +29,20 @@ To add a new agent: subclass `BaseAgent`, implement `name`, `role`, and `run(cre
 
 ### Credit State
 The `credit_state` dict (`core/credit_state.py`) is the single shared object passed through the entire pipeline. It holds all agent outputs, alerts, routing notes, and deal metadata. Never mutate it directly — use `log_agent()`, `add_alert()`, `add_routing_note()`. Agents read prior agents' outputs from this state to build on each other's work.
+
+### Full Deal Lifecycle Coverage
+CreditMind now covers all 6 stages of the private credit lifecycle:
+
+| Stage | Agent | Endpoint |
+|---|---|---|
+| 1. Origination | `origination_scout.py` | `POST /api/origination-scan` |
+| 2. Screening | `deal_screener.py` | `POST /api/screen-deal` |
+| 3. Due Diligence | 11 DD agents | `POST /api/underwrite` |
+| 4. IC Approval | `ic_committee.py` | `POST /api/ic-committee` |
+| 5. Documentation | `documentation_agent.py` | `POST /api/generate-docs` |
+| 6. Closing | `closing_agent.py` | `POST /api/closing-checklist` |
+
+CP status updates via `PATCH /api/closing-checklist/{deal_id}/cp`.
 
 ### Orchestration Flow
 `core/orchestrator.py` has three orchestrators:
@@ -49,8 +63,28 @@ Tool results are capped at 3500 chars in `execute_tool()` to prevent context blo
 - `data/sector_etfs.json` — sector → SPDR ETF ticker map
 - `data/news_sources.json` — stress-signal keyword lists per sector
 
-### Portfolio Store
-`core/portfolio_store.py` is in-memory session state — it resets on redeploy. `data/seed_portfolio.py` seeds 50 demo companies on startup. Persistent storage has not yet been implemented.
+### Credit Policy
+`data/credit_policy.json` — the governing policy document (fund mandate, loan parameters, concentration limits, prohibited investments, approval authority matrix, watch list criteria, covenant standards, ESG policy). This is the human-readable source of truth.
+
+`core/credit_policy.py` — the enforcement engine. Key functions:
+- `check_new_deal(deal, portfolio)` → `PolicyResult` — run before DD; returns hard blocks, escalations, warnings
+- `check_existing_deal(deal)` → `PolicyResult` — run by monitoring agents for watch list triggers
+- `summarize_portfolio_vs_policy(portfolio)` → dashboard dict — concentration checks across portfolio
+- `get_policy_context_for_agents()` → string injected into IC committee and deal screener system prompts
+
+The orchestrator runs `check_new_deal()` at the start of DD. Hard blocks (`HARD_BLOCK`) abort the pipeline immediately. Escalations (`ESCALATION_REQUIRED`) proceed but generate alerts and require IC approval.
+
+Policy endpoints: `GET /api/policy`, `GET /api/policy/portfolio-compliance`, `POST /api/policy/check-deal`, `GET /api/policy/watch-list`.
+
+### Persistent Storage
+`data/db.py` is the persistence layer — SQLAlchemy Core against Railway Postgres. Three tables: `deals` (JSONB), `sector_alerts` (JSONB), `sector_scores` (int). On startup, `api/main.py` calls `init_db()`, then loads persisted state into `_portfolio`/`_sector_alerts`/`_sector_scores`. If the DB is empty (first boot), the seed portfolio is written in. Falls back silently to in-memory-only mode if `DATABASE_URL` is not set. Every mutation (`save_deal`, `save_sector_alerts`, `save_sector_scores`) is a no-op on failure — DB writes must never crash the API.
+
+### Background Scheduler
+`api/main.py` runs an APScheduler `BackgroundScheduler` registered in the FastAPI startup event. Two jobs:
+- **`sector_monitoring`**: `IntervalTrigger(hours=6)` — calls `_run_sector_monitoring()` which runs 11 sectors in parallel and persists results.
+- **`daily_monitoring`**: `CronTrigger(hour=2)` — calls `_run_daily_monitoring_all()` which runs `DailyMonitoringOrchestrator` for watchlist/stressed deals and any deal with active alerts (max 3 workers to respect API rate limits).
+
+Job status is visible at `GET /api/refresh-status` in the `scheduled_jobs` field.
 
 ### Alert System
 Alerts are written into `credit_state["human_alerts"]` via `add_alert()`. `core/alert_system.py` provides `get_pending_alerts()` and `resolve_alert()`. No external notifications — alerts are surfaced in the UI only.

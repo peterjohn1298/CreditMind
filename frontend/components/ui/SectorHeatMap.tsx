@@ -32,7 +32,7 @@ export default function SectorHeatMap({ data, onSectorClick, mini = false }: Pro
   const totalH = data.sectors.length * (cellH + gap);
 
   return (
-    <div className="bg-navy-800 border border-navy-700 rounded-lg p-4 overflow-x-auto">
+    <div className="glass rounded-lg p-4 overflow-x-auto">
       {!mini && (
         <div className="flex items-center justify-between mb-3">
           <p className="text-muted text-xs font-semibold uppercase tracking-widest">Sector Stress Heat Map</p>
@@ -117,7 +117,7 @@ export default function SectorHeatMap({ data, onSectorClick, mini = false }: Pro
         {/* Tooltip */}
         {tooltip && (
           <div
-            className="fixed z-50 bg-navy-900 border border-navy-600 rounded-md px-3 py-2 pointer-events-none shadow-xl"
+            className="fixed z-50 glass rounded-md px-3 py-2 pointer-events-none shadow-xl"
             style={{ top: tooltip.y - 60, left: tooltip.x + 10 }}>
             <p className="text-primary text-xs font-semibold">{tooltip.sector}</p>
             <p className="text-muted text-[10px] font-mono">{tooltip.date}{tooltip.forecast ? " (Forecast)" : ""}</p>

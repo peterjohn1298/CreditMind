@@ -57,6 +57,9 @@ export const resolveAlert = (alert_id: string, resolved_by = "user", notes = "")
 export const getPortfolioSectorMap = (): Promise<{ deals: Deal[] }> =>
   req("/api/portfolio/sector-map");
 
+export const getDeal = (deal_id: string): Promise<Deal> =>
+  req(`/api/deals/${encodeURIComponent(deal_id)}`);
+
 // ─── Sector Intelligence ──────────────────────────────────────────────────────
 
 export const getSectorHeatMap = (): Promise<HeatMapData> =>

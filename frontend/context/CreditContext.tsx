@@ -89,23 +89,29 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
       if (data.deals && data.deals.length > 0) {
         // Normalize API deal shape to match frontend Deal type
         const deals = data.deals.map((d: any) => ({
-          deal_id:            d.deal_id,
-          company:            d.company,
-          sector:             d.sector,
-          sponsor:            d.sponsor,
-          loan_amount:        d.loan_amount,
-          loan_tenor:         d.loan_tenor,
-          loan_type:          d.loan_type,
-          status:             (d.loan_status ?? d.status ?? "current").toLowerCase(),
-          internal_rating:    d.internal_rating ?? d.current_rating ?? "B+",
-          risk_score:         d.live_risk_score ?? d.risk_score ?? 50,
-          sector_stress_score:d.sector_stress_score ?? 30,
-          alert_count:        (d.human_alerts ?? []).length,
-          disbursement_date:  d.disbursement_date,
-          maturity_date:      d.maturity_date,
-          ebitda:             d.ebitda_analysis?.conservative_adjusted_ebitda ?? d.credit_model?.ebitda,
-          leverage:           d.credit_model?.leverage_multiple,
-          covenants:          d.covenant_status ?? {},
+          deal_id:             d.deal_id,
+          company:             d.company,
+          sector:              d.sector,
+          sponsor:             d.sponsor,
+          loan_amount:         d.loan_amount,
+          loan_tenor:          d.loan_tenor,
+          loan_type:           d.loan_type,
+          status:              (d.loan_status ?? d.status ?? "current").toLowerCase(),
+          internal_rating:     d.internal_rating ?? d.current_rating ?? "B+",
+          risk_score:          d.live_risk_score ?? d.risk_score ?? 50,
+          sector_stress_score: d.sector_stress_score ?? 30,
+          alert_count:         (d.human_alerts ?? []).length,
+          disbursement_date:   d.disbursement_date,
+          maturity_date:       d.maturity_date,
+          ebitda:              d.ebitda_analysis?.conservative_adjusted_ebitda ?? d.credit_model?.ebitda,
+          leverage:            d.credit_model?.leverage_multiple,
+          covenants:           d.covenant_status ?? {},
+          financial_health:    d.financial_analysis?.overall_financial_health,
+          news_signals:        d.news_signals ?? [],
+          early_warning_flags: d.early_warning_flags ?? [],
+          human_alerts:        d.human_alerts ?? [],
+          job_signals:         d.job_signals ?? null,
+          consumer_signals:    d.consumer_signals ?? null,
         }));
         dispatch({ type: "SET_PORTFOLIO", payload: deals });
       }
@@ -138,10 +144,17 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
           const status = await getRefreshStatus();
           if (!status.running) {
             clearInterval(poll);
-            const data = await getAlerts();
-            dispatch({ type: "SET_ALERTS", payload: data.alerts });
+            const [alertData, { getSectorHeatMap }] = await Promise.all([
+              getAlerts(),
+              import("@/lib/api"),
+            ]);
+            dispatch({ type: "SET_ALERTS", payload: alertData.alerts });
             dispatch({ type: "SET_LAST_REFRESHED", payload: new Date().toISOString() });
             dispatch({ type: "SET_REFRESHING", payload: false });
+            try {
+              const heatMap = await getSectorHeatMap();
+              dispatch({ type: "SET_SECTOR_DATA", payload: heatMap });
+            } catch { /* heatmap non-critical */ }
           }
         } catch {
           clearInterval(poll);

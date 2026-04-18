@@ -41,12 +41,14 @@ class IndustryBenchmarkerAgent(BaseAgent):
         )
 
     def run(self, credit_state: dict) -> dict:
-        company = credit_state["company"]
-        ticker = credit_state["ticker"]
+        company = credit_state.get("company", "Unknown")
+        ticker = credit_state.get("ticker", "")
         financial_analysis = credit_state.get("financial_analysis", {})
 
+        ticker_line = f"ticker: {ticker}" if ticker else "private company — no public ticker, use sector/financial data only"
+
         task = f"""
-Benchmark {company} (ticker: {ticker}) against its industry sector peers.
+Benchmark {company} ({ticker_line}) against its industry sector peers.
 
 FINANCIAL ANALYSIS FROM AGENT 1:
 {json.dumps(financial_analysis, indent=2, default=str)[:1500]}
