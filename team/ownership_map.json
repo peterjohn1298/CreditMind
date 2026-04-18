@@ -1,0 +1,99 @@
+{
+  "team": {
+    "Peter": {
+      "github_username": "peterjohn1298",
+      "branch": "master",
+      "role": "Leader — Architecture, Infra & Credit Intelligence",
+      "files": [
+        "api/main.py",
+        "app.py",
+        "streamlit_app.py",
+        "core/orchestrator.py",
+        "core/parallel_runner.py",
+        "core/credit_policy.py",
+        "core/credit_state.py",
+        "agents/ic_committee.py",
+        "agents/ic_memo_writer.py",
+        "agents/risk_scorer.py",
+        "agents/stress_tester.py",
+        "agents/credit_modeler.py",
+        "agents/credit_underwriter.py",
+        "data/db.py",
+        "data/seed_portfolio.py",
+        "railway.toml",
+        "Procfile",
+        "requirements.txt"
+      ],
+      "patterns": [
+        "team/",
+        ".github/"
+      ]
+    },
+    "Abraham": {
+      "github_username": "Abrahamgeorge97",
+      "branch": "feature/abraham",
+      "role": "Underwriting & Financial Analysis",
+      "files": [
+        "agents/financial_analyst.py",
+        "agents/ebitda_analyst.py",
+        "agents/commercial_analyst.py",
+        "agents/industry_benchmarker.py",
+        "data/financial_data.py",
+        "data/macro_data.py",
+        "data/sec_edgar.py",
+        "core/tools.py",
+        "core/tool_executor.py"
+      ],
+      "patterns": []
+    },
+    "John": {
+      "github_username": "jbhbsbl-netizen",
+      "branch": "feature/john",
+      "role": "Deal Lifecycle & Loan Type Specialists",
+      "files": [
+        "agents/origination_scout.py",
+        "agents/deal_screener.py",
+        "agents/documentation_agent.py",
+        "agents/closing_agent.py",
+        "agents/growth_capital_analyst.py",
+        "agents/unitranche_analyst.py",
+        "agents/mezzanine_analyst.py",
+        "agents/borrowing_base_analyst.py",
+        "agents/bridge_exit_analyst.py",
+        "agents/distressed_analyst.py",
+        "agents/project_finance_analyst.py",
+        "core/loan_types.py",
+        "outputs/credit_memo.py"
+      ],
+      "patterns": []
+    },
+    "Jasmine": {
+      "github_username": "jasminkaur9",
+      "branch": "design/jasmine",
+      "role": "Design Lead — UI & Aesthetics",
+      "files": [],
+      "patterns": [
+        "frontend/"
+      ]
+    }
+  },
+  "shared": {
+    "note": "Shared files require Peter's explicit approval. CoS will flag any edits to these.",
+    "files": [
+      "agents/portfolio_monitor.py",
+      "agents/covenant_compliance.py",
+      "agents/rating_reviewer.py",
+      "agents/news_intelligence.py",
+      "agents/sentiment_scorer.py",
+      "agents/early_warning.py",
+      "agents/legal_analyst.py",
+      "agents/covenant_structurer.py",
+      "data/news_data.py",
+      "data/consumer_signals.py",
+      "data/jobs_data.py",
+      "core/alert_system.py",
+      "core/portfolio_store.py",
+      "core/document_processor.py"
+    ]
+  }
+}
