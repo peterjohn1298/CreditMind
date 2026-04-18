@@ -89,7 +89,7 @@ export default function Dashboard() {
                     <td className="px-5 py-3">
                       <span className="text-xs text-muted font-mono">{deal.sector}</span>
                     </td>
-                    <td className="px-5 py-3 text-muted text-xs font-mono">{formatDate(deal.last_reviewed)}</td>
+                    <td className="px-5 py-3 text-muted text-xs font-mono">{formatDate(deal.last_reviewed ?? "")}</td>
                   </tr>
                 ))
               )}
