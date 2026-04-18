@@ -15,20 +15,20 @@ export default function SentimentChart({ data, sector }: Props) {
         <AreaChart data={data} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
           <defs>
             <linearGradient id="sentGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#1B7FE5" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#1B7FE5" stopOpacity={0} />
+              <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="date" tick={{ fill: "#6B7FA3", fontSize: 9, fontFamily: "JetBrains Mono" }}
+          <XAxis dataKey="date" tick={{ fill: "#888888", fontSize: 9, fontFamily: "JetBrains Mono" }}
             tickFormatter={(v) => v.slice(5)} axisLine={false} tickLine={false} />
-          <YAxis domain={[0, 100]} tick={{ fill: "#6B7FA3", fontSize: 9, fontFamily: "JetBrains Mono" }}
+          <YAxis domain={[0, 100]} tick={{ fill: "#888888", fontSize: 9, fontFamily: "JetBrains Mono" }}
             axisLine={false} tickLine={false} />
           <Tooltip
-            contentStyle={{ background: "#0F2040", border: "1px solid #162B52", borderRadius: 6 }}
-            labelStyle={{ color: "#6B7FA3", fontSize: 10 }}
-            itemStyle={{ color: "#1B7FE5", fontSize: 11, fontFamily: "JetBrains Mono" }}
+            contentStyle={{ background: "#111111", border: "1px solid #2A2A2A", borderRadius: 6 }}
+            labelStyle={{ color: "#888888", fontSize: 10 }}
+            itemStyle={{ color: "#C9A84C", fontSize: 11, fontFamily: "JetBrains Mono" }}
           />
-          <Area type="monotone" dataKey="score" stroke="#1B7FE5" strokeWidth={2}
+          <Area type="monotone" dataKey="score" stroke="#C9A84C" strokeWidth={2}
             fill="url(#sentGrad)" dot={false} />
         </AreaChart>
       </ResponsiveContainer>

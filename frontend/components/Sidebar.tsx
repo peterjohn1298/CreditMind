@@ -25,7 +25,7 @@ export default function Sidebar() {
   const totalAlerts = state.alertSummary.critical + state.alertSummary.high;
 
   return (
-    <aside className="w-60 min-h-screen border-r border-white/[0.06] flex flex-col shrink-0" style={{ background: "rgba(10, 22, 40, 0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+    <aside className="w-60 min-h-screen border-r border-white/[0.06] flex flex-col shrink-0" style={{ background: "rgba(6, 6, 6, 0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-white/[0.06]">
         <div>

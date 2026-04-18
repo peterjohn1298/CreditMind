@@ -4,8 +4,8 @@ import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer, Legend } from "recharts";
 
 const COLORS = [
-  "#1B7FE5","#00D4A4","#FFB300","#FF3B5C","#FF8C00",
-  "#A78BFA","#34D399","#F87171","#60A5FA","#FBBF24","#6EE7B7",
+  "#C9A84C","#00D4A4","#FFB300","#FF3B5C","#FF8C00",
+  "#A78BFA","#34D399","#F87171","#E8C55C","#FBBF24","#6EE7B7",
 ];
 
 interface Props {
@@ -44,16 +44,16 @@ export default function SectorForecastChart({ forecasts }: Props) {
       <p className="text-muted text-xs font-semibold uppercase tracking-widest mb-3">30-Day Sector Forecast</p>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-          <XAxis dataKey="date" tick={{ fill: "#6B7FA3", fontSize: 8, fontFamily: "JetBrains Mono" }}
+          <XAxis dataKey="date" tick={{ fill: "#888888", fontSize: 8, fontFamily: "JetBrains Mono" }}
             tickFormatter={(v) => v.slice(5)} axisLine={false} tickLine={false} interval={6} />
-          <YAxis domain={[0, 100]} tick={{ fill: "#6B7FA3", fontSize: 8, fontFamily: "JetBrains Mono" }}
+          <YAxis domain={[0, 100]} tick={{ fill: "#888888", fontSize: 8, fontFamily: "JetBrains Mono" }}
             axisLine={false} tickLine={false} />
           <Tooltip
-            contentStyle={{ background: "#0F2040", border: "1px solid #162B52", borderRadius: 6, fontSize: 10 }}
-            labelStyle={{ color: "#6B7FA3" }}
+            contentStyle={{ background: "#111111", border: "1px solid #2A2A2A", borderRadius: 6, fontSize: 10 }}
+            labelStyle={{ color: "#888888" }}
             itemStyle={{ fontFamily: "JetBrains Mono" }}
           />
-          <ReferenceLine x={today} stroke="#6B7FA3" strokeDasharray="3 3" label={{ value: "Today", fill: "#6B7FA3", fontSize: 9 }} />
+          <ReferenceLine x={today} stroke="#888888" strokeDasharray="3 3" label={{ value: "Today", fill: "#888888", fontSize: 9 }} />
           {sectors.map((s, i) => (
             <Line key={s} type="monotone" dataKey={s} stroke={COLORS[i % COLORS.length]}
               strokeWidth={hidden.has(s) ? 0 : 1.5} dot={false} strokeOpacity={hidden.has(s) ? 0 : 1} />

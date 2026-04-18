@@ -30,7 +30,7 @@ export default function TopBar() {
   const { isRefreshing, lastRefreshed, portfolio } = state;
 
   return (
-    <header className="h-16 border-b border-white/[0.06] flex items-center justify-between px-6 shrink-0" style={{ background: "rgba(10, 22, 40, 0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+    <header className="h-16 border-b border-white/[0.06] flex items-center justify-between px-6 shrink-0" style={{ background: "rgba(6, 6, 6, 0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
       <h1 className="text-primary font-semibold text-base">{title}</h1>
 
       <div className="flex items-center gap-3">

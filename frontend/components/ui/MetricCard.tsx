@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 type Variant = "accent" | "success" | "warning" | "danger";
 
 const VARIANTS: Record<Variant, { color: string; glow: string }> = {
-  accent:  { color: "#1B7FE5", glow: "" },
+  accent:  { color: "#C9A84C", glow: "0 0 18px rgba(201,168,76,0.15)" },
   success: { color: "#00D4A4", glow: "" },
   warning: { color: "#FFB300", glow: "" },
   danger:  { color: "#FF3B5C", glow: "0 0 18px rgba(255,59,92,0.18)" },

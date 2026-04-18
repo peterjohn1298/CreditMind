@@ -4,9 +4,9 @@ import { Treemap, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cel
 import type { Deal } from "@/lib/types";
 
 const SECTOR_COLORS: Record<string, string> = {
-  "Aerospace & Defense": "#1B7FE5",
+  "Aerospace & Defense": "#C9A84C",
   "Healthcare":          "#FF3B5C",
-  "Industrials":         "#6B7FA3",
+  "Industrials":         "#888888",
   "Consumer & Retail":   "#FF8C00",
   "Technology Services": "#00D4A4",
   "Energy":              "#FFB300",
@@ -17,7 +17,7 @@ const SECTOR_COLORS: Record<string, string> = {
 };
 
 const RATING_COLORS: Record<string, string> = {
-  "BB+": "#00D4A4", "BB": "#00D4A4", "BB-": "#1B7FE5",
+  "BB+": "#00D4A4", "BB": "#00D4A4", "BB-": "#C9A84C",
   "B+": "#FFB300",  "B": "#FF8C00",  "B-": "#FF3B5C",
 };
 
@@ -33,7 +33,7 @@ function TreemapCell(props: {
 }) {
   const { x = 0, y = 0, width = 0, height = 0, name = "", value = 0, depth } = props;
   if (depth !== 1) return null;
-  const color = SECTOR_COLORS[name] ?? "#6B7FA3";
+  const color = SECTOR_COLORS[name] ?? "#888888";
   const showName  = width > 52 && height > 26;
   const showValue = width > 52 && height > 42;
 
