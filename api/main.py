@@ -245,8 +245,10 @@ class ResolveAlertRequest(BaseModel):
 class MonitorResponse(BaseModel):
     deal_id: str
     risk_score: Optional[float]
+    live_risk_score: Optional[float]
     alerts: list
     sentiment: Optional[dict]
+    sentiment_trend: Optional[list]
     monitoring_summary: Optional[str]
     early_warning_flags: Optional[list]
     news_signals: Optional[list]
@@ -404,8 +406,10 @@ def daily_monitor(req: MonitorRequest):
         return MonitorResponse(
             deal_id=req.deal_id,
             risk_score=credit_state.get("risk_score"),
+            live_risk_score=credit_state.get("live_risk_score"),
             alerts=get_pending_alerts(credit_state),
             sentiment=credit_state.get("sentiment_analysis"),
+            sentiment_trend=credit_state.get("sentiment_trend", []),
             monitoring_summary=credit_state.get("early_warning_summary"),
             early_warning_flags=credit_state.get("early_warning_flags", []),
             news_signals=credit_state.get("news_signals", []),
@@ -531,7 +535,15 @@ def resolve_alert_endpoint(req: ResolveAlertRequest):
 @app.get("/api/portfolio")
 def get_portfolio():
     """Return all deals in the portfolio with full credit state."""
-    return {"deals": list(_portfolio.values()), "total": len(_portfolio)}
+    deals = []
+    for deal in _portfolio.values():
+        d = dict(deal)
+        # Inject live sector stress score from last monitoring run
+        sector_key = _SECTOR_MAP.get(d.get("sector", ""), d.get("sector", ""))
+        if sector_key in _sector_scores:
+            d["sector_stress_score"] = _sector_scores[sector_key]
+        deals.append(d)
+    return {"deals": deals, "total": len(deals)}
 
 
 @app.get("/api/deals/{deal_id}")

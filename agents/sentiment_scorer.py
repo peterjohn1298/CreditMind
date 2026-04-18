@@ -5,6 +5,7 @@ then cross-checks against the news intelligence report for divergence.
 """
 
 import json
+from datetime import datetime
 from agents.base_agent import BaseAgent
 from core.tools import SENTIMENT_TOOLS
 from core.credit_state import log_agent, add_divergence
@@ -67,8 +68,11 @@ Negative adjustment = improvement. Positive = deterioration.
         result = self.run_agentic_loop_json(self.role, task, SENTIMENT_TOOLS)
 
         credit_state["sentiment_score"] = result.get("current_sentiment", "NEUTRAL")
+        raw_score = result.get("sentiment_score", 0)  # -100 to +100
+        normalized = max(0, min(100, int((raw_score + 100) / 2)))  # map to 0-100 for chart
         credit_state["sentiment_trend"].append({
-            "score": result.get("sentiment_score"),
+            "date":  datetime.now().strftime("%Y-%m-%d"),
+            "score": normalized,
             "trend": result.get("trend"),
         })
 

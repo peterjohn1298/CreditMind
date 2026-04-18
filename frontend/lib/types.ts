@@ -167,8 +167,10 @@ export interface UnderwriteResponse {
 export interface MonitorResponse {
   deal_id: string;
   risk_score: number;
+  live_risk_score?: number;
   alerts: Alert[];
   sentiment: Record<string, number>;
+  sentiment_trend?: Array<{ date: string; score: number; trend?: string }>;
   monitoring_summary: string;
   early_warning_flags?: Array<{ flag_type?: string; warning_type?: string; description: string; severity: string }>;
   news_signals?: Array<{ headline: string; sentiment: string }>;

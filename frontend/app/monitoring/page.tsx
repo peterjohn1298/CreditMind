@@ -14,11 +14,10 @@ import type { Deal, AgentStatus } from "@/lib/types";
 type Tab = "monitoring" | "stress";
 
 const MONITOR_AGENTS: string[] = [
-  "News Scout", "Market Scanner", "Alt-Data Analyst",
-  "Sector Correlator", "Risk Assessor", "Warning Engine",
+  "News Intelligence", "Sentiment Scorer", "Early Warning",
 ];
 const QUARTERLY_AGENTS: string[] = [
-  "Covenant Checker", "Rating Analyst", "EBITDA Reviewer", "IC Memo Updater",
+  "Portfolio Monitor", "Covenant Compliance", "Rating Reviewer",
 ];
 
 const STRESS_SCENARIOS = [
@@ -96,6 +95,8 @@ export default function Monitoring() {
   const [dailySummary, setDailySummary] = useState<string | null>(null);
   const [warningFlags, setWarningFlags] = useState<any[]>([]);
   const [liveNewsSignals, setLiveNewsSignals] = useState<any[]>([]);
+  const [sentimentTrend, setSentimentTrend] = useState<Array<{ date: string; score: number }>>([]);
+  const [liveRiskScore, setLiveRiskScore] = useState<number | null>(null);
   const [jobSignals, setJobSignals] = useState<any | null>(null);
   const [consumerSignals, setConsumerSignals] = useState<any | null>(null);
 
@@ -110,12 +111,6 @@ export default function Monitoring() {
   const monitorAgents = useAgentAnimation(dailyRunning, MONITOR_AGENTS);
   const quarterlyAgents = useAgentAnimation(qRunning, QUARTERLY_AGENTS);
 
-  const sentimentData = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date("2026-03-09"); d.setDate(d.getDate() + i);
-    const base = deal ? Math.max(20, 70 - deal.risk_score * 0.4) : 50;
-    return { date: d.toISOString().split("T")[0], score: Math.round(base + (Math.random() - 0.5) * 25) };
-  });
-
   async function handleDaily() {
     if (!deal) return;
     setDailyRunning(true); setDailySummary(null);
@@ -124,10 +119,12 @@ export default function Monitoring() {
       setDailySummary(res.monitoring_summary ?? null);
       setWarningFlags(res.early_warning_flags ?? []);
       setLiveNewsSignals(res.news_signals ?? []);
+      setSentimentTrend(res.sentiment_trend ?? []);
+      setLiveRiskScore(res.live_risk_score ?? null);
       setJobSignals(res.job_signals ?? null);
       setConsumerSignals(res.consumer_signals ?? null);
-    } catch {
-      setDailySummary(`Daily monitoring complete for ${deal.company}. Sentiment stable across coverage universe. No material covenant deterioration detected. Risk score: ${deal.risk_score}/100. Sector stress: ${deal.sector_stress_score}/100. Recommend continued monitoring.`);
+    } catch (err) {
+      setDailySummary(null);
     } finally {
       setDailyRunning(false);
     }
@@ -140,7 +137,7 @@ export default function Monitoring() {
       const res = await runQuarterlyReview(deal.deal_id, deal.ticker ?? "");
       setQSummary(res.review_summary);
     } catch {
-      setQSummary(`Quarterly review complete for ${deal.company}. Rating maintained at ${deal.internal_rating}. All covenants compliant as of review date. Risk score trajectory: ${deal.risk_score}/100 — ${deal.risk_score > 65 ? "elevated, enhanced monitoring recommended" : "within acceptable parameters"}. Next review: Q3 2026.`);
+      setQSummary(null);
     } finally {
       setQRunning(false);
     }
@@ -159,13 +156,10 @@ export default function Monitoring() {
     covenantBreaches: stressResults.filter(r => r.coverage_breach || r.leverage_breach).length,
   } : null;
 
-  // Dynamic covenant data from selected deal
-  const covenants = deal ? [
-    { name: "Net Debt / EBITDA",  threshold: "≤ 4.0x", current: `${(deal.risk_score / 25 + 2.2).toFixed(1)}x`, ok: deal.risk_score < 70 },
-    { name: "Interest Coverage",  threshold: "≥ 2.5x", current: `${(3.8 - deal.risk_score / 50).toFixed(1)}x`,  ok: deal.risk_score < 65 },
-    { name: "Min Liquidity",      threshold: "≥ $25M",  current: `$${Math.round(40 - deal.risk_score * 0.2)}M`,  ok: deal.risk_score < 60 },
-    { name: "Capex Limit",        threshold: "≤ $15M",  current: `$${Math.round(8 + deal.risk_score * 0.07)}M`,  ok: deal.risk_score < 75 },
-  ] : [];
+  // Real covenant data from deal — sourced from seed portfolio + agent updates
+  const covenantRows: Array<{ name: string; threshold: string; current: string; headroom_pct: number }> =
+    deal?.covenants?.covenants ?? [];
+  const covenantCompliance: string = deal?.covenants?.overall_compliance ?? "UNKNOWN";
 
   return (
     <div className="space-y-5">
@@ -250,7 +244,15 @@ export default function Monitoring() {
 
             <div className="p-5 grid grid-cols-2 gap-5">
               <div className="space-y-4">
-                <SentimentChart data={sentimentData} sector={deal?.sector ?? "Portfolio"} />
+                {sentimentTrend.length > 0 ? (
+                  <SentimentChart data={sentimentTrend} sector={deal?.sector ?? "Portfolio"} />
+                ) : (
+                  <div className="glass rounded-lg p-4 flex items-center justify-center h-[192px]">
+                    <p className="text-muted text-xs text-center leading-relaxed">
+                      Run Daily Monitor to generate live sentiment data for {deal?.company ?? "this deal"}.
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-1">
                   <p className="text-primary text-xs font-semibold mb-2">News Signals</p>
                   {(() => {
@@ -292,7 +294,8 @@ export default function Monitoring() {
                   {[
                     ["Sector", deal?.sector],
                     ["Sector Stress", `${deal?.sector_stress_score ?? "—"} / 100`],
-                    ["Risk Score", `${deal?.risk_score ?? "—"} / 100`],
+                    ["Underwrite Risk Score", `${deal?.risk_score ?? "—"} / 100`],
+                    ["Live Risk Score", liveRiskScore != null ? `${liveRiskScore} / 100` : "Run monitor →"],
                     ["Rating", deal?.internal_rating],
                     ["Loan Amount", deal ? formatCurrency(deal.loan_amount) : "—"],
                   ].map(([k, v]) => (
@@ -388,30 +391,61 @@ export default function Monitoring() {
 
             <div className="p-5 grid grid-cols-2 gap-5">
               <div>
-                <p className="text-primary text-xs font-semibold mb-3">Covenant Compliance — {deal?.company ?? "Select deal"}</p>
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-white/[0.06]">
-                      {["Covenant","Threshold","Current","Status"].map(h => (
-                        <th key={h} className="text-left pb-2 text-muted font-semibold uppercase tracking-wider text-[10px]">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {covenants.map(c => (
-                      <tr key={c.name} className="border-b border-white/[0.04] last:border-0">
-                        <td className="py-2 text-primary">{c.name}</td>
-                        <td className="py-2 font-mono text-muted">{c.threshold}</td>
-                        <td className="py-2 font-mono text-primary">{c.current}</td>
-                        <td className="py-2">
-                          <span className={cn("font-bold text-xs", c.ok ? "text-success" : "text-danger")}>
-                            {c.ok ? "PASS" : "BREACH"}
-                          </span>
-                        </td>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-primary text-xs font-semibold">Covenant Compliance — {deal?.company ?? "Select deal"}</p>
+                  {covenantCompliance !== "UNKNOWN" && (
+                    <span className={cn("text-[10px] font-mono font-bold px-2 py-0.5 rounded",
+                      covenantCompliance === "COMPLIANT"       ? "bg-success/20 text-success" :
+                      covenantCompliance === "AT_RISK"         ? "bg-warning/20 text-warning" :
+                      covenantCompliance === "BREACH_DETECTED" ? "bg-danger/20 text-danger"   :
+                      "bg-white/[0.06] text-muted"
+                    )}>{covenantCompliance.replace("_", " ")}</span>
+                  )}
+                </div>
+                {covenantRows.length > 0 ? (
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-white/[0.06]">
+                        {["Covenant","Threshold","Current","Headroom","Status"].map(h => (
+                          <th key={h} className="text-left pb-2 text-muted font-semibold uppercase tracking-wider text-[10px]">{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {covenantRows.map((c) => {
+                        const breach = c.headroom_pct < 0;
+                        const atRisk = !breach && c.headroom_pct < 15;
+                        return (
+                          <tr key={c.name} className="border-b border-white/[0.04] last:border-0">
+                            <td className="py-2 text-primary">{c.name}</td>
+                            <td className="py-2 font-mono text-muted">{c.threshold}</td>
+                            <td className="py-2 font-mono text-primary">{c.current}</td>
+                            <td className="py-2 font-mono" style={{ color: breach ? "#FF3B5C" : atRisk ? "#FFB300" : "#00D4A4" }}>
+                              {c.headroom_pct > 0 ? "+" : ""}{c.headroom_pct.toFixed(1)}%
+                            </td>
+                            <td className="py-2">
+                              <span className={cn("font-bold text-[10px]",
+                                breach ? "text-danger" : atRisk ? "text-warning" : "text-success"
+                              )}>
+                                {breach ? "BREACH" : atRisk ? "AT RISK" : "PASS"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="py-4 text-center">
+                    {covenantCompliance === "COMPLIANT" ? (
+                      <p className="text-success text-xs font-semibold">All covenants compliant</p>
+                    ) : (
+                      <p className="text-muted text-xs leading-relaxed">
+                        Run Quarterly Review to pull live covenant compliance data for {deal?.company ?? "this deal"}.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 {qSummary ? (
@@ -424,9 +458,9 @@ export default function Monitoring() {
                     </p>
                   </div>
                 ) : (
-                  <div className="bg-black/40 border border-white/[0.06] rounded-lg p-4">
+                  <div className="bg-black/40 border border-white/[0.06] rounded-lg p-4 flex items-center justify-center h-full min-h-[80px]">
                     <p className="text-muted text-xs text-center leading-relaxed">
-                      Run the quarterly review to generate a live AI rating assessment for {deal?.company ?? "the selected deal"}.
+                      Run Quarterly Review to generate a live AI rating assessment for {deal?.company ?? "the selected deal"}.
                     </p>
                   </div>
                 )}
