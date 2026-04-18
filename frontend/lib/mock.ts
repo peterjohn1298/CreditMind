@@ -361,61 +361,65 @@ export const MOCK_DEALS: Deal[] = [
     alert_count: 0, last_reviewed: "2026-04-01" },
 ];
 
+function minsAgo(m: number): string {
+  return new Date(Date.now() - m * 60_000).toISOString();
+}
+
 export const MOCK_ALERTS: Alert[] = [
   // CRITICAL alerts
   { alert_id: "ALT-001", deal_id: "PORT0012", company: "Midwest Bariatric Centers",
     severity: "CRITICAL", message: "GLP-1 structural disruption — bariatric surgery volumes -31% YoY. Leverage covenant breach imminent.",
-    timestamp: "2026-04-08T10:30:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(12), resolved: false, alert_type: "company" },
   { alert_id: "ALT-002", deal_id: "PORT0010", company: "NovaCare Behavioral Health",
     severity: "CRITICAL", message: "FCCR covenant breach detected: 1.08x vs. 1.25x minimum. Immediate remediation required.",
-    timestamp: "2026-04-08T10:15:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(27), resolved: false, alert_type: "company" },
   { alert_id: "ALT-003", deal_id: "PORT0022", company: "Coastal Living Brands",
     severity: "CRITICAL", message: "145% China tariff hits 73% of product sourcing. EBITDA run-rate impact: -35%. Covenant breach risk.",
-    timestamp: "2026-04-08T09:50:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(43), resolved: false, alert_type: "company" },
   { alert_id: "ALT-004", deal_id: "PORT0028", company: "Nexus BPO Solutions",
     severity: "CRITICAL", message: "AI structural disruption destroying BPO revenue. Leverage 7.8x vs 5.5x covenant. Maturity in 3 months.",
-    timestamp: "2026-04-08T09:30:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(68), resolved: false, alert_type: "company" },
   { alert_id: "ALT-005", deal_id: "PORT0021", company: "NovaPoly Materials",
     severity: "CRITICAL", message: "PFAS class action filed. EPA remediation order pending. 2026 maturity approaching — refinancing at risk.",
-    timestamp: "2026-04-08T09:10:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(95), resolved: false, alert_type: "company" },
   { alert_id: "ALT-006", deal_id: "PORT0014", company: "Precision Neodymium Components",
     severity: "CRITICAL", message: "China rare earth export ban — primary input cost up 85% in 2 weeks. Production curtailment within 60 days.",
-    timestamp: "2026-04-08T08:45:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(134), resolved: false, alert_type: "company" },
   { alert_id: "ALT-007", deal_id: "PORT0009", company: "Apex Home Health Network",
     severity: "CRITICAL", message: "DOGE Medicaid cuts + CMS rate reduction — dual revenue headwind. EBITDA margin 23% → 18% over 2 quarters.",
-    timestamp: "2026-04-08T08:20:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(187), resolved: false, alert_type: "company" },
   // HIGH alerts
   { alert_id: "ALT-008", deal_id: "PORT0013", company: "LifeScan Diabetes Devices",
     severity: "HIGH", message: "GLP-1 adoption reducing diabetes device TAM — revenue -17% LTM. Near 2027 maturity wall.",
-    timestamp: "2026-04-08T07:55:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(245), resolved: false, alert_type: "company" },
   { alert_id: "ALT-009", deal_id: "PORT0034", company: "Crestline Oilfield Services",
     severity: "HIGH", message: "Oil price weakness driving rig count declines. EBITDA tracking 18% below underwriting model.",
-    timestamp: "2026-04-08T07:30:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(312), resolved: false, alert_type: "company" },
   { alert_id: "ALT-010", deal_id: "PORT0043", company: "Harbor Port Logistics",
     severity: "HIGH", message: "Port container volumes down 23% YoY. Tariff front-loading effect reversing — volume decline expected.",
-    timestamp: "2026-04-08T07:00:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(398), resolved: false, alert_type: "company" },
   { alert_id: "ALT-011", deal_id: "PORT0008", company: "MedCore Specialty Pharmacy",
     severity: "HIGH", message: "IRA drug price negotiation expanding — specialty pharmacy reimbursement at risk. Margin compression on GLP-1.",
-    timestamp: "2026-04-07T16:00:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(510), resolved: false, alert_type: "company" },
   { alert_id: "ALT-012", deal_id: "PORT0047", company: "Apex Specialty Chemicals",
     severity: "HIGH", message: "EPA PFAS enforcement expanding to chemical manufacturers. Contingent liability risk increasing.",
-    timestamp: "2026-04-07T15:00:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(623), resolved: false, alert_type: "company" },
   { alert_id: "ALT-013", deal_id: "PORT0029", company: "LegalEdge Process Outsourcing",
     severity: "HIGH", message: "AI disruption accelerating in legal process outsourcing. Revenue pipeline deteriorating.",
-    timestamp: "2026-04-07T14:00:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(741), resolved: false, alert_type: "company" },
   { alert_id: "ALT-014", deal_id: "PORT0031", company: "SecureNet Federal Cyber",
     severity: "HIGH", message: "DOGE federal IT cuts under review. SecureNet has 35% revenue concentration in civilian contracts.",
-    timestamp: "2026-04-07T13:00:00Z", resolved: false, alert_type: "company" },
+    timestamp: minsAgo(865), resolved: false, alert_type: "company" },
   // Sector alerts
   { alert_id: "ALT-015", sector_id: "Consumer & Retail",
     severity: "CRITICAL", message: "Consumer & Retail sector under tariff shock — China-sourced goods facing 145% import tariffs. 3 portfolio loans at risk.",
-    timestamp: "2026-04-08T06:00:00Z", resolved: false, alert_type: "sector" },
+    timestamp: minsAgo(58), resolved: false, alert_type: "sector" },
   { alert_id: "ALT-016", sector_id: "Healthcare",
     severity: "HIGH", message: "Healthcare sector stress: GLP-1 disruption + DOGE Medicaid cuts creating dual headwind across 7 portfolio loans.",
-    timestamp: "2026-04-08T06:00:00Z", resolved: false, alert_type: "sector" },
+    timestamp: minsAgo(74), resolved: false, alert_type: "sector" },
   { alert_id: "ALT-017", sector_id: "Technology Services",
     severity: "HIGH", message: "AI disruption accelerating in BPO/LPO subsectors. Two portfolio loans showing structural revenue decline.",
-    timestamp: "2026-04-08T06:00:00Z", resolved: false, alert_type: "sector" },
+    timestamp: minsAgo(91), resolved: false, alert_type: "sector" },
 ];
 
 const SECTORS = [
@@ -439,7 +443,7 @@ const SECTOR_STRESS_BASE: Record<string, number> = {
 };
 
 function generateHeatMapData(): HeatMapData {
-  const today = new Date("2026-04-08");
+  const today = new Date();
   const time_series = [];
   const forecast = [];
 
