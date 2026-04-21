@@ -19,6 +19,24 @@ from datetime import datetime
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _rating_event(event_type, from_rating, to_rating, date, score, delta, warning_level, rationale, action_required=None, proposed_rating=None):
+    e = {
+        "event_type":            event_type,
+        "from_rating":           from_rating,
+        "to_rating":             to_rating,
+        "date":                  date,
+        "risk_score_at_event":   score,
+        "score_delta_from_baseline": delta,
+        "warning_level":         warning_level,
+        "rationale":             rationale,
+        "agent":                 "Early Warning",
+        "action_required":       action_required,
+    }
+    if proposed_rating:
+        e["proposed_rating"] = proposed_rating
+    return e
+
+
 def _deal(
     deal_id, company, sector, sponsor, deal_type,
     loan_amount, loan_tenor, loan_type,
@@ -32,6 +50,7 @@ def _deal(
     financial_health="ADEQUATE",
     sentiment_score=None,
     news_signals=None,
+    rating_history=None,
 ):
     return {
         "deal_id":            deal_id,
@@ -78,6 +97,16 @@ def _deal(
         "divergence_flags":   [],
         "agent_log":          [],
         "routing_notes":      [],
+        "rating_history":     rating_history if rating_history is not None else [
+            _rating_event(
+                "INITIAL", None, internal_rating,
+                disbursement_date + "T00:00:00",
+                risk_score, 0, "GREEN",
+                f"Initial rating {internal_rating} assigned at underwriting. "
+                f"Risk score {risk_score}/100 reflects credit quality at disbursement.",
+                action_required=None,
+            )
+        ],
     }
 
 
@@ -266,6 +295,25 @@ DEMO_PORTFOLIO = [
             "overall_compliance": "AT_RISK",
             "covenants": [{"name": "Maximum Leverage", "threshold": "5.5x", "current": "5.1x", "headroom_pct": 7.3}],
         },
+        rating_history=[
+            _rating_event("INITIAL", None, "BB-", "2023-01-25T00:00:00", 53, 0, "GREEN",
+                "Initial rating BB- assigned at underwriting. Risk score 53/100. Home health sector benefiting from "
+                "post-COVID demand and aging demographics. Medicaid reimbursement stable at disbursement.",
+                action_required=None),
+            _rating_event("NEGATIVE_WATCH", "BB-", "BB-", "2024-02-12T06:00:00", 57, 4, "AMBER",
+                "Risk score +4 pts. CMS proposed home health rate cut of 2.8% flagged by Early Warning agent. "
+                "DOGE budget discussions early stage. EBITDA margin softening from 23% to 21%. Negative watch initiated.",
+                action_required="Monthly covenant reporting requested. Management call scheduled for Q1 update."),
+            _rating_event("DOWNGRADE", "BB-", "B+", "2024-09-03T06:00:00", 60, 7, "AMBER",
+                "Risk score +7 pts to 60/100. CMS confirmed home health rate cut of 3.4% for 2025. DOGE Medicaid "
+                "proposals gaining legislative support. EBITDA margin contracted to 19%. Downgrade by one notch.",
+                action_required="Formal rating action: BB- → B+. Covenant headroom monitoring accelerated to monthly."),
+            _rating_event("DOWNGRADE", "B+", "B", "2025-08-18T06:00:00", 63, 10, "RED",
+                "Risk score +10 pts to 63/100 (RED). CMS finalised 5.1% rate cut for 2026. DOGE Medicaid cut "
+                "proposals totalling $880B over 10 years confirmed. EBITDA margin at 18%, leverage at 5.1x vs 5.5x "
+                "covenant — 7% headroom. Downgrade to B.",
+                action_required="Formal rating action: B+ → B. CRITICAL: Covenant breach within 1-2 quarters if margin deterioration continues."),
+        ],
         human_alerts=[
             _alert(
                 "DOGE Medicaid cuts + CMS rate reduction — dual revenue headwind for Apex Home Health",
@@ -344,6 +392,31 @@ DEMO_PORTFOLIO = [
                 "CRITICAL",
                 "Credit committee escalation required. Assess restructuring options. GLP-1 disruption is permanent — not cyclical.",
             ),
+        ],
+        rating_history=[
+            _rating_event("INITIAL", None, "BB+", "2022-03-10T00:00:00", 46, 0, "GREEN",
+                "Initial rating BB+ assigned at underwriting. Risk score 46/100. Bariatric surgery sector stable at disbursement.",
+                action_required=None),
+            _rating_event("NEGATIVE_WATCH", "BB+", "BB+", "2023-06-15T06:00:00", 53, 7, "AMBER",
+                "Risk score +7 pts. Early warning flags raised on GLP-1 drug approvals — Ozempic/Wegovy gaining market share. "
+                "Bariatric surgery volume growth slowing. Placed on negative watch pending Q3 volume data.",
+                action_required="Increase monitoring to monthly. Request volume tracking from management."),
+            _rating_event("DOWNGRADE", "BB+", "BB", "2023-11-20T06:00:00", 58, 12, "AMBER",
+                "Risk score +12 pts to 58/100. GLP-1 prescriptions surging 180% YoY. Bariatric volumes down 14% — EBITDA "
+                "margin contracted from 24% to 20%. Quantitative model implies BB-; downgrade by one notch to BB.",
+                action_required="Formal rating action: BB+ → BB. Notify credit committee. Tighten covenant headroom monitoring."),
+            _rating_event("DOWNGRADE", "BB", "BB-", "2024-07-08T06:00:00", 63, 17, "RED",
+                "Risk score +17 pts to 63/100 (RED). Revenue -18% YoY. EBITDA margin at 17% vs 24% at underwriting. "
+                "GLP-1 disruption accelerating — structural not cyclical. Wegovy now covered by 19% of US insurers.",
+                action_required="Formal rating action: BB → BB-. Watchlist designation. Quarterly covenant reporting required."),
+            _rating_event("DOWNGRADE", "BB-", "B+", "2025-03-14T06:00:00", 68, 22, "RED",
+                "Risk score +22 pts to 68/100. Covenant breach imminent — leverage at 6.8x vs 5.5x limit. "
+                "Revenue -28% YoY driven by GLP-1 adoption hitting 340% growth. Management initiating strategic review.",
+                action_required="Formal rating action: BB- → B+. Immediate credit committee escalation. Assess cure period options."),
+            _rating_event("DOWNGRADE", "B+", "B-", "2025-10-22T06:00:00", 70, 24, "BLACK",
+                "Risk score +24 pts to 70/100 (BLACK). Leverage covenant formally breached at 7.2x vs 5.5x maximum. "
+                "EBITDA margin collapsed to 14%. GLP-1 disruption deemed permanent. Strategic alternatives process ongoing.",
+                action_required="CRITICAL: Rating B+ → B-. Covenant waiver negotiation required. Consider accelerated maturity provisions."),
         ],
     ),
 

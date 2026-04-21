@@ -75,6 +75,7 @@ def create_credit_state(
         "covenant_status": None,
         "current_rating": None,
         "_rating_review_full": None,
+        "rating_history": [],            # list of rating events: INITIAL | NEGATIVE_WATCH | DOWNGRADE | UPGRADE_ELIGIBLE
 
         # --- System ---
         "human_alerts": [],
@@ -116,5 +117,31 @@ def add_routing_note(credit_state: dict, note: str) -> dict:
     credit_state["routing_notes"].append({
         "note": note,
         "timestamp": datetime.now().isoformat(),
+    })
+    return credit_state
+
+
+def record_initial_rating(credit_state: dict) -> dict:
+    """Seed the first rating_history entry after underwriting assigns internal_rating."""
+    rating = credit_state.get("internal_rating")
+    score  = credit_state.get("risk_score")
+    if not rating:
+        return credit_state
+    if "rating_history" not in credit_state:
+        credit_state["rating_history"] = []
+    # Only add if no INITIAL event exists yet
+    if any(e.get("event_type") == "INITIAL" for e in credit_state["rating_history"]):
+        return credit_state
+    credit_state["rating_history"].append({
+        "event_type":            "INITIAL",
+        "from_rating":           None,
+        "to_rating":             rating,
+        "date":                  datetime.now().isoformat(),
+        "risk_score_at_event":   score,
+        "score_delta_from_baseline": 0,
+        "warning_level":         "GREEN",
+        "rationale":             f"Initial rating {rating} assigned at underwriting. Risk score {score}/100 reflects credit quality at disbursement.",
+        "agent":                 "Risk Scorer",
+        "action_required":       None,
     })
     return credit_state

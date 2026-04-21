@@ -13,6 +13,119 @@ from data.consumer_signals import get_consumer_signals
 
 _CONSUMER_SECTORS = {"Consumer & Retail", "Healthcare", "Food & Agriculture"}
 
+_RATING_LADDER = [
+    "AAA","AA+","AA","AA-","A+","A","A-",
+    "BBB+","BBB","BBB-","BB+","BB","BB-",
+    "B+","B","B-","CCC+","CCC","CCC-","CC","C","D",
+]
+# Upper score boundary for each rating notch (index-aligned to _RATING_LADDER)
+_SCORE_BREAKPOINTS = [8,12,16,20,24,28,32,36,40,44,48,52,57,62,67,72,77,82,87,92,96,100]
+
+
+def _score_to_rating_idx(score: int) -> int:
+    for i, bp in enumerate(_SCORE_BREAKPOINTS):
+        if score <= bp:
+            return i
+    return len(_RATING_LADDER) - 1
+
+
+def _apply_rating_review(credit_state: dict, result: dict, new_score: int) -> dict:
+    """
+    Compare live_risk_score against the current rating notch. If the implied
+    rating has diverged meaningfully, record a rating event and — for downgrades —
+    actually update internal_rating.
+    """
+    from datetime import datetime as _dt
+
+    current_rating = credit_state.get("internal_rating", "BB-")
+    original_score = credit_state.get("risk_score", 50)
+
+    if current_rating not in _RATING_LADDER:
+        return credit_state
+
+    current_idx = _RATING_LADDER.index(current_rating)
+    implied_idx = _score_to_rating_idx(new_score)
+    score_delta = new_score - original_score
+    warning_level = result.get("warning_level", "GREEN")
+    rationale = result.get("score_change_rationale", "")
+    summary   = result.get("early_warning_summary", "")
+
+    if "rating_history" not in credit_state:
+        credit_state["rating_history"] = []
+
+    # notch_diff > 0 → credit has worsened; < 0 → improved
+    notch_diff = implied_idx - current_idx
+    now = _dt.now().isoformat()
+
+    if notch_diff >= 2 or (warning_level in ["RED", "BLACK"] and notch_diff >= 1):
+        # ── DOWNGRADE (execute — move 1 notch) ────────────────────────────
+        new_idx    = min(current_idx + 1, len(_RATING_LADDER) - 1)
+        new_rating = _RATING_LADDER[new_idx]
+        long_rationale = (
+            f"{rationale} {summary}".strip()
+            or f"Risk score deteriorated {score_delta:+d} pts to {new_score}/100, "
+               f"implying {_RATING_LADDER[implied_idx]} on a quantitative basis."
+        )
+        credit_state["rating_history"].append({
+            "event_type":            "DOWNGRADE",
+            "from_rating":           current_rating,
+            "to_rating":             new_rating,
+            "date":                  now,
+            "risk_score_at_event":   new_score,
+            "score_delta_from_baseline": score_delta,
+            "warning_level":         warning_level,
+            "rationale":             long_rationale,
+            "agent":                 "Early Warning",
+            "action_required":       "Formal rating downgrade — notify credit committee and update borrower covenant file.",
+        })
+        credit_state["internal_rating"] = new_rating
+        add_alert(
+            credit_state,
+            trigger=f"Rating downgraded: {current_rating} → {new_rating} | Risk score {new_score}/100",
+            severity="CRITICAL",
+            action_required=f"Formal rating action required. {summary}",
+        )
+
+    elif notch_diff >= 1 or (warning_level == "AMBER" and score_delta >= 8):
+        # ── NEGATIVE WATCH (no rating change yet) ─────────────────────────
+        credit_state["rating_history"].append({
+            "event_type":            "NEGATIVE_WATCH",
+            "from_rating":           current_rating,
+            "to_rating":             current_rating,
+            "date":                  now,
+            "risk_score_at_event":   new_score,
+            "score_delta_from_baseline": score_delta,
+            "warning_level":         warning_level,
+            "rationale":             (
+                f"Risk score moved {score_delta:+d} pts to {new_score}/100. "
+                f"Credit placed on negative watch. {rationale}"
+            ).strip(),
+            "agent":                 "Early Warning",
+            "action_required":       "Increase monitoring frequency. Formal rating review scheduled for next cycle.",
+        })
+
+    elif notch_diff <= -1 and score_delta <= -8:
+        # ── UPGRADE ELIGIBLE (propose — do not execute without IC approval) ─
+        proposed = _RATING_LADDER[max(current_idx - 1, 0)]
+        credit_state["rating_history"].append({
+            "event_type":            "UPGRADE_ELIGIBLE",
+            "from_rating":           current_rating,
+            "to_rating":             current_rating,
+            "proposed_rating":       proposed,
+            "date":                  now,
+            "risk_score_at_event":   new_score,
+            "score_delta_from_baseline": score_delta,
+            "warning_level":         warning_level,
+            "rationale":             (
+                f"Risk score improved {abs(score_delta)} pts to {new_score}/100. "
+                f"Upgrade to {proposed} eligible pending sustained performance. {rationale}"
+            ).strip(),
+            "agent":                 "Early Warning",
+            "action_required":       f"Schedule formal rating review. Upgrade to {proposed} may be warranted if improvement sustained one more cycle.",
+        })
+
+    return credit_state
+
 
 class EarlyWarningAgent(BaseAgent):
 
@@ -100,6 +213,9 @@ Produce structured JSON early warning assessment:
         new_score = result.get("updated_live_risk_score", live_risk_score)
         credit_state["live_risk_score"] = new_score
         credit_state["early_warning_flags"] = result.get("active_warnings", [])
+
+        # Rating review — update internal_rating if warranted
+        credit_state = _apply_rating_review(credit_state, result, new_score)
 
         # Alert on significant score deterioration
         score_change = new_score - original_risk_score

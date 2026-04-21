@@ -24,7 +24,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
 from core.alert_system import get_pending_alerts, resolve_alert, get_alert_summary
-from core.credit_state import create_credit_state
+from core.credit_state import create_credit_state, record_initial_rating
 from data.db import (
     init_db, is_available,
     load_portfolio, save_deal, save_portfolio,
@@ -427,6 +427,7 @@ def underwrite(req: UnderwriteRequest):
 
         deal_id = credit_state.get("deal_id", f"{req.ticker}_{int(datetime.now().timestamp())}")
         credit_state["deal_id"] = deal_id
+        credit_state = record_initial_rating(credit_state)
         _portfolio[deal_id] = credit_state
         save_deal(deal_id, credit_state)
         return credit_state

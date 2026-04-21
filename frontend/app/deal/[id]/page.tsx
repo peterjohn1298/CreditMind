@@ -27,6 +27,97 @@ function Row({ label, value, mono = true }: { label: string; value: React.ReactN
   );
 }
 
+// ─── Rating History Timeline ──────────────────────────────────────────────────
+
+type RatingEvent = {
+  event_type: "INITIAL" | "NEGATIVE_WATCH" | "DOWNGRADE" | "UPGRADE_ELIGIBLE";
+  from_rating: string | null;
+  to_rating: string;
+  proposed_rating?: string;
+  date: string;
+  risk_score_at_event: number;
+  score_delta_from_baseline: number;
+  warning_level: string;
+  rationale: string;
+  agent: string;
+  action_required: string | null;
+};
+
+const EVENT_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
+  INITIAL:        { label: "INITIAL RATING",    color: "#7B8FF7", bg: "bg-[#7B8FF7]/5",  border: "border-[#7B8FF7]/25", dot: "#7B8FF7" },
+  NEGATIVE_WATCH: { label: "NEGATIVE WATCH",    color: "#FFB300", bg: "bg-warning/5",    border: "border-warning/25",   dot: "#FFB300" },
+  DOWNGRADE:      { label: "DOWNGRADE",          color: "#FF3B5C", bg: "bg-danger/5",     border: "border-danger/25",    dot: "#FF3B5C" },
+  UPGRADE_ELIGIBLE:{ label: "UPGRADE ELIGIBLE", color: "#00D4A4", bg: "bg-success/5",    border: "border-success/25",   dot: "#00D4A4" },
+};
+
+function RatingHistory({ history }: { history: RatingEvent[] }) {
+  if (!history || history.length === 0) return null;
+  const sorted = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  return (
+    <div className="glass rounded-lg p-5">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-4">Rating History — Agent Decision Trail</p>
+      <div className="relative">
+        {/* Vertical line */}
+        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-white/[0.08]" />
+        <div className="space-y-4">
+          {sorted.map((event, i) => {
+            const cfg = EVENT_CONFIG[event.event_type] ?? EVENT_CONFIG.INITIAL;
+            const dateStr = new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            const isChange = event.event_type === "DOWNGRADE" || event.event_type === "UPGRADE_ELIGIBLE";
+            return (
+              <div key={i} className="flex gap-4 relative">
+                {/* Dot */}
+                <div className="mt-1 w-3.5 h-3.5 rounded-full border-2 shrink-0 z-10"
+                  style={{ borderColor: cfg.dot, background: i === 0 ? cfg.dot : "transparent" }} />
+                {/* Card */}
+                <div className={cn("flex-1 rounded-lg border p-3", cfg.bg, cfg.border)}>
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: cfg.color }}>
+                        {cfg.label}
+                      </span>
+                      {event.from_rating ? (
+                        <span className="font-mono text-[10px] text-primary">
+                          {event.from_rating}
+                          {isChange && (
+                            <span style={{ color: cfg.color }}> → {event.event_type === "UPGRADE_ELIGIBLE" ? event.proposed_rating : event.to_rating}</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="font-mono text-[10px] text-primary">{event.to_rating}</span>
+                      )}
+                      {event.event_type === "UPGRADE_ELIGIBLE" && (
+                        <span className="text-[9px] px-1.5 py-0.5 bg-success/10 text-success border border-success/20 rounded">PROPOSED — PENDING IC</span>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-muted text-[10px]">{dateStr}</p>
+                      <p className="font-mono text-[10px]" style={{ color: event.score_delta_from_baseline > 0 ? "#FF3B5C" : event.score_delta_from_baseline < 0 ? "#00D4A4" : "#64748b" }}>
+                        Score: {event.risk_score_at_event}/100
+                        {event.score_delta_from_baseline !== 0 && (
+                          <span> ({event.score_delta_from_baseline > 0 ? "+" : ""}{event.score_delta_from_baseline})</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-muted text-[10px] leading-relaxed">{event.rationale}</p>
+                  {event.action_required && (
+                    <p className="text-[10px] mt-1.5 font-medium" style={{ color: cfg.color }}>
+                      → {event.action_required}
+                    </p>
+                  )}
+                  <p className="text-muted/50 text-[9px] mt-1">Agent: {event.agent}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Rating upgrade / downgrade ladder ────────────────────────────────────────
 
 const RATING_LADDER = ["AAA","AA+","AA","AA-","A+","A","A-","BBB+","BBB","BBB-","BB+","BB","BB-","B+","B","B-","CCC+","CCC","CCC-","CC","C","D"];
@@ -313,6 +404,11 @@ export default function DealDetailPage() {
             ))}
           </div>
         </Section>
+      )}
+
+      {/* Rating history — agent decision trail */}
+      {(deal as any).rating_history?.length > 0 && (
+        <RatingHistory history={(deal as any).rating_history} />
       )}
 
       {/* Rating upgrade / downgrade triggers */}
