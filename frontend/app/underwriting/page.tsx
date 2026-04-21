@@ -226,6 +226,229 @@ function MetricPill({ label, value, color = "#C9A84C" }: { label: string; value:
   );
 }
 
+// ─── Decision Logic + Rating Sensitivity ─────────────────────────────────────
+
+const RATING_LADDER = ["AAA","AA+","AA","AA-","A+","A","A-","BBB+","BBB","BBB-","BB+","BB","BB-","B+","B","B-","CCC+","CCC","CCC-","CC","C","D"];
+
+type CheckStatus = "pass" | "flag" | "fail" | "n/a";
+
+interface ThresholdCheck {
+  label:     string;
+  actual:    string;
+  threshold: string;
+  status:    CheckStatus;
+  rationale: string;
+}
+
+function buildDecisionChecks(form: FormState): ThresholdCheck[] {
+  const checks: ThresholdCheck[] = [];
+  const n = (v: string) => { const x = parseFloat(v); return isNaN(x) ? null : x; };
+
+  // Leverage
+  const debt  = n(form.total_debt_proforma);
+  const ebitda = n(form.adj_ebitda_ltm) ?? n(form.ebitda_ltm);
+  const levCov = n(form.leverage_covenant) ?? 6.0;
+  if (debt && ebitda) {
+    const lev = debt / ebitda;
+    const status: CheckStatus = lev > levCov ? "fail" : lev > levCov * 0.85 ? "flag" : "pass";
+    checks.push({
+      label: "Net Leverage", actual: `${lev.toFixed(1)}x`,
+      threshold: `≤ ${levCov}x`, status,
+      rationale: status === "pass" ? `${((levCov - lev) / levCov * 100).toFixed(0)}% headroom to covenant` : status === "fail" ? "Breaches leverage covenant at close" : "Limited headroom — monitor closely",
+    });
+  }
+
+  // ICR
+  const icr = n(form.icr_covenant);
+  if (icr) {
+    const spread = n(form.pricing_spread);
+    const approxICR = ebitda && debt && spread ? (ebitda / (debt * (spread / 10000 + 0.053))).toFixed(1) : null;
+    const status: CheckStatus = approxICR ? (parseFloat(approxICR) < icr ? "fail" : parseFloat(approxICR) < icr * 1.2 ? "flag" : "pass") : "n/a";
+    checks.push({
+      label: "Interest Coverage", actual: approxICR ? `~${approxICR}x` : "—",
+      threshold: `≥ ${icr}x`, status,
+      rationale: status === "pass" ? "Adequate debt service coverage" : status === "fail" ? "Below minimum coverage threshold" : "Coverage tight — stress-test required",
+    });
+  }
+
+  // EBITDA Margin
+  const rev = n(form.revenue_ltm);
+  if (ebitda && rev) {
+    const margin = (ebitda / rev) * 100;
+    const status: CheckStatus = margin < 10 ? "fail" : margin < 15 ? "flag" : "pass";
+    checks.push({
+      label: "EBITDA Margin", actual: `${margin.toFixed(1)}%`,
+      threshold: "≥ 15% preferred", status,
+      rationale: status === "pass" ? "Healthy margin profile" : status === "flag" ? "Below-average margins — verify quality of earnings" : "Thin margins — limited cushion for cost increases",
+    });
+  }
+
+  // FCF
+  const fcf = n(form.fcf);
+  const loan = n(form.loan_amount);
+  if (fcf && loan) {
+    const debtService = loan * 0.08;
+    const coverage = fcf / debtService;
+    const status: CheckStatus = coverage < 1.0 ? "fail" : coverage < 1.25 ? "flag" : "pass";
+    checks.push({
+      label: "FCF Debt Service",  actual: `${coverage.toFixed(1)}x`,
+      threshold: "≥ 1.25x", status,
+      rationale: status === "pass" ? "Strong free cash flow supports debt repayment" : status === "flag" ? "Limited FCF buffer — any EBITDA slip risks coverage" : "Insufficient FCF to service debt at current levels",
+    });
+  }
+
+  // Customer concentration
+  const conc = n(form.customer_concentration);
+  if (conc != null) {
+    const status: CheckStatus = conc > 60 ? "flag" : conc > 80 ? "fail" : "pass";
+    checks.push({
+      label: "Customer Concentration", actual: `${conc}%`,
+      threshold: "< 50% preferred", status,
+      rationale: status === "pass" ? "Diversified revenue base" : conc > 80 ? "Extreme concentration — single-customer loss is existential" : "Elevated concentration — covenant on key customer loss recommended",
+    });
+  }
+
+  // Equity contribution
+  const eq = n(form.equity_contribution);
+  const ev = n(form.enterprise_value);
+  if (eq && ev) {
+    const eqPct = (eq / ev) * 100;
+    const status: CheckStatus = eqPct < 25 ? "fail" : eqPct < 35 ? "flag" : "pass";
+    checks.push({
+      label: "Equity Contribution", actual: `${eqPct.toFixed(0)}%`,
+      threshold: "≥ 35% of EV", status,
+      rationale: status === "pass" ? "Sponsor skin-in-the-game confirms commitment" : status === "flag" ? "Moderate equity cushion — request sponsor equity bridge letter" : "Thin equity — limited loss absorption in downside scenario",
+    });
+  }
+
+  // ESG
+  if (form.esg_flags && form.esg_flags !== "None identified") {
+    checks.push({
+      label: "ESG Flags", actual: form.esg_flags,
+      threshold: "None", status: "flag",
+      rationale: "ESG flag identified — complete ESG addendum before IC submission",
+    });
+  }
+
+  return checks;
+}
+
+const STATUS_CONFIG: Record<CheckStatus, { color: string; bg: string; border: string; symbol: string; label: string }> = {
+  "pass":  { color: "#00D4A4", bg: "bg-success/5",  border: "border-success/20", symbol: "✓", label: "PASS"   },
+  "flag":  { color: "#FFB300", bg: "bg-warning/5",  border: "border-warning/20", symbol: "⚠", label: "FLAG"   },
+  "fail":  { color: "#FF3B5C", bg: "bg-danger/5",   border: "border-danger/20",  symbol: "✗", label: "FAIL"   },
+  "n/a":   { color: "#64748b", bg: "bg-white/[0.02]", border: "border-white/[0.06]", symbol: "—", label: "N/A" },
+};
+
+function DecisionLogic({ form, result }: { form: FormState; result: { rating: string; approval: string } }) {
+  const checks = buildDecisionChecks(form);
+  if (checks.length === 0) return null;
+
+  const passes = checks.filter(c => c.status === "pass").length;
+  const flags  = checks.filter(c => c.status === "flag").length;
+  const fails  = checks.filter(c => c.status === "fail").length;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-muted text-[10px] uppercase tracking-wider">Decision Logic — Threshold Analysis</p>
+        <div className="flex items-center gap-2 text-[10px] font-mono">
+          <span className="text-success">{passes} PASS</span>
+          {flags > 0 && <span className="text-warning">{flags} FLAG</span>}
+          {fails > 0 && <span className="text-danger">{fails} FAIL</span>}
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        {checks.map((c, i) => {
+          const cfg = STATUS_CONFIG[c.status];
+          return (
+            <div key={i} className={cn("flex items-start gap-3 rounded-md px-3 py-2 border", cfg.bg, cfg.border)}>
+              <span className="text-[11px] font-bold mt-0.5 shrink-0 w-3" style={{ color: cfg.color }}>{cfg.symbol}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-primary text-[11px] font-semibold">{c.label}</span>
+                  <span className="font-mono text-[10px] shrink-0" style={{ color: cfg.color }}>
+                    {c.actual} <span className="text-muted font-normal">vs {c.threshold}</span>
+                  </span>
+                </div>
+                <p className="text-muted text-[10px] leading-relaxed mt-0.5">{c.rationale}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Rating sensitivity */}
+      <RatingSensitivity rating={result.rating} form={form} />
+    </div>
+  );
+}
+
+function RatingSensitivity({ rating, form }: { rating: string; form: FormState }) {
+  const idx = RATING_LADDER.indexOf(rating);
+  if (idx < 0) return null;
+  const upgradeRating  = idx > 0  ? RATING_LADDER[idx - 1] : null;
+  const downgradeRating = idx < RATING_LADDER.length - 1 ? RATING_LADDER[idx + 1] : null;
+
+  const n = (v: string) => { const x = parseFloat(v); return isNaN(x) ? null : x; };
+  const ebitda  = n(form.adj_ebitda_ltm) ?? n(form.ebitda_ltm);
+  const debt    = n(form.total_debt_proforma);
+  const leverage = debt && ebitda ? (debt / ebitda) : null;
+
+  const upgradePaths: string[] = [];
+  const downgradePaths: string[] = [];
+
+  if (leverage != null) {
+    if (leverage >= 4.0) upgradePaths.push(`Reduce leverage from ${leverage.toFixed(1)}x to below 4.0x through EBITDA growth or debt paydown`);
+    else upgradePaths.push(`Sustain leverage below ${leverage.toFixed(1)}x across two reporting periods`);
+    if (leverage >= 5.5) downgradePaths.push(`Leverage ${leverage.toFixed(1)}x — any deterioration beyond ${(leverage + 0.5).toFixed(1)}x triggers formal review`);
+    else downgradePaths.push(`Leverage covenant breach above ${(n(form.leverage_covenant) ?? 6.0)}x`);
+  } else {
+    upgradePaths.push("Demonstrate sustained leverage below 4.0x over two quarters");
+    downgradePaths.push("Covenant breach on leverage or interest coverage");
+  }
+
+  const conc = n(form.customer_concentration);
+  if (conc && conc > 40) upgradePaths.push(`Reduce customer concentration from ${conc}% to below 40% through revenue diversification`);
+  upgradePaths.push("Two consecutive quarters of risk score improvement with no early warning flags");
+  downgradePaths.push("Risk score deterioration to 70+ / 100 sustained over one cycle");
+  downgradePaths.push("Early warning flag escalation to RED or BLACK level");
+
+  return (
+    <div className="mt-3 rounded-lg border border-white/[0.07] bg-black/30 p-4">
+      <p className="text-muted text-[10px] uppercase tracking-wider mb-3">Rating Sensitivity — {rating}</p>
+      <div className="grid grid-cols-2 gap-3">
+        {upgradeRating && (
+          <div>
+            <p className="text-success text-[10px] font-semibold mb-2">↑ Upgrade to {upgradeRating}</p>
+            <ul className="space-y-1.5">
+              {upgradePaths.slice(0, 3).map((p, i) => (
+                <li key={i} className="flex items-start gap-1.5">
+                  <span className="text-success text-[10px] shrink-0 mt-0.5">+</span>
+                  <p className="text-muted text-[10px] leading-relaxed">{p}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {downgradeRating && (
+          <div>
+            <p className="text-danger text-[10px] font-semibold mb-2">↓ Downgrade to {downgradeRating}</p>
+            <ul className="space-y-1.5">
+              {downgradePaths.slice(0, 3).map((p, i) => (
+                <li key={i} className="flex items-start gap-1.5">
+                  <span className="text-danger text-[10px] shrink-0 mt-0.5">−</span>
+                  <p className="text-muted text-[10px] leading-relaxed">{p}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Step Components ──────────────────────────────────────────────────────────
 
 function Step1({ f, set }: { f: FormState; set: (k: keyof FormState, v: string) => void }) {
@@ -953,6 +1176,9 @@ export default function Underwriting() {
                 </div>
                 <p className="text-primary text-xs leading-relaxed">{result.recommendation}</p>
               </div>
+
+              {/* Decision Logic — threshold-by-threshold breakdown */}
+              <DecisionLogic form={f} result={result} />
 
               {/* Scorecard */}
               {result.scorecard && (

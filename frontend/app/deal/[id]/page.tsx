@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, AlertTriangle, TrendingDown, Users, Star } from "lucide-react";
+import { ArrowLeft, AlertTriangle, TrendingDown, TrendingUp, Users, Star } from "lucide-react";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
 import { useCredit } from "@/context/CreditContext";
@@ -23,6 +23,103 @@ function Row({ label, value, mono = true }: { label: string; value: React.ReactN
     <div className="flex justify-between items-center py-1 border-b border-white/[0.04] last:border-0">
       <span className="text-muted text-xs">{label}</span>
       <span className={cn("text-primary text-xs", mono && "font-mono")}>{value ?? "—"}</span>
+    </div>
+  );
+}
+
+// ─── Rating upgrade / downgrade ladder ────────────────────────────────────────
+
+const RATING_LADDER = ["AAA","AA+","AA","AA-","A+","A","A-","BBB+","BBB","BBB-","BB+","BB","BB-","B+","B","B-","CCC+","CCC","CCC-","CC","C","D"];
+
+function ratingIndex(r: string) { return RATING_LADDER.indexOf(r); }
+
+function RatingTriggers({ deal }: { deal: Deal }) {
+  const rating = deal.internal_rating ?? "BB-";
+  const idx = ratingIndex(rating);
+  if (idx < 0) return null;
+
+  const upgradeRating  = idx > 0  ? RATING_LADDER[idx - 1] : null;
+  const downgradeRating = idx < RATING_LADDER.length - 1 ? RATING_LADDER[idx + 1] : null;
+
+  const liveScore   = (deal as any).live_risk_score ?? deal.risk_score;
+  const origScore   = deal.risk_score;
+  const scoreDelta  = liveScore - origScore;
+  const leverage    = deal.leverage;
+
+  // Derive qualitative triggers from deal data
+  const upgradeTriggers: string[] = [];
+  const downgradeTriggers: string[] = [];
+
+  if (leverage != null) {
+    if (leverage > 5.0) downgradeTriggers.push(`Leverage ${leverage.toFixed(1)}x — reduce below 5.0x to reduce downgrade pressure`);
+    else if (leverage < 4.0) upgradeTriggers.push(`Leverage ${leverage.toFixed(1)}x — sustain below 4.0x for upgrade consideration`);
+    else upgradeTriggers.push(`Reduce leverage from ${leverage.toFixed(1)}x to below 4.0x`);
+  }
+
+  if (deal.financial_health === "Stable" || deal.financial_health === "Strong") {
+    upgradeTriggers.push("Financial health confirmed stable — two consecutive covenant-compliant quarters support upgrade path");
+  }
+
+  const covenants = deal.covenants ?? {};
+  const breaches = Object.values(covenants).filter((v: any) => typeof v === "object" && v.compliant === false).length;
+  if (breaches > 0) {
+    downgradeTriggers.push(`${breaches} covenant breach${breaches > 1 ? "es" : ""} detected — immediate cure required to prevent downgrade`);
+  } else {
+    upgradeTriggers.push("Covenant headroom maintained — no breaches across monitoring period");
+  }
+
+  if (scoreDelta >= 10) downgradeTriggers.push(`Live risk score +${scoreDelta} pts above baseline — sustained deterioration triggers rating review`);
+  if (scoreDelta <= -5) upgradeTriggers.push(`Risk score improved ${Math.abs(scoreDelta)} pts from baseline — positive momentum`);
+
+  const warnings = (deal as any).early_warning_flags ?? [];
+  const criticalWarnings = warnings.filter((w: any) => w.severity === "CRITICAL" || w.severity === "HIGH").length;
+  if (criticalWarnings > 0) downgradeTriggers.push(`${criticalWarnings} high/critical early warning flag${criticalWarnings > 1 ? "s" : ""} — requires resolution before upgrade eligible`);
+
+  if (upgradeTriggers.length === 0) upgradeTriggers.push("Sustained covenant compliance for 2 quarters", "Risk score reduction to below 45/100");
+  if (downgradeTriggers.length === 0) downgradeTriggers.push("Covenant breach on leverage or ICR", "Risk score above 70/100 for 2 consecutive cycles");
+
+  return (
+    <div className="glass rounded-lg p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted">Rating Migration Triggers</p>
+        <span className="text-[10px] font-mono px-2 py-0.5 bg-accent/10 border border-accent/30 text-accent rounded">
+          Current: {rating}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        {upgradeRating && (
+          <div className="rounded-lg border border-success/20 bg-success/5 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp size={13} className="text-success" />
+              <p className="text-success text-xs font-semibold uppercase tracking-wider">Upgrade to {upgradeRating}</p>
+            </div>
+            <ul className="space-y-2">
+              {upgradeTriggers.slice(0, 3).map((t, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-success text-[10px] mt-0.5 shrink-0">↑</span>
+                  <p className="text-muted text-[10px] leading-relaxed">{t}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {downgradeRating && (
+          <div className="rounded-lg border border-danger/20 bg-danger/5 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingDown size={13} className="text-danger" />
+              <p className="text-danger text-xs font-semibold uppercase tracking-wider">Downgrade to {downgradeRating}</p>
+            </div>
+            <ul className="space-y-2">
+              {downgradeTriggers.slice(0, 3).map((t, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-danger text-[10px] mt-0.5 shrink-0">↓</span>
+                  <p className="text-muted text-[10px] leading-relaxed">{t}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -218,6 +315,9 @@ export default function DealDetailPage() {
         </Section>
       )}
 
+      {/* Rating upgrade / downgrade triggers */}
+      <RatingTriggers deal={deal} />
+
       {/* Alternative data */}
       {(deal.job_signals || deal.consumer_signals) && (
         <div className="grid grid-cols-2 gap-5">
@@ -245,7 +345,7 @@ export default function DealDetailPage() {
           )}
 
           {deal.consumer_signals && (
-            <Section title="Consumer Signals (Yelp)">
+            <Section title="Consumer Signals (Google Places)">
               <div className="flex items-center gap-2 mb-2">
                 <Star size={14} className="text-warning" />
                 <span className="font-semibold text-sm" style={{
@@ -255,9 +355,17 @@ export default function DealDetailPage() {
                   {deal.consumer_signals.consumer_signal}
                 </span>
               </div>
-              <Row label="Rating"       value={deal.consumer_signals.rating ? `${deal.consumer_signals.rating} / 5` : "—"} />
-              <Row label="Reviews"      value={String(deal.consumer_signals.review_count ?? "—")} />
-              <Row label="Sentiment"    value={deal.consumer_signals.review_sentiment} mono={false} />
+              <Row label="Business Status" value={deal.consumer_signals.business_status ?? "—"} mono={false} />
+              <Row label="Rating"          value={deal.consumer_signals.rating ? `${deal.consumer_signals.rating} / 5` : "—"} />
+              <Row label="Reviews"         value={deal.consumer_signals.review_count != null ? deal.consumer_signals.review_count.toLocaleString() : "—"} />
+              {deal.consumer_signals.address && (
+                <Row label="Address" value={deal.consumer_signals.address} mono={false} />
+              )}
+              {deal.consumer_signals.signal_rationale && (
+                <p className="text-muted text-[10px] leading-relaxed pt-1 border-t border-white/[0.04]">
+                  {deal.consumer_signals.signal_rationale}
+                </p>
+              )}
             </Section>
           )}
         </div>
