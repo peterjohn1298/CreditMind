@@ -117,6 +117,32 @@ const DEMO: FormState = {
   notes: "Management has delivered consistent margin expansion over 3 years. Strong FCF conversion of 74%. Preferred candidate for existing portfolio add-on.",
 };
 
+// Rejection demo — structurally distressed retailer, multiple hard fails
+const DEMO_REJECT: FormState = {
+  company: "Meridian Retail Group", ticker: "", sponsor: "Cerberus Capital",
+  sector: "Consumer & Retail", jurisdiction: "Delaware, USA",
+  description: "Meridian Retail Group operates 340 mid-market department stores across 28 US states. The company has faced sustained revenue decline driven by e-commerce disruption and loss of anchor tenants. Three consecutive years of negative comparable-store sales growth and a leveraged balance sheet from a 2021 LBO leave limited financial flexibility.",
+
+  facility: "Second Lien Term Loan", total_facility: "280",
+  loan_amount: "180", tenor: "5", purpose: "Leveraged Recapitalization",
+  pricing_spread: "750", oid: "96.0",
+  call_protection: "102/101/par", expected_close: "2026-08-15",
+
+  revenue_ltm: "740", ebitda_ltm: "58", adj_ebitda_ltm: "61",
+  revenue_growth: "-18", capex: "42", fcf: "-8",
+  total_debt_proforma: "562", equity_contribution: "60", enterprise_value: "622",
+
+  first_lien: "370", second_lien: "180", revolver: "50",
+  leverage_covenant: "6.5", icr_covenant: "1.5",
+  min_liquidity: "20", capex_limit: "45",
+
+  customer_concentration: "82", recurring_revenue: "12",
+  management_tenure: "2", backlog: "",
+  key_risks: "1. E-commerce disruption — online captures 34% of addressable market, accelerating\n2. Secular decline in department store foot traffic (-22% over 3 years)\n3. Leverage 9.2x — covenant breach at close\n4. Negative free cash flow — $8M outflow LTM\n5. Lease liability obligations of $1.2B across 340 stores",
+  esg_flags: "Social / labour issues",
+  notes: "Management team assembled 18 months ago following prior CEO departure. Turnaround plan unproven. Sponsor has invested $60M equity (9.7% of EV) — limited alignment.",
+};
+
 const BLANK: FormState = {
   company: "", ticker: "", sponsor: "", sector: "", jurisdiction: "Delaware, USA", description: "",
   facility: "First Lien Term Loan B", total_facility: "", loan_amount: "", tenor: "6",
@@ -222,6 +248,142 @@ function MetricPill({ label, value, color = "#C9A84C" }: { label: string; value:
     <div className="bg-black/40 border border-white/[0.06] rounded-lg px-3 py-2 text-center">
       <p className="text-muted text-[9px] uppercase tracking-wider mb-0.5">{label}</p>
       <p className="font-mono font-bold text-sm" style={{ color }}>{value}</p>
+    </div>
+  );
+}
+
+// ─── Agent Decision Summary ───────────────────────────────────────────────────
+
+type AgentVote = "PASS" | "FLAG" | "FAIL" | "READY";
+
+const VOTE_CONFIG: Record<AgentVote, { color: string; bg: string; border: string }> = {
+  PASS:  { color: "#00D4A4", bg: "bg-success/5",  border: "border-success/20" },
+  FLAG:  { color: "#FFB300", bg: "bg-warning/5",  border: "border-warning/20" },
+  FAIL:  { color: "#FF3B5C", bg: "bg-danger/5",   border: "border-danger/20"  },
+  READY: { color: "#7B8FF7", bg: "bg-[#7B8FF7]/5", border: "border-[#7B8FF7]/20" },
+};
+
+function scoreToVote(score: string): AgentVote {
+  const n = parseInt(score);
+  if (n >= 4) return "PASS";
+  if (n === 3) return "FLAG";
+  return "FAIL";
+}
+
+function AgentDecisionSummary({ scorecard, approval, rating, recommendation }: {
+  scorecard?: Record<string, { score: string; weight: string; notes: string }>;
+  approval: string;
+  rating: string;
+  recommendation: string;
+}) {
+  if (!scorecard) return null;
+
+  const sc = scorecard;
+
+  const agentRows: { agent: string; wave: 1 | 2; finding: string; vote: AgentVote }[] = [
+    {
+      agent: "Financial Analyst", wave: 1,
+      finding: sc.financial_quality?.notes ?? "Financial statements reviewed",
+      vote: scoreToVote(sc.financial_quality?.score ?? "3"),
+    },
+    {
+      agent: "EBITDA Analyst", wave: 1,
+      finding: sc.ebitda_quality?.notes ?? "EBITDA quality assessed",
+      vote: scoreToVote(sc.ebitda_quality?.score ?? "3"),
+    },
+    {
+      agent: "Commercial Analyst", wave: 1,
+      finding: sc.business_quality?.notes ?? "Market position reviewed",
+      vote: scoreToVote(sc.business_quality?.score ?? "3"),
+    },
+    {
+      agent: "Legal Analyst", wave: 1,
+      finding: sc.legal_structural?.notes ?? "Capital structure reviewed",
+      vote: scoreToVote(sc.legal_structural?.score ?? "4"),
+    },
+    {
+      agent: "Credit Modeler", wave: 2,
+      finding: sc.leverage_profile?.notes ?? "Leverage model completed",
+      vote: scoreToVote(sc.leverage_profile?.score ?? "3"),
+    },
+    {
+      agent: "Stress Tester", wave: 2,
+      finding: sc.stress_resilience?.notes ?? "Stress scenarios run",
+      vote: scoreToVote(sc.stress_resilience?.score ?? "3"),
+    },
+    {
+      agent: "Risk Scorer", wave: 2,
+      finding: `Internal rating: ${rating}`,
+      vote: approval === "REJECT" ? "FAIL" : approval === "APPROVE" ? "PASS" : "FLAG",
+    },
+    {
+      agent: "Covenant Structurer", wave: 2,
+      finding: "Covenant package structured and stress-tested",
+      vote: approval === "REJECT" ? "FAIL" : "PASS",
+    },
+    {
+      agent: "IC Memo Writer", wave: 2,
+      finding: "Investment Committee memorandum prepared",
+      vote: "READY",
+    },
+  ];
+
+  const overallVote: AgentVote = approval === "APPROVE" ? "PASS" : approval === "REJECT" ? "FAIL" : "FLAG";
+  const overallCfg = VOTE_CONFIG[overallVote];
+
+  return (
+    <div className="bg-black/30 border border-white/[0.06] rounded-lg overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+        <p className="text-muted text-[10px] uppercase tracking-wider">Agent Decision Trail</p>
+        <span className="text-[10px] font-mono text-muted">{agentRows.filter(r => r.vote === "PASS" || r.vote === "READY").length} pass · {agentRows.filter(r => r.vote === "FLAG").length} flag · {agentRows.filter(r => r.vote === "FAIL").length} fail</span>
+      </div>
+
+      {/* Wave 1 */}
+      <div className="px-4 pt-3 pb-1">
+        <p className="text-muted text-[9px] uppercase tracking-widest mb-2">Wave 1 — Parallel Analysis</p>
+        <div className="space-y-1">
+          {agentRows.filter(r => r.wave === 1).map((row, i) => {
+            const cfg = VOTE_CONFIG[row.vote];
+            return (
+              <div key={i} className={cn("flex items-center gap-3 rounded px-3 py-2 border", cfg.bg, cfg.border)}>
+                <span className="text-[10px] font-bold w-12 shrink-0 text-right font-mono" style={{ color: cfg.color }}>{row.vote}</span>
+                <span className="text-primary text-[11px] font-semibold w-36 shrink-0">{row.agent}</span>
+                <span className="text-muted text-[10px] leading-snug flex-1 min-w-0 truncate">{row.finding}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mx-4 my-2 border-t border-white/[0.05]" />
+
+      {/* Wave 2 */}
+      <div className="px-4 pt-1 pb-3">
+        <p className="text-muted text-[9px] uppercase tracking-widest mb-2">Wave 2 — Credit Modeling</p>
+        <div className="space-y-1">
+          {agentRows.filter(r => r.wave === 2).map((row, i) => {
+            const cfg = VOTE_CONFIG[row.vote];
+            return (
+              <div key={i} className={cn("flex items-center gap-3 rounded px-3 py-2 border", cfg.bg, cfg.border)}>
+                <span className="text-[10px] font-bold w-12 shrink-0 text-right font-mono" style={{ color: cfg.color }}>{row.vote}</span>
+                <span className="text-primary text-[11px] font-semibold w-36 shrink-0">{row.agent}</span>
+                <span className="text-muted text-[10px] leading-snug flex-1 min-w-0 truncate">{row.finding}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* IC Vote bar */}
+      <div className={cn("px-4 py-3 border-t flex items-center justify-between", overallCfg.bg, overallCfg.border.replace("border-", "border-t-"))}>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-bold font-mono w-12 text-right" style={{ color: overallCfg.color }}>{overallVote}</span>
+          <span className="text-primary text-[11px] font-semibold">IC Committee Final Vote</span>
+        </div>
+        <span className="font-mono text-[10px] font-bold" style={{ color: overallCfg.color }}>
+          {approval === "APPROVE" ? "APPROVED" : approval === "REJECT" ? "REJECTED" : "CONDITIONAL APPROVAL"}
+        </span>
+      </div>
     </div>
   );
 }
@@ -784,7 +946,8 @@ export default function Underwriting() {
   const [showDeck, setShowDeck] = useState(false);
   const [deckTpl,  setDeckTpl]  = useState<DeckTemplate>("dark");
 
-  const isDemo = form.company === DEMO.company && form.ticker === DEMO.ticker;
+  const isDemo       = form.company === DEMO.company;
+  const isDemoReject = form.company === DEMO_REJECT.company;
 
   function set(k: keyof FormState, v: string) {
     setFormState(prev => ({ ...prev, [k]: v }));
@@ -795,13 +958,18 @@ export default function Underwriting() {
     setStep(n);
   }
 
-  function toggleDemo() {
-    if (isDemo) {
-      setFormState(BLANK);
-      setAutoFilled(false);
-    } else {
-      setFormState(DEMO);
-    }
+  function loadDemo(preset: FormState) {
+    setFormState(preset);
+    setAutoFilled(false);
+    setPhase("form");
+    setResult(null);
+    setStep(1);
+    setDir(1);
+  }
+
+  function clearDemo() {
+    setFormState(BLANK);
+    setAutoFilled(false);
   }
 
   function toggleSection(key: string) {
@@ -904,27 +1072,69 @@ export default function Underwriting() {
         mitigating_factors: res.risk_assessment?.mitigating_factors,
       });
     } catch {
-      setResult({
-        risk_score: 55, rating: "BB-", approval: "CONDITIONAL", company: form.company,
-        recommendation: "Manual review required. Proceed subject to final legal review and sponsor equity confirmation.",
-        scorecard: {
-          financial_quality: { score: "3", weight: "20%", notes: `Revenue $${form.revenue_ltm}M · EBITDA $${form.ebitda_ltm}M` },
-          ebitda_quality:    { score: "3", weight: "20%", notes: "Adj. EBITDA in line with reported" },
-          business_quality:  { score: "4", weight: "20%", notes: form.description ? form.description.slice(0, 60) + "…" : "Strong market position" },
-          leverage_profile:  { score: "3", weight: "20%", notes: form.total_debt_proforma && form.adj_ebitda_ltm ? `${(parseFloat(form.total_debt_proforma)/parseFloat(form.adj_ebitda_ltm)).toFixed(1)}x — within ${form.leverage_covenant || "5.5"}x covenant` : "Within policy" },
-          stress_resilience: { score: "3", weight: "10%", notes: "Passes base and moderate stress" },
-          legal_structural:  { score: "4", weight: "10%", notes: "Clean capital structure" },
-        },
-        key_risk_drivers:   form.key_risks ? form.key_risks.split("\n").filter(Boolean) : ["Manual review required"],
-        mitigating_factors: form.notes ? [form.notes] : ["Sponsor backing confirmed"],
-        memo_sections: {
-          executive_summary: `${form.company} is a ${form.sector || "mid-market"} company seeking a $${form.loan_amount}M ${form.facility} to finance ${form.purpose || "general corporate purposes"} over a ${form.tenor}-year tenor. Based on the submitted application, the credit presents a ${form.leverage_covenant ? `${form.leverage_covenant}x maximum leverage constraint` : "leverage-constrained"} profile consistent with a BB- internal rating.`,
-          financial_analysis: `Revenue (LTM): $${form.revenue_ltm || "—"}M. EBITDA: $${form.ebitda_ltm || "—"}M${form.adj_ebitda_ltm ? ` (Adj: $${form.adj_ebitda_ltm}M)` : ""}. EBITDA Margin: ${num(f.ebitda_ltm) && num(f.revenue_ltm) ? ((num(f.ebitda_ltm)!/num(f.revenue_ltm)!)*100).toFixed(1) : "—"}%. Revenue growth: ${form.revenue_growth || "—"}% YoY. Free cash flow: $${form.fcf || "—"}M. Pro forma leverage: ${form.total_debt_proforma && form.adj_ebitda_ltm ? (parseFloat(form.total_debt_proforma)/parseFloat(form.adj_ebitda_ltm)).toFixed(1) : "—"}x.`,
-          risk_factors: form.key_risks || "Key risks to be determined by agent analysis.",
-          covenant_package: `Proposed covenants: Total Leverage ≤ ${form.leverage_covenant || "5.5"}x (tested quarterly); Interest Coverage ≥ ${form.icr_covenant || "2.0"}x; Minimum Liquidity $${form.min_liquidity || "15"}M; CapEx limitation $${form.capex_limit || "25"}M annually.`,
-          recommendation: `CONDITIONAL APPROVAL. Key conditions: (1) Receipt of audited FY2025 financials; (2) Sponsor equity commitment confirmation; (3) Legal review of existing debt documentation and change of control provisions.`,
-        },
-      });
+      const isRejectCase = form.company === DEMO_REJECT.company;
+      const lev = form.total_debt_proforma && (form.adj_ebitda_ltm || form.ebitda_ltm)
+        ? parseFloat(form.total_debt_proforma) / parseFloat(form.adj_ebitda_ltm || form.ebitda_ltm)
+        : null;
+      const margin = form.ebitda_ltm && form.revenue_ltm
+        ? (parseFloat(form.ebitda_ltm) / parseFloat(form.revenue_ltm)) * 100
+        : null;
+
+      if (isRejectCase) {
+        setResult({
+          risk_score: 81, rating: "CCC+", approval: "REJECT", company: form.company,
+          recommendation: "Application REJECTED. Three hard policy fails: (1) leverage 9.2x breaches 6.5x covenant at close; (2) negative free cash flow −$8M cannot service debt; (3) revenue declining −18% YoY with no credible turnaround plan. Structural e-commerce disruption is secular, not cyclical. Sponsor equity at 9.7% of EV provides inadequate loss absorption. Recommend declining and returning application.",
+          scorecard: {
+            financial_quality: { score: "1", weight: "20%", notes: "Revenue −18% YoY · FCF −$8M · EBITDA margin 7.8% — all below policy minimums" },
+            ebitda_quality:    { score: "2", weight: "20%", notes: "Adj. EBITDA $61M — $3M add-backs unverified. Declining trend makes QoE adjustments unacceptable" },
+            business_quality:  { score: "1", weight: "20%", notes: "Department retail in secular decline. 82% customer concentration. Mgmt tenure 2 years — unproven" },
+            leverage_profile:  { score: "1", weight: "20%", notes: "9.2x leverage — covenant breach at close (6.5x max). $562M debt on $61M EBITDA. HARD FAIL" },
+            stress_resilience: { score: "1", weight: "10%", notes: "Fails all stress scenarios. Negative FCF in base case; CCC territory under moderate stress" },
+            legal_structural:  { score: "2", weight: "10%", notes: "Second lien position with ESG / labour issues. $1.2B lease liability ahead of lenders" },
+          },
+          key_risk_drivers: [
+            "Leverage 9.2x — hard covenant breach at close (6.5x maximum)",
+            "Negative free cash flow −$8M — cannot service debt obligations",
+            "Revenue −18% YoY — secular e-commerce disruption, not cyclical",
+            "82% customer concentration in top 3 anchor tenants",
+            "Sponsor equity 9.7% of EV — insufficient loss absorption in downside",
+            "Second lien structural subordination — recovery in default severely impaired",
+          ],
+          mitigating_factors: [
+            "Cerberus track record in retail distressed situations",
+            "340-store footprint provides optionality for sale-leaseback",
+          ],
+          memo_sections: {
+            executive_summary: `Meridian Retail Group is a $740M revenue department store operator seeking a $180M Second Lien Term Loan to fund a leveraged recapitalization. The application presents three hard policy fails: leverage breach at close (9.2x vs 6.5x covenant), negative FCF, and double-digit revenue decline. This credit does not meet CreditMind investment criteria.`,
+            financial_analysis: `Revenue $740M (LTM), declining −18% YoY — three consecutive years of negative comparable-store sales. EBITDA $58M (7.8% margin), deeply sub-market for retail credits. Adj. EBITDA $61M includes $3M of unverified management add-backs. Free cash flow −$8M LTM — insufficient to service $562M of pro forma debt. Pro forma leverage 9.2x breaches the proposed 6.5x covenant at the moment of closing.`,
+            risk_factors: `(1) Secular e-commerce disruption — online captures 34% of Meridian's addressable market and is accelerating; this is a permanent structural shift, not a cyclical trough. (2) Leverage covenant breach at close — 9.2x vs 6.5x maximum; no plausible path to compliance without material EBITDA recovery. (3) Negative FCF — operating cash burn means every debt service payment requires additional liquidity draw. (4) Customer concentration 82% — loss of a single anchor tenant triggers a cascading impact on foot traffic and co-tenancy clauses. (5) $1.2B lease liability structurally senior to lenders.`,
+            stress_testing: `Under the base case (flat revenue, no further margin compression), the credit generates insufficient FCF to service the second lien. Under the moderate stress scenario (−10% revenue decline), EBITDA falls to $38M and leverage exceeds 14.8x. The severe stress scenario (−25% revenue) results in EBITDA approaching zero and near-certain default. No stress scenario produces covenant compliance.`,
+            recommendation: `REJECT. This application fails three of six risk scorecard dimensions on hard policy criteria. The Investment Committee finds no basis for approval, conditional or otherwise. CreditMind's credit policy prohibits deployment into credits where leverage breaches covenant at close, FCF is negative in the base case, and the borrower faces structural — not cyclical — top-line deterioration. Application returned to sponsor without conditions.`,
+          },
+        });
+      } else {
+        setResult({
+          risk_score: 55, rating: "BB-", approval: "CONDITIONAL", company: form.company,
+          recommendation: "Conditional approval recommended. Proceed subject to final legal review and sponsor equity confirmation.",
+          scorecard: {
+            financial_quality: { score: "3", weight: "20%", notes: `Revenue $${form.revenue_ltm}M · EBITDA $${form.ebitda_ltm}M · Margin ${margin ? margin.toFixed(1) + "%" : "—"}` },
+            ebitda_quality:    { score: "3", weight: "20%", notes: form.adj_ebitda_ltm ? `Adj. EBITDA $${form.adj_ebitda_ltm}M — add-backs subject to QoE verification` : "EBITDA quality to be confirmed via QoE" },
+            business_quality:  { score: "4", weight: "20%", notes: form.description ? form.description.slice(0, 70) + "…" : "Adequate business quality" },
+            leverage_profile:  { score: "3", weight: "20%", notes: lev ? `${lev.toFixed(1)}x leverage — within ${form.leverage_covenant || "6.0"}x covenant` : "Leverage within policy" },
+            stress_resilience: { score: "3", weight: "10%", notes: "Passes base and moderate stress; fails severe recession scenario" },
+            legal_structural:  { score: "4", weight: "10%", notes: `${form.jurisdiction || "Delaware"} domicile, clean capital structure` },
+          },
+          key_risk_drivers:   form.key_risks ? form.key_risks.split("\n").filter(Boolean) : ["Leverage — covenant headroom limited", "Customer concentration"],
+          mitigating_factors: form.notes ? [form.notes] : ["Sponsor backing confirmed", "Recurring revenue supports debt service"],
+          memo_sections: {
+            executive_summary: `${form.company} is a ${form.sector || "mid-market"} company seeking a $${form.loan_amount}M ${form.facility} to finance ${form.purpose || "general corporate purposes"} over a ${form.tenor}-year tenor. The credit presents a ${lev ? lev.toFixed(1) + "x" : "—"} leverage profile consistent with a BB- internal rating. Conditional approval is recommended subject to the conditions below.`,
+            financial_analysis: `Revenue (LTM): $${form.revenue_ltm || "—"}M. EBITDA: $${form.ebitda_ltm || "—"}M${form.adj_ebitda_ltm ? ` (Adj: $${form.adj_ebitda_ltm}M)` : ""}. EBITDA Margin: ${margin ? margin.toFixed(1) + "%" : "—"}. Revenue growth: ${form.revenue_growth || "—"}% YoY. FCF: $${form.fcf || "—"}M. Pro forma leverage: ${lev ? lev.toFixed(1) + "x" : "—"}.`,
+            risk_factors: form.key_risks || "Key risk factors to be assessed by full agent analysis.",
+            covenant_package: `Total Leverage ≤ ${form.leverage_covenant || "5.5"}x (quarterly); ICR ≥ ${form.icr_covenant || "2.0"}x; Min Liquidity $${form.min_liquidity || "15"}M; CapEx limit $${form.capex_limit || "25"}M/yr.`,
+            recommendation: `CONDITIONAL APPROVAL. Conditions: (1) Audited FY2025 financials; (2) Sponsor equity commitment letter; (3) Legal review of existing debt documentation and change of control provisions.`,
+          },
+        });
+      }
     }
     setPhase("done");
   }
@@ -961,16 +1171,32 @@ export default function Underwriting() {
                 </span>
               )}
             </div>
-            <button onClick={toggleDemo}
-              className={cn(
-                "flex items-center gap-1.5 border rounded-md px-3 py-1.5 text-xs font-semibold transition-all",
-                isDemo
-                  ? "bg-warning/10 border-warning/30 text-warning hover:bg-warning/20"
-                  : "bg-accent/10 border-accent/30 text-accent hover:bg-accent/20"
-              )}>
-              <Zap size={11} />
-              {isDemo ? "Clear Demo" : "Load Demo Deal"}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => loadDemo(DEMO)}
+                className={cn(
+                  "flex items-center gap-1.5 border rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all",
+                  isDemo
+                    ? "bg-success/10 border-success/30 text-success"
+                    : "bg-accent/10 border-accent/30 text-accent hover:bg-accent/20"
+                )}>
+                <Zap size={10} /> Approval Demo
+              </button>
+              <button onClick={() => loadDemo(DEMO_REJECT)}
+                className={cn(
+                  "flex items-center gap-1.5 border rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all",
+                  isDemoReject
+                    ? "bg-danger/10 border-danger/30 text-danger"
+                    : "bg-danger/[0.06] border-danger/20 text-danger/70 hover:bg-danger/10 hover:text-danger"
+                )}>
+                <XCircle size={10} /> Rejection Demo
+              </button>
+              {(isDemo || isDemoReject) && (
+                <button onClick={clearDemo}
+                  className="text-muted text-[10px] px-2 py-1.5 hover:text-primary transition-colors">
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Step indicator */}
@@ -1126,6 +1352,14 @@ export default function Underwriting() {
 
         {phase === "done" && result && (
           <>
+            {/* Agent Decision Trail */}
+            <AgentDecisionSummary
+              scorecard={result.scorecard}
+              approval={result.approval}
+              rating={result.rating}
+              recommendation={result.recommendation}
+            />
+
             {/* Score + Decision */}
             <div className="glass rounded-lg p-5 space-y-5">
               <div className="flex items-center justify-between">
