@@ -29,9 +29,8 @@ export function timeAgo(dateStr: string): string {
 }
 
 export function getRiskColor(score: number): string {
-  if (score <= 30) return "#00D4A4";
-  if (score <= 60) return "#FFB300";
-  if (score <= 80) return "#FF8C00";
+  if (score <= 40) return "#00D4A4";
+  if (score <= 65) return "#FFB300";
   return "#FF3B5C";
 }
 

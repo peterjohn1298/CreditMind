@@ -48,6 +48,14 @@ export default function Portfolio() {
               </tr>
             </thead>
             <tbody>
+              {deals.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-16 text-center">
+                    <p className="text-muted text-sm font-medium">No deals match the selected filters</p>
+                    <p className="text-muted text-xs mt-1">Try adjusting the sector or status filter</p>
+                  </td>
+                </tr>
+              )}
               {deals.map((deal, i) => (
                 <tr key={deal.deal_id}
                   onClick={() => { setSelected(deal); setTab("summary"); }}
