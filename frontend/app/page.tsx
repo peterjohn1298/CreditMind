@@ -57,7 +57,7 @@ export default function LandingPage() {
         py[i] = (Math.random() - 0.5) * H * 2;
         pz[i] = (Math.random() - 0.5) * 1000;
         vx[i] = vy[i] = vz[i] = 0;
-        hue[i] = (i / N) * 60 + 25;
+        hue[i] = (i / N) * 40 + 225;
         phase[i] = Math.random() * Math.PI * 2;
       }
     }
@@ -148,7 +148,7 @@ export default function LandingPage() {
     }
 
     function draw() {
-      ctx.fillStyle = "rgba(5,5,5,0.22)";
+      ctx.fillStyle = "rgba(17,19,24,0.22)";
       ctx.fillRect(0, 0, W, H);
       for (let i = 0; i < N; i++) {
         const zPos = pz[i] + CAMERA_Z;
@@ -160,11 +160,11 @@ export default function LandingPage() {
         let size = (0.4 + spd * 0.12) * scale;
         let h: number, s: number, l: number;
         if (appState >= 1) {
-          h = 42; s = 95; l = 65;
+          h = 235; s = 90; l = 68;
           a = Math.min(1, a * 1.6);
           size *= 0.9;
         } else {
-          h = (hue[i] + t * 15) % 80 + 25;
+          h = (hue[i] + t * 15) % 40 + 225;
           s = 85; l = 68;
         }
         ctx.beginPath();
@@ -205,7 +205,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div style={{ background: "#050505", width: "100vw", height: "100vh", overflow: "hidden", position: "relative" }}>
+    <div style={{ background: "#111318", width: "100vw", height: "100vh", overflow: "hidden", position: "relative" }}>
       <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, width: "100%", height: "100%", cursor: "default" }} />
 
       {/* Top subtitle */}
@@ -215,7 +215,7 @@ export default function LandingPage() {
         opacity: showSubtitle ? 1 : 0, transition: "opacity 1.2s ease",
       }}>
         <p style={{
-          color: "rgba(201,168,76,0.5)", fontSize: 11,
+          color: "rgba(91,107,255,0.5)", fontSize: 11,
           fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.3em",
           textTransform: "uppercase", whiteSpace: "nowrap",
         }}>
@@ -233,9 +233,9 @@ export default function LandingPage() {
         <button
           onClick={() => router.push("/home")}
           style={{
-            background: "rgba(201,168,76,0.08)",
-            border: "1px solid rgba(201,168,76,0.5)",
-            color: "#C9A84C",
+            background: "rgba(91,107,255,0.08)",
+            border: "1px solid rgba(91,107,255,0.5)",
+            color: "#5B6BFF",
             padding: "13px 40px",
             borderRadius: 50,
             fontSize: 14,
@@ -244,19 +244,19 @@ export default function LandingPage() {
             cursor: "pointer",
             fontWeight: 600,
             transition: "all 0.25s ease",
-            boxShadow: "0 0 28px rgba(201,168,76,0.14)",
+            boxShadow: "0 0 28px rgba(91,107,255,0.14)",
           }}
           onMouseEnter={e => {
             const btn = e.currentTarget;
-            btn.style.background = "rgba(201,168,76,0.18)";
-            btn.style.boxShadow = "0 0 40px rgba(201,168,76,0.3)";
-            btn.style.borderColor = "rgba(201,168,76,0.8)";
+            btn.style.background = "rgba(91,107,255,0.18)";
+            btn.style.boxShadow = "0 0 40px rgba(91,107,255,0.3)";
+            btn.style.borderColor = "rgba(91,107,255,0.8)";
           }}
           onMouseLeave={e => {
             const btn = e.currentTarget;
-            btn.style.background = "rgba(201,168,76,0.08)";
-            btn.style.boxShadow = "0 0 28px rgba(201,168,76,0.14)";
-            btn.style.borderColor = "rgba(201,168,76,0.5)";
+            btn.style.background = "rgba(91,107,255,0.08)";
+            btn.style.boxShadow = "0 0 28px rgba(91,107,255,0.14)";
+            btn.style.borderColor = "rgba(91,107,255,0.5)";
           }}
         >
           Launch →

@@ -30,7 +30,7 @@ export default function TopBar() {
   const { isRefreshing, lastRefreshed, portfolio } = state;
 
   return (
-    <header className="h-16 border-b border-white/[0.06] flex items-center justify-between px-6 shrink-0" style={{ background: "rgba(6, 6, 6, 0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
+    <header className="h-14 border-b border-white/[0.06] flex items-center justify-between px-6 shrink-0 bg-navy-900" style={{ backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
       <h1 className="text-primary font-semibold text-base">{title}</h1>
 
       <div className="flex items-center gap-3">
@@ -44,9 +44,9 @@ export default function TopBar() {
                 ? "bg-success"
                 : "bg-muted"
           )} />
-          <span className="text-xs font-mono text-muted">
+          <span className="text-xs font-mono text-muted tabular-nums">
             {isRefreshing
-              ? "Monitoring agents running…"
+              ? "Monitoring agents running..."
               : `Last monitored ${minutesAgo(lastRefreshed)} · ${portfolio.length} loans · 11 sectors`
             }
           </span>

@@ -1,9 +1,9 @@
-# CreditMind — Jasmine's Work Brief
+# CreditMind — Jasmin's Work Brief
 
 **Project:** CreditMind — AI-Powered Private Credit Underwriting Platform  
 **Your Role:** Design Lead — UI & Aesthetics  
 **Your GitHub Username:** jasminkaur9  
-**Your Branch:** `design/jasmine`  
+**Your Branch:** `design/jasmin`  
 **Leader:** Peter (peterjohn1298) — approves all PRs  
 
 ---
@@ -148,22 +148,22 @@ Primary use is desktop (1280px+), but should be functional on tablet (768px+).
 
 ```bash
 # Step 1 — Always start fresh from master
-git checkout design/jasmine
+git checkout design/jasmin
 git pull origin master
 
 # Step 2 — Do your work (only inside frontend/)
 
 # Step 3 — Commit
 git add frontend/components/ui/AlertCard.tsx  # specific files only
-git commit -m "[Jasmine] Redesign AlertCard with severity color system"
+git commit -m "[Jasmin] Redesign AlertCard with severity color system"
 
 # Step 4 — Push
-git push origin design/jasmine
+git push origin design/jasmin
 
 # Step 5 — Open a Pull Request on GitHub
 # Go to github.com/peterjohn1298/CreditMind
 # Click "Compare & pull request" → base: master
-# Title: "[Jasmine] Brief description"
+# Title: "[Jasmin] Brief description"
 # Submit — Chief of Staff reviews automatically in ~1 minute
 ```
 
@@ -173,12 +173,12 @@ git push origin design/jasmine
 
 When starting a Claude Code session, paste this at the beginning:
 
-> "I am working on CreditMind, an AI-powered private credit underwriting platform. I am Jasmine and I am the Design Lead. I own the entire `frontend/` directory — a Next.js 14 app using the App Router and Tailwind CSS. The backend is a FastAPI app deployed on Railway. I do not touch any Python files — only files inside the `frontend/` directory. The platform serves credit analysts and investment professionals, so the design should feel institutional, clean, and data-dense. I want to [describe your task — e.g., redesign the alert cards, build the dashboard layout, improve the color system]."
+> "I am working on CreditMind, an AI-powered private credit underwriting platform. I am Jasmin and I am the Design Lead. I own the entire `frontend/` directory — a Next.js 14 app using the App Router and Tailwind CSS. The backend is a FastAPI app deployed on Railway. I do not touch any Python files — only files inside the `frontend/` directory. The platform serves credit analysts and investment professionals, so the design should feel institutional, clean, and data-dense. I want to [describe your task — e.g., redesign the alert cards, build the dashboard layout, improve the color system]."
 
 ---
 
 ## One Rule
 
-Never push directly to `master`. All your work goes through `design/jasmine` → Pull Request → Chief of Staff review → Peter's approval.
+Never push directly to `master`. All your work goes through `design/jasmin` → Pull Request → Chief of Staff review → Peter's approval.
 
 **Questions?** Reach out to Peter directly.
