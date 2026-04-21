@@ -27,7 +27,7 @@ export default function TypewriterText({ text, speed = 10, className }: Props) {
       {displayed.length < text.length && (
         <span style={{
           display: "inline-block", width: 1, height: "0.85em",
-          background: "#C9A84C", marginLeft: 2, verticalAlign: "text-bottom",
+          background: "#5B6BFF", marginLeft: 2, verticalAlign: "text-bottom",
           animation: "blink 0.6s step-end infinite",
         }} />
       )}

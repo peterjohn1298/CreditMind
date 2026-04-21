@@ -46,7 +46,7 @@ export default function ParticleBackground() {
         if (p.x > W + 6) p.x = -6;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, 6.2832);
-        ctx.fillStyle = `rgba(201,168,76,${p.opacity})`;
+        ctx.fillStyle = `rgba(91,107,255,${p.opacity})`;
         ctx.fill();
       }
       rafId = requestAnimationFrame(loop);

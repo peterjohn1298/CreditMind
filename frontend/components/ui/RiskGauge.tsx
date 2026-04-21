@@ -46,8 +46,8 @@ export default function RiskGauge({ score, size = "sm" }: Props) {
     };
   });
 
-  const glowColor = score >= 66 ? "#FF3B5C" : score >= 33 ? "#FFB300" : "#00D4A4";
-  const textColor = score >= 66 ? "#FF3B5C" : score >= 33 ? "#FFB300" : "#00D4A4";
+  const glowColor = score > 65 ? "#FF3B5C" : score > 40 ? "#FFB300" : "#00D4A4";
+  const textColor = score > 65 ? "#FF3B5C" : score > 40 ? "#FFB300" : "#00D4A4";
 
   return (
     <div className="flex flex-col items-center">
@@ -93,7 +93,7 @@ export default function RiskGauge({ score, size = "sm" }: Props) {
             <circle cx={dotX} cy={dotY} r={size === "lg" ? 7 : 4.5}
               fill={glowColor} opacity={0.18} />
             <circle cx={dotX} cy={dotY} r={size === "lg" ? 4 : 2.5}
-              fill="#050505" stroke={glowColor} strokeWidth={1.5} />
+              fill="#111318" stroke={glowColor} strokeWidth={1.5} />
           </>
         )}
 
