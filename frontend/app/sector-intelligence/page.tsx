@@ -149,38 +149,41 @@ export default function SectorIntelligence() {
 
       {sectorData && <SectorHeatMap data={sectorData} onSectorClick={handleSectorClick} />}
 
-      <div className="grid grid-cols-3 gap-5">
+      {/* Sector Signals + Contagion — side by side */}
+      <div className="grid grid-cols-2 gap-5">
         {/* Sector Alerts */}
         <div className="space-y-3">
           <p className="text-primary text-sm font-semibold">Active Sector Signals</p>
           {stressedSectors.length === 0 && <p className="text-muted text-xs">All sectors within baseline</p>}
-          {stressedSectors.map(({ sector, score }, idx) => {
-            const color = getRiskColor(score);
-            const loans = portfolio.filter(d => d.sector === sector).length;
-            const isCritical = score > 70;
-            return (
-              <button key={sector} onClick={() => handleSectorClick(sector)}
-                className={cn("w-full glass rounded-lg p-4 text-left transition-all duration-200 hover:border-accent/30 animate-fade-up")}
-                style={{ animationDelay: `${idx * 0.08}s`, boxShadow: isCritical ? `0 0 20px ${color}22` : undefined }}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-primary text-sm font-semibold">{sector}</p>
-                  <div className="flex items-center gap-1.5">
-                    {isCritical && <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />}
-                    <span className="font-mono text-lg font-bold" style={{ color }}>{score}</span>
+          <div className="grid grid-cols-2 gap-3">
+            {stressedSectors.map(({ sector, score }, idx) => {
+              const color = getRiskColor(score);
+              const loans = portfolio.filter(d => d.sector === sector).length;
+              const isCritical = score > 70;
+              return (
+                <button key={sector} onClick={() => handleSectorClick(sector)}
+                  className={cn("glass rounded-lg p-4 text-left transition-all duration-200 hover:border-accent/30 animate-fade-up")}
+                  style={{ animationDelay: `${idx * 0.08}s`, boxShadow: isCritical ? `0 0 20px ${color}22` : undefined }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-primary text-xs font-semibold leading-tight">{sector}</p>
+                    <div className="flex items-center gap-1">
+                      {isCritical && <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />}
+                      <span className="font-mono text-base font-bold" style={{ color }}>{score}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="w-full bg-white/[0.06] rounded-full h-1.5 mb-2">
-                  <div className="h-1.5 rounded-full transition-all duration-700" style={{ width: `${score}%`, backgroundColor: color }} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-muted text-[10px]">{loans} loan{loans !== 1 ? "s" : ""} exposed</p>
-                  {score > 65 ? <TrendingUp size={10} className="text-danger" /> :
-                   score > 50 ? <Minus size={10} className="text-warning" /> :
-                   <TrendingDown size={10} className="text-success" />}
-                </div>
-              </button>
-            );
-          })}
+                  <div className="w-full bg-white/[0.06] rounded-full h-1.5 mb-2">
+                    <div className="h-1.5 rounded-full transition-all duration-700" style={{ width: `${score}%`, backgroundColor: color }} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-muted text-[10px]">{loans} loan{loans !== 1 ? "s" : ""} exposed</p>
+                    {score > 65 ? <TrendingUp size={10} className="text-danger" /> :
+                     score > 50 ? <Minus size={10} className="text-warning" /> :
+                     <TrendingDown size={10} className="text-success" />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Contagion */}
@@ -216,13 +219,10 @@ export default function SectorIntelligence() {
             </div>
           )}
         </div>
-
-        {/* Forecast */}
-        <div>
-          <p className="text-primary text-sm font-semibold mb-3">30-Day Forecast</p>
-          <SectorForecastChart forecasts={forecasts} />
-        </div>
       </div>
+
+      {/* Forecast — full width */}
+      <SectorForecastChart forecasts={forecasts} />
 
       {/* Portfolio Sector Exposure Table */}
       <div className="glass rounded-lg overflow-hidden animate-fade-up delay-200">
