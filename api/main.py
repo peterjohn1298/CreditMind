@@ -23,18 +23,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
-from core.orchestrator import (
-    run_full_underwriting,
-    DailyMonitoringOrchestrator,
-    QuarterlyReviewOrchestrator,
-)
-from core.credit_state import create_credit_state
 from core.alert_system import get_pending_alerts, resolve_alert, get_alert_summary
-from agents.ic_memo_writer import ICMemoWriterAgent
-from core.credit_policy import (
-    check_new_deal, check_existing_deal,
-    summarize_portfolio_vs_policy, get_policy_context_for_agents,
-)
+from core.credit_state import create_credit_state
 from data.db import (
     init_db, is_available,
     load_portfolio, save_deal, save_portfolio,
@@ -331,11 +321,6 @@ class ResolveAlertResponse(BaseModel):
 # Original 6 Endpoints
 # ---------------------------------------------------------------------------
 
-from agents.origination_scout import OriginationScoutAgent
-from agents.deal_screener import DealScreenerAgent
-from agents.ic_committee import ICCommitteeAgent
-from agents.documentation_agent import DocumentationAgent
-from agents.closing_agent import ClosingAgent
 
 
 def _bump_alert_timestamps(portfolio_dict: dict, max_age_hours: int = 48) -> None:
@@ -369,6 +354,7 @@ def _run_daily_monitoring_all():
         log.info("Daily monitoring skipped — sector monitoring already running.")
         return
 
+    from core.orchestrator import DailyMonitoringOrchestrator
     orchestrator = DailyMonitoringOrchestrator()
     target_deals = [
         deal for deal in _portfolio.values()
@@ -420,6 +406,7 @@ def underwrite(req: UnderwriteRequest):
             if val is not None:
                 prefilled[attr] = val
 
+        from core.orchestrator import run_full_underwriting
         credit_state = run_full_underwriting(
             company=req.company,
             ticker=req.ticker,
@@ -451,6 +438,7 @@ def underwrite(req: UnderwriteRequest):
 def daily_monitor(req: MonitorRequest):
     """Run daily monitoring agents for an existing deal."""
     try:
+        from core.orchestrator import DailyMonitoringOrchestrator
         credit_state = _get_deal(req.deal_id)
         orchestrator = DailyMonitoringOrchestrator()
         credit_state = orchestrator.run(credit_state)
@@ -481,6 +469,7 @@ def daily_monitor(req: MonitorRequest):
 def quarterly_review(req: QuarterlyReviewRequest):
     """Run quarterly review agents for an existing deal."""
     try:
+        from core.orchestrator import QuarterlyReviewOrchestrator
         credit_state = _get_deal(req.deal_id)
         orchestrator = QuarterlyReviewOrchestrator()
         credit_state = orchestrator.run(credit_state)
@@ -504,6 +493,7 @@ def quarterly_review(req: QuarterlyReviewRequest):
 def credit_memo(req: CreditMemoRequest):
     """Generate IC credit memo for an existing deal."""
     try:
+        from agents.ic_memo_writer import ICMemoWriterAgent
         credit_state = _get_deal(req.deal_id)
         agent = ICMemoWriterAgent()
         credit_state = agent.run(credit_state)
@@ -887,6 +877,7 @@ class ClosingRequest(BaseModel):
 def origination_scan(req: FundCriteria):
     """Stage 1: Scan market signals for deal origination opportunities."""
     try:
+        from agents.origination_scout import OriginationScoutAgent
         state = {"fund_criteria": req.model_dump()}
         agent = OriginationScoutAgent()
         state = agent.run(state)
@@ -924,6 +915,7 @@ def screen_deal(req: DealTeaserRequest):
                 "max_leverage":    6.5,
             },
         }
+        from agents.deal_screener import DealScreenerAgent
         agent = DealScreenerAgent()
         state = agent.run(state)
         return state.get("screening_result", {})
@@ -935,6 +927,7 @@ def screen_deal(req: DealTeaserRequest):
 def ic_committee(req: ICRequest):
     """Stage 4: Run IC deliberation on a fully underwritten deal."""
     try:
+        from agents.ic_committee import ICCommitteeAgent
         credit_state = _get_deal(req.deal_id)
         agent = ICCommitteeAgent()
         credit_state = agent.run(copy.deepcopy(credit_state))
@@ -960,6 +953,7 @@ def generate_docs(req: DocumentationRequest):
         credit_state = _get_deal(req.deal_id)
         if credit_state.get("ic_decision") == "REJECT":
             raise HTTPException(status_code=400, detail="Cannot generate docs for a rejected deal.")
+        from agents.documentation_agent import DocumentationAgent
         agent = DocumentationAgent()
         credit_state = agent.run(copy.deepcopy(credit_state))
         _portfolio[req.deal_id] = credit_state
@@ -981,6 +975,7 @@ def generate_docs(req: DocumentationRequest):
 def closing_checklist(req: ClosingRequest):
     """Stage 6: Generate CP checklist and funds flow summary for closing."""
     try:
+        from agents.closing_agent import ClosingAgent
         credit_state = _get_deal(req.deal_id)
         agent = ClosingAgent()
         credit_state = agent.run(copy.deepcopy(credit_state))
@@ -1048,6 +1043,7 @@ def get_policy():
 def portfolio_compliance():
     """Portfolio-level policy compliance dashboard — concentration limits, watch list."""
     try:
+        from core.credit_policy import summarize_portfolio_vs_policy
         return summarize_portfolio_vs_policy(_portfolio)
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": str(e)})
@@ -1065,6 +1061,7 @@ def check_deal_policy(req: DealTeaserRequest):
             "loan_type_canonical": req.loan_type,
             "leverage":            req.leverage_ask,
         }
+        from core.credit_policy import check_new_deal
         result = check_new_deal(deal, _portfolio)
         return result.to_dict()
     except Exception as e:
@@ -1075,6 +1072,7 @@ def check_deal_policy(req: DealTeaserRequest):
 def get_watch_list():
     """Return all portfolio deals currently triggering watch list criteria."""
     try:
+        from core.credit_policy import check_existing_deal
         watch = []
         for deal in _portfolio.values():
             result = check_existing_deal(deal)
