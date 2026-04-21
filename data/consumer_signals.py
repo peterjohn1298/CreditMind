@@ -1,115 +1,110 @@
 """
-Consumer Signals Layer — Yelp Fusion API (alternative data).
-Review count, ratings, and recent review sentiment serve as foot traffic
-and customer satisfaction proxies for consumer-facing borrowers.
+Consumer Signals Layer — Google Places API.
+Replaces Yelp Fusion. Fetches business ratings, review volume,
+and business_status for consumer-facing borrowers.
+
+Key signals:
+  business_status  OPERATIONAL | CLOSED_TEMPORARILY | CLOSED_PERMANENTLY
+  rating           1.0–5.0 (Google star rating)
+  user_ratings_total  review volume — proxy for foot traffic / business activity
+
 Most relevant for: retail, restaurants, healthcare clinics, gyms, hospitality.
+Env var required: GOOGLE_PLACES_API_KEY
 """
 
 import os
 import requests
 from datetime import datetime
 
+_PLACES_BASE = "https://maps.googleapis.com/maps/api/place"
 
-_NEGATIVE_KEYWORDS = {"closed", "closing", "out of business", "shut down", "no longer",
-                      "terrible", "awful", "disgusting", "horrible", "avoid", "scam", "fraud"}
-_POSITIVE_KEYWORDS = {"excellent", "outstanding", "amazing", "highly recommend",
-                      "best", "wonderful", "fantastic", "great service"}
+# Fields fetched from Place Details — minimise billable field groups
+_DETAIL_FIELDS = "name,rating,user_ratings_total,business_status,opening_hours,price_level,formatted_address"
+
+
+def _credit_implication(signal: str, status: str, rating: float | None, reviews: int) -> str:
+    if status == "CLOSED_PERMANENTLY":
+        return "CRITICAL: Business marked permanently closed on Google — immediate on-site verification required."
+    if status == "CLOSED_TEMPORARILY":
+        return "HIGH: Business marked temporarily closed — monitor for sustained revenue impact."
+    if signal == "DISTRESS":
+        return f"Rating {rating}/5 across {reviews} reviews indicates significant customer dissatisfaction — potential revenue deterioration."
+    if signal == "WEAKENING":
+        return f"Below-average rating ({rating}/5) suggests weakening consumer sentiment — flag for next monitoring cycle."
+    if signal == "STRONG":
+        return f"Strong rating ({rating}/5, {reviews:,} reviews) confirms healthy consumer demand — no near-term credit concern."
+    return "Stable consumer signals — rating and review volume within normal range."
 
 
 def get_consumer_signals(company: str, location: str = "US") -> dict:
     """
-    Fetch Yelp data for a consumer-facing business and return credit-relevant signals.
+    Fetch Google Places data for a consumer-facing business and return
+    credit-relevant signals.
 
-    Returns review count, star rating, recent review sentiment, and a composite
-    consumer_signal (STRONG / STABLE / WEAKENING / DISTRESS).
+    Returns composite consumer_signal: STRONG | STABLE | WEAKENING | DISTRESS
     """
-    api_key = os.environ.get("YELP_API_KEY", "")
+    api_key = os.environ.get("GOOGLE_PLACES_API_KEY", "")
     if not api_key:
-        return {"error": "YELP_API_KEY not configured in environment"}
+        return {"error": "GOOGLE_PLACES_API_KEY not configured in environment"}
 
-    headers = {"Authorization": f"Bearer {api_key}"}
-
-    # Step 1 — find the business
+    # ── Step 1: Text search to find the business ───────────────────────────
     try:
         search_resp = requests.get(
-            "https://api.yelp.com/v3/businesses/search",
-            headers=headers,
-            params={"term": company, "location": location, "limit": 1},
+            f"{_PLACES_BASE}/textsearch/json",
+            params={"query": f"{company} {location}", "key": api_key},
             timeout=10,
         )
         search_resp.raise_for_status()
-        businesses = search_resp.json().get("businesses", [])
-        if not businesses:
-            return {"error": f"No Yelp listing found for '{company}'"}
-        biz = businesses[0]
+        results = search_resp.json().get("results", [])
+        if not results:
+            return {"error": f"No Google Places results found for '{company}'"}
+        place_id = results[0]["place_id"]
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"Places search failed: {e}"}
 
-    biz_id      = biz.get("id")
-    rating      = biz.get("rating", 0)
-    review_count = biz.get("review_count", 0)
-    categories  = [c.get("title", "") for c in biz.get("categories", [])]
-    is_closed   = biz.get("is_closed", False)
-
-    # Step 2 — fetch 3 most recent reviews
-    recent_reviews = []
-    review_sentiment = "NEUTRAL"
-    closure_flag = False
-
+    # ── Step 2: Fetch place details ────────────────────────────────────────
     try:
-        rev_resp = requests.get(
-            f"https://api.yelp.com/v3/businesses/{biz_id}/reviews",
-            headers=headers,
-            params={"sort_by": "newest", "limit": 3},
+        detail_resp = requests.get(
+            f"{_PLACES_BASE}/details/json",
+            params={"place_id": place_id, "fields": _DETAIL_FIELDS, "key": api_key},
             timeout=10,
         )
-        if rev_resp.status_code == 200:
-            reviews = rev_resp.json().get("reviews", [])
-            for r in reviews:
-                text = r.get("text", "").lower()
-                recent_reviews.append({
-                    "rating": r.get("rating"),
-                    "text":   r.get("text", "")[:150],
-                    "date":   r.get("time_created", "")[:10],
-                })
-                if any(k in text for k in _NEGATIVE_KEYWORDS):
-                    closure_flag = True
+        detail_resp.raise_for_status()
+        detail = detail_resp.json().get("result", {})
+    except Exception as e:
+        return {"error": f"Places detail fetch failed: {e}"}
 
-            avg_recent = sum(r["rating"] for r in recent_reviews) / len(recent_reviews) if recent_reviews else rating
-            if avg_recent >= 4.0:
-                review_sentiment = "POSITIVE"
-            elif avg_recent >= 3.0:
-                review_sentiment = "NEUTRAL"
-            else:
-                review_sentiment = "NEGATIVE"
-    except Exception:
-        pass  # reviews are supplemental — don't fail the whole call
+    rating         = detail.get("rating")
+    review_count   = detail.get("user_ratings_total", 0)
+    business_status = detail.get("business_status", "OPERATIONAL")
+    open_now       = (detail.get("opening_hours") or {}).get("open_now")
+    address        = detail.get("formatted_address", "")
+    google_name    = detail.get("name", company)
 
-    # Derive composite consumer signal
-    if is_closed or closure_flag:
-        signal    = "DISTRESS"
-        rationale = "Business appears closed or closure signals detected in recent reviews"
-    elif rating < 3.0 or review_sentiment == "NEGATIVE":
-        signal    = "WEAKENING"
-        rationale = f"Low rating ({rating}★) and/or negative recent reviews indicate declining customer satisfaction"
-    elif rating >= 4.0 and review_count >= 100 and review_sentiment != "NEGATIVE":
-        signal    = "STRONG"
-        rationale = f"High rating ({rating}★) with {review_count} reviews — strong customer engagement"
+    # ── Derive composite consumer signal ───────────────────────────────────
+    if business_status == "CLOSED_PERMANENTLY":
+        signal = "DISTRESS"
+    elif business_status == "CLOSED_TEMPORARILY":
+        signal = "WEAKENING"
+    elif rating is not None and rating < 2.5:
+        signal = "DISTRESS"
+    elif rating is not None and rating < 3.5:
+        signal = "WEAKENING"
+    elif rating is not None and rating >= 4.2 and review_count >= 100:
+        signal = "STRONG"
     else:
-        signal    = "STABLE"
-        rationale = f"Rating {rating}★ across {review_count} reviews — no significant consumer-side deterioration"
+        signal = "STABLE"
 
     return {
         "company":          company,
-        "yelp_name":        biz.get("name", company),
+        "google_name":      google_name,
+        "address":          address,
         "rating":           rating,
         "review_count":     review_count,
-        "review_sentiment": review_sentiment,
-        "recent_reviews":   recent_reviews,
-        "categories":       categories,
-        "is_closed":        is_closed,
+        "business_status":  business_status,
+        "open_now":         open_now,
         "consumer_signal":  signal,
-        "signal_rationale": rationale,
-        "data_source":      "Yelp Fusion",
+        "signal_rationale": _credit_implication(signal, business_status, rating, review_count),
+        "data_source":      "Google Places",
         "as_of":            datetime.utcnow().date().isoformat(),
     }
