@@ -124,16 +124,24 @@ Produce structured JSON early warning assessment:
         return credit_state
 
     def run_sector(self, sector_state: dict) -> dict:
-        """Sector-level early warning — assesses macro + sector news for deterioration signals."""
+        """Sector-level early warning — quantitative composite score + Claude narrative."""
         sector       = sector_state["sector"]
         keywords     = sector_state["keywords"]
         deals        = sector_state["deals_in_sector"]
         news_signals = sector_state.get("news_signals", [])
 
+        # ── Quantitative score (formula-based anchor) ──────────────────────
+        from data.sector_stress import compute_sector_stress
+        stress = compute_sector_stress(sector, deals, news_signals)
+        formula_score = stress["composite_score"]
+        components    = stress["components"]
+
         role = (
             "You are a portfolio risk manager running early warning surveillance by sector. "
             "You detect early signs of credit deterioration across an entire sector before they appear "
-            "in company financials. Synthesize sector news and macro data to assess sector-wide risk. "
+            "in company financials. A quantitative stress model has already computed a base score — "
+            "your job is to validate it, add qualitative context, and adjust by ±10 points if your "
+            "independent assessment materially differs. "
             "Warning levels: GREEN (normal), AMBER (increased monitoring), RED (watchlist), BLACK (immediate action)."
         )
 
@@ -142,20 +150,30 @@ Sector early warning assessment for: {sector}
 Loans at risk: {len(deals)} ({', '.join(d.get('company', '') for d in deals[:5])}{'...' if len(deals) > 5 else ''})
 Keywords: {', '.join(keywords[:5])}
 
+QUANTITATIVE MODEL OUTPUT (formula-based — use as your anchor):
+  Composite stress score : {formula_score}/100
+  Dominant driver        : {stress['dominant_driver']}
+  ─ Macro stress         : {components['macro']['score']}/100  (HY spread: {components['macro'].get('hy_spread', 'N/A')}, VIX: {components['macro'].get('vix', 'N/A')})
+  ─ Market momentum      : {components['momentum']['score']}/100  (ETF: {components['momentum'].get('etf', 'N/A')}, rel. return: {components['momentum'].get('relative_return', 'N/A')}%)
+  ─ News sentiment       : {components['news']['score']}/100  (tone: {components['news'].get('tone', 'N/A')}, critical events: {components['news'].get('critical_events', 0)})
+  ─ Portfolio signals    : {components['portfolio']['score']}/100  (avg risk: {components['portfolio'].get('base_risk_score', 'N/A')}, breaches: {components['portfolio'].get('covenant_breaches', 0)}, watchlist: {components['portfolio'].get('watchlist_deals', 0)})
+
 Recent news signals:
-{json.dumps(news_signals[-1:], indent=2, default=str)[:800] if news_signals else "None yet — fetch fresh sector news first."}
+{json.dumps(news_signals[-1:], indent=2, default=str)[:600] if news_signals else "None yet."}
 
-Use your tools to:
-1. Fetch fresh sector news for independent verification
-2. Fetch macro snapshot — assess if macro environment amplifies sector risk
+Use your tools to fetch macro snapshot for independent validation.
 
-Produce structured JSON:
+Produce structured JSON. Set sector_risk_score to the formula score unless your qualitative
+assessment warrants an adjustment of up to ±10 points — explain any adjustment in score_adjustment_rationale.
+
 {{
   "warning_level": "GREEN | AMBER | RED | BLACK",
   "sector_risk_score": integer 0-100,
+  "score_adjustment": integer (0 if no adjustment, positive = raised, negative = lowered),
+  "score_adjustment_rationale": "why you adjusted, or null if no adjustment",
   "active_warnings": [
     {{
-      "warning_type": "NEWS | MACRO | REGULATORY | COMMODITY | COMBINED",
+      "warning_type": "NEWS | MACRO | MARKET | PORTFOLIO | REGULATORY | COMMODITY | COMBINED",
       "description": "specific signal detected",
       "severity": "LOW | MEDIUM | HIGH | CRITICAL"
     }}
@@ -168,8 +186,10 @@ Produce structured JSON:
 """
         result = self.run_agentic_loop_json(role, task, SECTOR_MONITOR_TOOLS)
 
-        sector_state["sector_risk_score"] = result.get("sector_risk_score", 30)
-        sector_state["early_warning_flags"] = result.get("active_warnings", [])
+        # Store the final score and the full component breakdown
+        sector_state["sector_risk_score"]    = result.get("sector_risk_score", formula_score)
+        sector_state["sector_stress_detail"] = stress   # full breakdown for debugging / UI
+        sector_state["early_warning_flags"]  = result.get("active_warnings", [])
 
         warning_level = result.get("warning_level", "GREEN")
         if warning_level in ["RED", "BLACK"]:

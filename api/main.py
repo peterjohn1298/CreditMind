@@ -767,8 +767,10 @@ def _run_sector_monitoring():
             ew_agent = EarlyWarningAgent()
             sector_state = ew_agent.run_sector(sector_state)
 
-            # Store real sector stress score
+            # Store real sector stress score + component breakdown
             _sector_scores[sector_name] = sector_state.get("sector_risk_score", 35)
+            if sector_state.get("sector_stress_detail"):
+                _sector_scores[f"{sector_name}__detail"] = sector_state["sector_stress_detail"]
 
             # Push real signals back to each individual deal in this sector
             sector_news   = sector_state.get("news_signals", [])[:5]
