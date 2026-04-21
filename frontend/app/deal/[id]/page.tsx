@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, AlertTriangle, TrendingDown, TrendingUp, Users, Star } from "lucide-react";
+import { ArrowLeft, AlertTriangle, TrendingDown, TrendingUp } from "lucide-react";
+import AlternativeDataPanel from "@/components/ui/AlternativeDataPanel";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
 import { useCredit } from "@/context/CreditContext";
@@ -414,58 +415,13 @@ export default function DealDetailPage() {
       {/* Rating upgrade / downgrade triggers */}
       <RatingTriggers deal={deal} />
 
-      {/* Alternative data */}
-      {(deal.job_signals || deal.consumer_signals) && (
-        <div className="grid grid-cols-2 gap-5">
-          {deal.job_signals && (
-            <Section title="Job Market Signals">
-              <div className="flex items-center gap-2 mb-2">
-                <Users size={14} className="text-accent" />
-                <span className="font-semibold text-sm" style={{
-                  color: deal.job_signals.hiring_signal === "SURGE" || deal.job_signals.hiring_signal === "GROWTH" ? "#00D4A4"
-                       : deal.job_signals.hiring_signal === "DISTRESS" ? "#FF3B5C" : "#FFB300"
-                }}>
-                  {deal.job_signals.hiring_signal}
-                </span>
-              </div>
-              <p className="text-muted text-xs">{deal.job_signals.signal_rationale}</p>
-              <Row label="Open Positions" value={String(deal.job_signals.open_positions ?? "—")} />
-              {deal.job_signals.distress_keywords?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {deal.job_signals.distress_keywords.slice(0, 4).map((kw: string) => (
-                    <span key={kw} className="text-[10px] px-2 py-0.5 bg-danger/10 text-danger border border-danger/20 rounded-full">{kw}</span>
-                  ))}
-                </div>
-              )}
-            </Section>
-          )}
-
-          {deal.consumer_signals && (
-            <Section title="Consumer Signals (Google Places)">
-              <div className="flex items-center gap-2 mb-2">
-                <Star size={14} className="text-warning" />
-                <span className="font-semibold text-sm" style={{
-                  color: deal.consumer_signals.consumer_signal === "STRONG" ? "#00D4A4"
-                       : deal.consumer_signals.consumer_signal === "DISTRESS" ? "#FF3B5C" : "#FFB300"
-                }}>
-                  {deal.consumer_signals.consumer_signal}
-                </span>
-              </div>
-              <Row label="Business Status" value={deal.consumer_signals.business_status ?? "—"} mono={false} />
-              <Row label="Rating"          value={deal.consumer_signals.rating ? `${deal.consumer_signals.rating} / 5` : "—"} />
-              <Row label="Reviews"         value={deal.consumer_signals.review_count != null ? deal.consumer_signals.review_count.toLocaleString() : "—"} />
-              {deal.consumer_signals.address && (
-                <Row label="Address" value={deal.consumer_signals.address} mono={false} />
-              )}
-              {deal.consumer_signals.signal_rationale && (
-                <p className="text-muted text-[10px] leading-relaxed pt-1 border-t border-white/[0.04]">
-                  {deal.consumer_signals.signal_rationale}
-                </p>
-              )}
-            </Section>
-          )}
-        </div>
-      )}
+      {/* Alternative Data Intelligence — sector-aware */}
+      <AlternativeDataPanel
+        sector={deal.sector ?? ""}
+        company={deal.company}
+        jobSignals={deal.job_signals}
+        consumerSignals={deal.consumer_signals}
+      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ Most relevant for: retail, restaurants, healthcare clinics, gyms, hospitality.
 Env var required: GOOGLE_PLACES_API_KEY
 """
 
+import math
 import os
 import requests
 from datetime import datetime
@@ -74,12 +75,33 @@ def get_consumer_signals(company: str, location: str = "US") -> dict:
     except Exception as e:
         return {"error": f"Places detail fetch failed: {e}"}
 
-    rating         = detail.get("rating")
-    review_count   = detail.get("user_ratings_total", 0)
+    rating          = detail.get("rating")
+    review_count    = detail.get("user_ratings_total", 0)
     business_status = detail.get("business_status", "OPERATIONAL")
-    open_now       = (detail.get("opening_hours") or {}).get("open_now")
-    address        = detail.get("formatted_address", "")
-    google_name    = detail.get("name", company)
+    open_now        = (detail.get("opening_hours") or {}).get("open_now")
+    address         = detail.get("formatted_address", "")
+    google_name     = detail.get("name", company)
+    price_level     = detail.get("price_level")          # 0–4 (Google scale)
+
+    # ── Foot traffic index — log-normalised from review volume ─────────────
+    # Rationale: review count is a strong proxy for cumulative foot traffic.
+    # 10 reviews → ~25, 100 → ~50, 1 000 → ~75, 10 000+ → 100
+    if review_count and review_count > 0:
+        foot_traffic_index = min(100, round(
+            math.log10(max(1, review_count)) / math.log10(10_000) * 100
+        ))
+    else:
+        foot_traffic_index = 0
+
+    # ── Foot traffic label ─────────────────────────────────────────────────
+    if foot_traffic_index >= 75:
+        traffic_label = "HIGH"
+    elif foot_traffic_index >= 50:
+        traffic_label = "MODERATE"
+    elif foot_traffic_index >= 25:
+        traffic_label = "LOW"
+    else:
+        traffic_label = "MINIMAL"
 
     # ── Derive composite consumer signal ───────────────────────────────────
     if business_status == "CLOSED_PERMANENTLY":
@@ -96,15 +118,18 @@ def get_consumer_signals(company: str, location: str = "US") -> dict:
         signal = "STABLE"
 
     return {
-        "company":          company,
-        "google_name":      google_name,
-        "address":          address,
-        "rating":           rating,
-        "review_count":     review_count,
-        "business_status":  business_status,
-        "open_now":         open_now,
-        "consumer_signal":  signal,
-        "signal_rationale": _credit_implication(signal, business_status, rating, review_count),
-        "data_source":      "Google Places",
-        "as_of":            datetime.utcnow().date().isoformat(),
+        "company":            company,
+        "google_name":        google_name,
+        "address":            address,
+        "rating":             rating,
+        "review_count":       review_count,
+        "business_status":    business_status,
+        "open_now":           open_now,
+        "price_level":        price_level,
+        "foot_traffic_index": foot_traffic_index,
+        "traffic_label":      traffic_label,
+        "consumer_signal":    signal,
+        "signal_rationale":   _credit_implication(signal, business_status, rating, review_count),
+        "data_source":        "Google Places",
+        "as_of":              datetime.utcnow().date().isoformat(),
     }
