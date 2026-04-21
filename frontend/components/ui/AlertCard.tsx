@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, CheckCircle } from "lucide-react";
 import type { Alert } from "@/lib/types";
-import { cn, getSeverityColor, formatDate } from "@/lib/utils";
+import { cn, getSeverityColor, timeAgo } from "@/lib/utils";
 
 interface Props {
   alert: Alert;
@@ -41,7 +41,7 @@ export default function AlertCard({ alert, onResolve }: Props) {
           </span>
         </div>
         <div className="flex items-center gap-2 text-muted">
-          <span className="text-[10px] font-mono">{formatDate(alert.timestamp)}</span>
+          <span className="text-[10px] font-mono">{timeAgo(alert.timestamp)}</span>
           {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </div>
       </button>
