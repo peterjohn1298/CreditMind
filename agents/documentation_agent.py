@@ -59,6 +59,119 @@ class DocumentationAgent(BaseAgent):
         amortization  = final_terms.get("mandatory_amortization", "1% per annum")
         call_protect  = final_terms.get("call_protection", "102/101/par")
 
+        # ── Loan-type-specific term sheet addendum ────────────────────────────
+        loan_type_lower = loan_type.lower()
+        specialist_output = {}
+        loan_type_addendum = ""
+
+        if "revolver" in loan_type_lower or "abl" in loan_type_lower or "rcf" in loan_type_lower:
+            bb = credit_state.get("borrowing_base", {})
+            loan_type_addendum = f"""
+REVOLVER / ABL-SPECIFIC TERMS TO INCLUDE IN TERM SHEET:
+- Borrowing base formula: advance rate on eligible AR + advance rate on eligible inventory
+- Net borrowing base: {bb.get('net_borrowing_base', 'to be determined from borrowing base certificate')}
+- Springing leverage covenant: tested only when drawn > 35% of commitment
+- BBC delivery: monthly within 15 days of month-end
+- Cash dominion: triggered if availability < 15% of commitment
+- Field exam: annual (semi-annual if availability < $5M)
+- Unused commitment fee: 50 bps on undrawn balance
+"""
+            specialist_output = credit_state.get("borrowing_base_analysis", {})
+
+        elif "bridge" in loan_type_lower:
+            exit_analysis = credit_state.get("bridge_exit_analysis", {})
+            exit_type = credit_state.get("bridge_exit_type", "permanent financing")
+            ext_prov  = credit_state.get("extension_provisions", {})
+            loan_type_addendum = f"""
+BRIDGE LOAN-SPECIFIC TERMS TO INCLUDE IN TERM SHEET:
+- Planned exit: {exit_type}
+- Exit certainty score: {credit_state.get('exit_certainty_score', 'N/A')}/10
+- Exit milestone schedule: borrower must provide evidence of exit process by month 3, term sheet by month 6
+- Extension option: {ext_prov.get('extension_length', '3 months')} at {ext_prov.get('extension_fee', '1%')} fee + {ext_prov.get('extension_spread_step', '+25 bps/month')} spread step-up
+- Break fee: 1% if repaid within 6 months
+- Exit fee: 1% on any repayment
+- Springing default: if exit process not initiated by month 4, event of default
+"""
+            specialist_output = exit_analysis
+
+        elif "mezz" in loan_type_lower or "subordinat" in loan_type_lower or "mezzanine" in loan_type_lower:
+            mezz = credit_state.get("mezzanine_analysis", {})
+            warrant = credit_state.get("warrant_recommendation", {})
+            loan_type_addendum = f"""
+MEZZANINE-SPECIFIC TERMS TO INCLUDE IN TERM SHEET:
+- PIK election: borrower may elect PIK on up to 100% of interest, subject to no default
+- PIK spread increment: +150 bps over cash coupon if elected
+- Equity warrant: {warrant.get('warrant_pct_equity', 'X%')} of fully-diluted equity
+- Warrant strike: {warrant.get('strike_price', 'at-money')}
+- Make-whole: applicable years 1–2
+- Intercreditor agreement: standstill period {mezz.get('intercreditor_key_terms', ['24 months'])[0] if mezz.get('intercreditor_key_terms') else '24 months'}
+- Change of control put: at 101% of outstanding balance
+- Subordination: waterfall recovery language per intercreditor agreement
+"""
+            specialist_output = mezz
+
+        elif "project" in loan_type_lower or "infrastructure" in loan_type_lower:
+            pf = credit_state.get("project_finance_analysis", {})
+            reserves = credit_state.get("reserve_requirements", {})
+            dscr = credit_state.get("project_dscr", "1.30x")
+            loan_type_addendum = f"""
+PROJECT FINANCE-SPECIFIC TERMS TO INCLUDE IN TERM SHEET:
+- Non-recourse: debt is limited-recourse to SPV only — no parent guarantee
+- DSCR maintenance covenant: minimum {dscr if dscr else '1.30x'} on rolling 12-month basis
+- Distribution lock-up: no distributions unless DSCR ≥ 1.20x and reserve accounts fully funded
+- Debt service reserve account (DSRA): {reserves.get('debt_service_reserve', '6 months debt service')}
+- O&M reserve: {reserves.get('om_reserve', 'to be sized')}
+- Major maintenance reserve: {reserves.get('major_maintenance_reserve', 'to be sized')}
+- Amortization: sculpted to project cash flows — not straight-line
+- Construction milestone events of default: failure to achieve commercial operation by longstop date
+- Insurance: all-risk, business interruption, third-party liability, naming fund as additional insured
+- Change in offtake: fund consent required for any amendment to offtake agreement
+"""
+            specialist_output = pf
+
+        elif "growth" in loan_type_lower or ("non-sponsored" in loan_type_lower) or (not sponsor and "term" in loan_type_lower):
+            gc = credit_state.get("growth_capital_analysis", {})
+            saas_kpis = credit_state.get("saas_kpis", {})
+            warrant = credit_state.get("warrant_recommendation", {})
+            loan_type_addendum = f"""
+GROWTH CAPITAL-SPECIFIC TERMS TO INCLUDE IN TERM SHEET:
+- Equity warrant / kicker: {warrant.get('warrant_pct_equity', 'X%')} fully-diluted equity at {warrant.get('strike_price_multiple', 'at-money')}
+- PIK option: available at +{warrant.get('pik_spread_increment', '150 bps')} over cash rate, subject to no default
+- Key-man provision: material adverse change / default trigger if CEO/founder departs without fund consent
+- Minimum ARR covenant: ${{}}.get('arr_estimate', 'to be set at 75% of current ARR')
+- Minimum cash covenant: 3 months of operating burn at all times
+- NRR covenant: net revenue retention must not fall below 85% on trailing 12-month basis
+- Revenue reporting: monthly ARR / MRR report within 15 days of month-end
+- No-sponsor premium: additional +50–100 bps over equivalent sponsored deal
+""".format(saas_kpis)
+            specialist_output = gc
+
+        elif "distressed" in loan_type_lower or "dip" in loan_type_lower or "special situation" in loan_type_lower:
+            dist = credit_state.get("distressed_analysis", {})
+            loan_type_addendum = f"""
+DISTRESSED / SPECIAL SITUATIONS-SPECIFIC TERMS TO INCLUDE IN TERM SHEET:
+- Cash dominion: all receipts to fund-controlled account from day 1
+- DIP super-priority: new money primes all pre-petition debt (if DIP)
+- Operational milestone covenants: 30-day cure periods before default
+- Management change: fund approval required for any senior management change
+- Asset sale restriction: fund consent required for any asset sale > $1M
+- Equity conversion right: fund may convert at par to X% equity
+- PIK component: up to 50% of interest may be PIK, compounding quarterly
+- Weekly cash reporting: actual vs. projected 13-week cash flow forecast
+- Priming protection: super-priority lien language protecting fund's position
+"""
+            specialist_output = dist
+        # ── End loan-type-specific addendum ───────────────────────────────────
+
+        # Pull specialist analysis summary if available
+        specialist_summary = ""
+        if specialist_output:
+            assessment_key = next(
+                (k for k in specialist_output if "assessment" in k.lower()), None
+            )
+            if assessment_key:
+                specialist_summary = f"\nSPECIALIST ANALYSIS SUMMARY:\n{specialist_output[assessment_key]}\n"
+
         task = f"""Generate a term sheet and negotiation guide for this IC-approved deal.
 
 APPROVED DEAL:
@@ -84,12 +197,13 @@ IC CONDITIONS TO BE REFLECTED IN DOCS:
 PROPOSED COVENANTS:
 {chr(10).join(['- ' + str(k) + ': ' + str(v) for k, v in list(covenant_rec.items())[:6]]) if covenant_rec else '- Standard covenant package'}
 
+{loan_type_addendum}{specialist_summary}
 INSTRUCTIONS:
 1. Check current SOFR rate via macro tool — calculate all-in rate (SOFR + spread)
-2. Generate complete term sheet
-3. Identify the 3 hardest negotiation points for this specific deal
-4. Map out borrower pushback and our responses
-5. Generate the conditions precedent checklist
+2. Generate complete term sheet — incorporate ALL loan-type-specific terms listed above verbatim
+3. Identify the 3 hardest negotiation points for THIS specific loan type
+4. Map out borrower pushback and our responses — be specific to {loan_type} structure
+5. Generate the conditions precedent checklist — include loan-type-specific CPs
 
 Return JSON:
 {{
