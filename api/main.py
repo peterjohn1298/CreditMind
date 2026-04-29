@@ -989,6 +989,31 @@ def closing_checklist(req: ClosingRequest):
         raise HTTPException(status_code=500, detail={"error": str(e)})
 
 
+# ---------------------------------------------------------------------------
+# KYC / AML / Sanctions — Stage 2.5 (FinCEN AML Final Rule, eff. Jan 2028)
+# ---------------------------------------------------------------------------
+
+class KYCRequest(BaseModel):
+    deal_id: str
+
+
+@app.post("/api/kyc-screen")
+def kyc_screen(req: KYCRequest):
+    """Run OFAC / PEP / adverse-media / beneficial-ownership screen on a deal."""
+    try:
+        from agents.kyc_aml import KYCAMLAgent
+        credit_state = _get_deal(req.deal_id)
+        agent = KYCAMLAgent()
+        credit_state = agent.run(copy.deepcopy(credit_state))
+        _portfolio[req.deal_id] = credit_state
+        save_deal(req.deal_id, credit_state)
+        return credit_state.get("kyc_aml_screen", {})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
 @app.patch("/api/closing-checklist/{deal_id}/cp")
 def update_cp_status(deal_id: str, cp_index: int, status: str, notes: str = ""):
     """Mark a condition precedent as satisfied, waived, or pending."""

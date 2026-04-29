@@ -224,3 +224,63 @@ export interface QuarterlyResponse {
   rating_change: string;
   review_summary: string;
 }
+
+// ─── KYC / AML / Sanctions (Wave 4A) ─────────────────────────────────────────
+
+export type KYCEntityVerdict = "CLEAR" | "CONDITIONAL" | "ESCALATE" | "REJECT" | string;
+export type KYCOFACStatus    = "CLEAR" | "MATCH" | "FALSE_POSITIVE" | "NEEDS_VERIFICATION" | string;
+export type KYCPEPStatus     = "NOT_PEP" | "PEP" | "PEP_FAMILY" | "PEP_ASSOCIATE" | string;
+
+export interface KYCEntityScreen {
+  ofac_status:        KYCOFACStatus;
+  ofac_evidence:      string;
+  sectoral_sanctions?: string;
+  verdict:            KYCEntityVerdict;
+}
+
+export interface KYCOfficerScreen {
+  name:           string;
+  role:           string;
+  ofac_status:    KYCOFACStatus;
+  pep_status:     KYCPEPStatus;
+  pep_rationale?: string;
+  adverse_media:  string[];
+  verdict:        KYCEntityVerdict;
+}
+
+export interface KYCUBO {
+  name:           string;
+  ownership_pct:  number | null;
+  ownership_path: string;
+  jurisdiction:   string;
+  ofac_status:    KYCOFACStatus;
+  pep_status:     KYCPEPStatus;
+  verdict:        KYCEntityVerdict;
+}
+
+export interface KYCBeneficialOwnership {
+  ubo_list:           KYCUBO[];
+  transparency_score: "HIGH" | "MEDIUM" | "LOW" | string;
+  ownership_concerns: string[];
+}
+
+export interface KYCAdverseFinding {
+  subject:     string;
+  category:    string;
+  summary:     string;
+  date:        string;
+  severity:    "HIGH" | "MEDIUM" | "LOW" | string;
+  source_link: string;
+}
+
+export interface KYCAMLScreen {
+  borrower_screen:        KYCEntityScreen;
+  sponsor_screen:         KYCEntityScreen;
+  officer_screens:        KYCOfficerScreen[];
+  beneficial_ownership:   KYCBeneficialOwnership;
+  adverse_media_findings: KYCAdverseFinding[];
+  overall_verdict:        "CLEAR" | "EDD_REQUIRED" | "ESCALATE_TO_AML_OFFICER" | "REJECT" | string;
+  fincen_compliance:      "COMPLIANT" | "GAPS_IDENTIFIED" | string;
+  required_actions:       string[];
+  kyc_aml_summary:        string;
+}

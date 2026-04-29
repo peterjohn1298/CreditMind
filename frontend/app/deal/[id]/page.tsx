@@ -6,6 +6,7 @@ import { ArrowLeft, AlertTriangle, TrendingDown, TrendingUp } from "lucide-react
 import AlternativeDataPanel from "@/components/ui/AlternativeDataPanel";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
+import KYCPanel from "@/components/ui/KYCPanel";
 import { useCredit } from "@/context/CreditContext";
 import { formatCurrency, formatDate, getRiskColor, getSeverityColor, cn } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
@@ -422,6 +423,9 @@ export default function DealDetailPage() {
         jobSignals={deal.job_signals}
         consumerSignals={deal.consumer_signals}
       />
+
+      {/* KYC / AML / Sanctions — Wave 4A */}
+      <KYCPanel dealId={deal.deal_id} existing={(deal as any).kyc_aml_screen} />
     </div>
   );
 }
