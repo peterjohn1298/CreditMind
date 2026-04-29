@@ -19,7 +19,7 @@ Dynamic routing:
   - Covenant breach → skip rating reviewer (already escalated)
 """
 
-from core.credit_state import create_credit_state, log_agent, add_alert, add_routing_note
+from core.credit_state import create_credit_state, log_agent, add_alert, add_routing_note, add_divergence
 from core.parallel_runner import run_parallel_wave
 from core.credit_policy import check_new_deal, check_existing_deal, get_policy_context_for_agents
 
@@ -56,6 +56,77 @@ from core.loan_types import (
     SENIOR_SECURED, GROWTH_CAPITAL, UNITRANCHE,
     MEZZANINE, REVOLVER, BRIDGE, DISTRESSED, PROJECT_FINANCE,
 )
+
+_EBITDA_DIVERGENCE_TOLERANCE = 0.15  # 15% — flag if credit model EBITDA deviates beyond this
+
+
+def _check_ebitda_divergence(credit_state: dict) -> tuple:
+    """
+    Harness verification loop: after Wave 2 Credit Modeler runs, compare its ebitda_used
+    against the EBITDA Analyst's conservative_adjusted_ebitda and base_adjusted_ebitda.
+    Financial Analyst outputs margin only (no absolute) — represented via ebitda_basis check.
+
+    Returns (credit_state, divergence_detected: bool).
+    Does not raise — missing/non-numeric values silently skip the check.
+    """
+    ebitda_analysis = credit_state.get("ebitda_analysis") or {}
+    credit_model    = credit_state.get("credit_model") or {}
+
+    conservative = ebitda_analysis.get("conservative_adjusted_ebitda")
+    base         = ebitda_analysis.get("base_adjusted_ebitda")
+    ebitda_used  = credit_model.get("ebitda_used")
+    ebitda_basis = credit_model.get("ebitda_basis", "")
+
+    if not all(isinstance(v, (int, float)) for v in [conservative, ebitda_used]):
+        add_routing_note(
+            credit_state,
+            "EBITDA divergence check skipped — one or more values non-numeric or missing."
+        )
+        return credit_state, False
+
+    divergence_detected = False
+
+    # Check 1: ebitda_used vs conservative_adjusted_ebitda within tolerance
+    if conservative > 0:
+        pct_diff = abs(ebitda_used - conservative) / conservative
+        if pct_diff > _EBITDA_DIVERGENCE_TOLERANCE:
+            add_divergence(
+                credit_state,
+                f"EBITDA gap: Credit Modeler used ${ebitda_used:,.0f} vs "
+                f"EBITDA Analyst conservative ${conservative:,.0f} "
+                f"({pct_diff:.1%} gap, tolerance ±{_EBITDA_DIVERGENCE_TOLERANCE:.0%})."
+            )
+            divergence_detected = True
+
+    # Check 2: ebitda_used exceeds base case — model built on inflated figure
+    if isinstance(base, (int, float)) and base > 0 and ebitda_used > base * 1.05:
+        add_divergence(
+            credit_state,
+            f"EBITDA inflation: Credit Modeler used ${ebitda_used:,.0f} which exceeds "
+            f"EBITDA Analyst base case ${base:,.0f} — model may be built on management case."
+        )
+        divergence_detected = True
+
+    # Check 3: basis mismatch — modeler claimed conservative but used a different figure
+    if ebitda_basis == "conservative" and isinstance(conservative, (int, float)):
+        pct_diff = abs(ebitda_used - conservative) / conservative if conservative > 0 else 0
+        if pct_diff > _EBITDA_DIVERGENCE_TOLERANCE:
+            add_divergence(
+                credit_state,
+                f"Basis mismatch: Credit Modeler declared ebitda_basis='conservative' "
+                f"but used ${ebitda_used:,.0f} vs EBITDA Analyst conservative ${conservative:,.0f}."
+            )
+            divergence_detected = True
+
+    if divergence_detected:
+        add_routing_note(
+            credit_state,
+            f"HARNESS: EBITDA divergence detected — routing back to Credit Modeler. "
+            f"Constraint: use conservative_adjusted_ebitda=${conservative:,.0f} from ebitda_analysis."
+        )
+
+    return credit_state, divergence_detected
+
 
 # Map loan type → specialist agent class
 _SPECIALIST_AGENTS = {
@@ -185,6 +256,47 @@ class DueDiligenceOrchestrator:
         agent5 = CreditModelerAgent()
         credit_state = agent5.run(credit_state)
         _complete(agent5.name, credit_state)
+
+        # ============================================================
+        # HARNESS VERIFICATION — EBITDA cross-check
+        # The model synthesizes; the harness verifies. Compare ebitda_used
+        # from Credit Modeler against EBITDA Analyst conservative/base figures.
+        # On divergence: flag, alert, re-run once with explicit constraint.
+        # ============================================================
+        credit_state, divergence_detected = _check_ebitda_divergence(credit_state)
+        if divergence_detected:
+            add_alert(
+                credit_state,
+                trigger="EBITDA divergence: Credit Modeler and EBITDA Analyst figures do not agree",
+                severity="HIGH",
+                action_required=(
+                    "IC committee must resolve EBITDA discrepancy. "
+                    "Credit model has been re-run with conservative constraint — verify ebitda_used."
+                ),
+            )
+            # Re-run Credit Modeler once — credit_state now carries the routing note
+            # explicitly naming the conservative figure the modeler must use.
+            add_routing_note(credit_state, "Re-running Credit Modeler with conservative EBITDA constraint.")
+            agent5_retry = CreditModelerAgent()
+            credit_state = agent5_retry.run(credit_state)
+            _complete(f"{agent5_retry.name} (divergence re-run)", credit_state)
+
+            # Final check — if still divergent after retry, escalate to IC but continue
+            credit_state, still_divergent = _check_ebitda_divergence(credit_state)
+            if still_divergent:
+                add_routing_note(
+                    credit_state,
+                    "EBITDA divergence persists after re-run — escalated to IC committee for manual reconciliation."
+                )
+                add_alert(
+                    credit_state,
+                    trigger="Persistent EBITDA divergence after Credit Modeler re-run",
+                    severity="CRITICAL",
+                    action_required=(
+                        "IC must manually reconcile EBITDA figures before approving. "
+                        "Do not rely on modelled leverage/coverage ratios without resolution."
+                    ),
+                )
 
         # Agent 6: Stress Tester
         agent6 = StressTesterAgent()
