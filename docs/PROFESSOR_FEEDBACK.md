@@ -39,7 +39,7 @@ Praised (no action required):
 
 | # | Item | Priority | Status | File(s) |
 |---|---|---|---|---|
-| R2-1 | Agentic RAG — full document retrieval with citations | **CRITICAL** | **OPEN** | `core/`, `agents/` |
+| R2-1 | Agentic RAG — full document retrieval with citations | **CRITICAL** | **DONE 2026-04-29** | `core/document_indexer.py`, `core/tools.py`, `core/tool_executor.py`, all agents |
 | R2-2 | Cross-agent EBITDA reconciliation | Already done (R1-1) | **DONE** | `core/orchestrator.py` |
 | R2-3 | Confidence + citations on every extracted field | HIGH | **DONE 2026-04-29** | all agents |
 
@@ -49,7 +49,7 @@ Praised (no action required):
 |---|---|---|---|
 | R2-4 | Benchmark folder: labeled cases + faithfulness ≥ 0.85 gate | **DONE 2026-04-29** | `benchmark/` |
 | R2-5 | Input/output contracts: schema validation, failures logged + retried | **OPEN** | `core/` |
-| R2-6 | Audit trail: per-step token cost + latency, model choice rationale | **OPEN** | `core/` |
+| R2-6 | Audit trail: per-step token cost + latency, model choice rationale | **DONE 2026-04-29** | `agents/base_agent.py`, `core/credit_state.py` |
 | R2-7 | Prompt changelog: which prompts changed, which metric moved | **OPEN** | `docs/` |
 
 ---

@@ -42,7 +42,7 @@ class FinancialAnalystAgent(BaseAgent):
                 "error": "No financial statements uploaded.",
                 "overall_financial_health": "UNKNOWN",
             }
-            return log_agent(credit_state, self.name)
+            return self._log_and_audit(credit_state)
 
         retrieval_instruction = ""
         if rag_available and "financials" in rag_available:
@@ -121,5 +121,5 @@ Produce JSON financial analysis:
 
         result = self.run_agentic_loop_json(self.role, task, tools=FINANCIAL_ANALYST_TOOLS)
         credit_state["financial_analysis"] = result
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state

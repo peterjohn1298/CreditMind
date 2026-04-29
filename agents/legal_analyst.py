@@ -44,7 +44,7 @@ class LegalAnalystAgent(BaseAgent):
                 "error": "No legal due diligence document uploaded.",
                 "overall_legal_risk": "UNKNOWN",
             }
-            return log_agent(credit_state, self.name)
+            return self._log_and_audit(credit_state)
 
         retrieval_instruction = ""
         available_docs = []
@@ -144,5 +144,5 @@ Produce JSON legal analysis:
                     action_required="External counsel review required before proceeding.",
                 )
 
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state

@@ -41,7 +41,7 @@ class CommercialAnalystAgent(BaseAgent):
                 "error": "No CIM document uploaded.",
                 "business_quality": "UNKNOWN",
             }
-            return log_agent(credit_state, self.name)
+            return self._log_and_audit(credit_state)
 
         retrieval_instruction = ""
         if rag_available and "cim" in rag_available:
@@ -123,5 +123,5 @@ Then produce a rigorous commercial assessment JSON:
             tools=COMMERCIAL_ANALYST_TOOLS,
         )
         credit_state["commercial_analysis"] = result
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state

@@ -128,5 +128,5 @@ Return JSON stress test:
                 action_required="Review deal structure. Consider reduced loan size or additional security.",
             )
 
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state

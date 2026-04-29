@@ -44,7 +44,7 @@ class EBITDAAnalystAgent(BaseAgent):
                 "error": "No QoE or financial documents uploaded.",
                 "adjusted_ebitda": None,
             }
-            return log_agent(credit_state, self.name)
+            return self._log_and_audit(credit_state)
 
         retrieval_instruction = ""
         available_docs = []
@@ -118,5 +118,5 @@ base_adjusted_ebitda = reported + supportable + questionable adjustments
 
         result = self.run_agentic_loop_json(self.role, task, tools=EBITDA_ANALYST_TOOLS)
         credit_state["ebitda_analysis"] = result
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state
