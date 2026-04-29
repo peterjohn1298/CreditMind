@@ -2,6 +2,7 @@ import type {
   Deal, Alert, HeatMapData, SectorContagion,
   SectorForecastData, SectorImpactBrief, UnderwriteRequest,
   UnderwriteResponse, MonitorResponse, QuarterlyResponse,
+  VintageCohortsResponse, CorrelationResponse, SponsorBehaviorResponse,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -73,3 +74,16 @@ export const getSectorForecast = (): Promise<SectorForecastData> =>
 
 export const getSectorImpactBrief = (deal_id: string): Promise<SectorImpactBrief> =>
   req(`/api/sector/impact-brief/${encodeURIComponent(deal_id)}`);
+
+// ─── Portfolio Analytics (Wave 3) ────────────────────────────────────────────
+
+export const getVintageCohorts = (): Promise<VintageCohortsResponse> =>
+  req("/api/portfolio/vintage-cohorts");
+
+export const getPortfolioCorrelation = (focus_deal_id?: string): Promise<CorrelationResponse> => {
+  const qs = focus_deal_id ? `?focus_deal_id=${encodeURIComponent(focus_deal_id)}` : "";
+  return req(`/api/portfolio/correlation${qs}`);
+};
+
+export const getSponsorBehavior = (): Promise<SponsorBehaviorResponse> =>
+  req("/api/portfolio/sponsor-behavior");

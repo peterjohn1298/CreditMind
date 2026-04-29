@@ -224,3 +224,81 @@ export interface QuarterlyResponse {
   rating_change: string;
   review_summary: string;
 }
+
+// ─── Portfolio Analytics (Wave 3) ────────────────────────────────────────────
+
+export interface VintageCohort {
+  vintage:                       number;
+  deal_count:                    number;
+  total_exposure_usd:            number;
+  avg_loan_size_usd:             number;
+  avg_origination_risk_score:    number;
+  avg_live_risk_score:           number;
+  risk_drift:                    number;
+  watchlist_count:               number;
+  stressed_count:                number;
+  problem_rate_pct:              number;
+  top_sectors:                   Array<{ sector: string; count: number }>;
+}
+
+export interface VintageCohortsResponse {
+  vintages:               VintageCohort[];
+  unknown_vintage_count:  number;
+  summary:                string;
+}
+
+export interface CorrelationPeer {
+  peer_deal_id:     string;
+  peer_company:     string;
+  peer_sector?:     string;
+  peer_sponsor?:    string;
+  peer_status?:     string;
+  peer_risk_score?: number;
+  peer_loan_amount?: number;
+  overlap_score:    number;
+  reasons:          string[];
+}
+
+export interface CorrelationRow {
+  focus_deal_id:                  string;
+  focus_company:                  string;
+  focus_sector?:                  string;
+  focus_sponsor?:                 string;
+  focus_status?:                  string;
+  peers:                          CorrelationPeer[];
+  total_correlated_exposure_usd:  number;
+}
+
+export interface CorrelationResponse {
+  correlations:           CorrelationRow[];
+  deal_count_with_peers:  number;
+  summary:                string;
+}
+
+export interface SponsorRow {
+  sponsor:                  string;
+  deal_count:               number;
+  total_exposure_usd:       number;
+  current_count:            number;
+  watchlist_count:          number;
+  stressed_count:           number;
+  problem_rate_pct:         number;
+  lender_treatment_score:   number;
+  avg_origination_risk:     number;
+  avg_live_risk:            number;
+  risk_drift:               number;
+  deals: Array<{
+    deal_id:     string;
+    company:     string;
+    status?:     string;
+    loan_amount?: number;
+    risk_score?: number;
+  }>;
+}
+
+export interface SponsorBehaviorResponse {
+  sponsors:                       SponsorRow[];
+  non_sponsored_count:            number;
+  non_sponsored_exposure_usd:     number;
+  summary:                        string;
+}
