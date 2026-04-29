@@ -7,6 +7,7 @@ that underpins all leverage and coverage calculations.
 
 import json
 from agents.base_agent import BaseAgent
+from core.tools import EBITDA_ANALYST_TOOLS
 from core.credit_state import log_agent
 
 
@@ -32,9 +33,11 @@ class EBITDAAnalystAgent(BaseAgent):
     def run(self, credit_state: dict) -> dict:
         company = credit_state["company"]
         loan_amount = credit_state["loan_amount"]
+        deal_id = credit_state["deal_id"]
 
         qoe_data = credit_state.get("documents", {}).get("qoe")
         financial_data = credit_state.get("documents", {}).get("financials")
+        rag_available = credit_state.get("rag_index_summary", "")
 
         if not qoe_data and not financial_data:
             credit_state["ebitda_analysis"] = {
@@ -43,15 +46,36 @@ class EBITDAAnalystAgent(BaseAgent):
             }
             return log_agent(credit_state, self.name)
 
+        retrieval_instruction = ""
+        available_docs = []
+        if rag_available and "qoe" in rag_available:
+            available_docs.append("qoe")
+        if rag_available and "financials" in rag_available:
+            available_docs.append("financials")
+
+        if available_docs:
+            doc_list = " or ".join(f'"{d}"' for d in available_docs)
+            retrieval_instruction = f"""
+DOCUMENT RETRIEVAL AVAILABLE (Deal ID: {deal_id}):
+Use retrieve_document_section(deal_id="{deal_id}", doc_type={doc_list}, query="...") to
+search the full uploaded documents for specific EBITDA evidence. Recommended queries:
+  - "EBITDA add-backs adjustments non-recurring one-time"
+  - "management fees consulting fees eliminated"
+  - "pro forma synergies acquisition costs"
+  - "reported EBITDA adjusted EBITDA reconciliation"
+  - "restructuring charges write-offs"
+For each add-back you identify, note the source page as a citation.
+"""
+
         task = f"""
 Validate the EBITDA figure for {company}.
 Proposed loan: ${loan_amount:,.0f}
+{retrieval_instruction}
+QUALITY OF EARNINGS REPORT DATA (pre-extracted):
+{json.dumps(qoe_data, indent=2, default=str)[:1500] if qoe_data else "Not provided"}
 
-QUALITY OF EARNINGS REPORT DATA:
-{json.dumps(qoe_data, indent=2, default=str) if qoe_data else "Not provided"}
-
-AUDITED FINANCIALS DATA:
-{json.dumps(financial_data, indent=2, default=str) if financial_data else "Not provided"}
+AUDITED FINANCIALS DATA (pre-extracted):
+{json.dumps(financial_data, indent=2, default=str)[:1500] if financial_data else "Not provided"}
 
 Review every add-back with professional skepticism. Challenge:
 - "One-time" costs that appear in multiple years
@@ -88,7 +112,7 @@ conservative_adjusted_ebitda = reported + supportable adjustments only
 base_adjusted_ebitda = reported + supportable + questionable adjustments
 """
 
-        result = self.run_agentic_loop_json(self.role, task, tools=[])
+        result = self.run_agentic_loop_json(self.role, task, tools=EBITDA_ANALYST_TOOLS)
         credit_state["ebitda_analysis"] = result
         credit_state = log_agent(credit_state, self.name)
         return credit_state

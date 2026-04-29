@@ -6,7 +6,7 @@ revenue quality, customer concentration, and management depth.
 
 import json
 from agents.base_agent import BaseAgent
-from core.tools import GET_COMPANY_NEWS, GET_MACRO_SNAPSHOT
+from core.tools import COMMERCIAL_ANALYST_TOOLS
 from core.credit_state import log_agent
 
 
@@ -31,8 +31,10 @@ class CommercialAnalystAgent(BaseAgent):
     def run(self, credit_state: dict) -> dict:
         company = credit_state["company"]
         sponsor = credit_state.get("sponsor", "Not specified")
+        deal_id = credit_state["deal_id"]
 
         cim_data = credit_state.get("documents", {}).get("cim")
+        rag_available = credit_state.get("rag_index_summary", "")
 
         if not cim_data:
             credit_state["commercial_analysis"] = {
@@ -41,16 +43,32 @@ class CommercialAnalystAgent(BaseAgent):
             }
             return log_agent(credit_state, self.name)
 
+        retrieval_instruction = ""
+        if rag_available and "cim" in rag_available:
+            retrieval_instruction = f"""
+DOCUMENT RETRIEVAL AVAILABLE (Deal ID: {deal_id}):
+Use retrieve_document_section(deal_id="{deal_id}", doc_type="cim", query="...") to search the
+full CIM for specific evidence. Recommended queries:
+  - "revenue breakdown by segment product geography"
+  - "customer concentration top customers retention"
+  - "competitive landscape market share competitors"
+  - "management team background experience"
+  - "investment highlights growth strategy"
+  - "key risks business risks"
+Cite page numbers from retrieval results to support your findings.
+"""
+
         task = f"""
 Assess the commercial quality of {company} for a private credit investment.
 PE Sponsor: {sponsor}
-
-CIM DATA:
-{json.dumps(cim_data, indent=2, default=str)[:3000]}
+{retrieval_instruction}
+CIM DATA (pre-extracted):
+{json.dumps(cim_data, indent=2, default=str)[:2000]}
 
 Use your tools to:
-1. Fetch recent news about {company} to validate or challenge the CIM narrative
-2. Fetch macro snapshot to assess sector-level tailwinds and headwinds
+1. Use retrieve_document_section to search the full CIM for specific evidence (if available)
+2. Fetch recent news about {company} to validate or challenge the CIM narrative
+3. Fetch macro snapshot to assess sector-level tailwinds and headwinds
 
 Then produce a rigorous commercial assessment JSON:
 {{
@@ -98,7 +116,7 @@ Then produce a rigorous commercial assessment JSON:
 
         result = self.run_agentic_loop_json(
             self.role, task,
-            tools=[GET_COMPANY_NEWS, GET_MACRO_SNAPSHOT]
+            tools=COMMERCIAL_ANALYST_TOOLS,
         )
         credit_state["commercial_analysis"] = result
         credit_state = log_agent(credit_state, self.name)

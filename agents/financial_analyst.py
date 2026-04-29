@@ -6,7 +6,7 @@ Uses document data — no ticker or yfinance dependency.
 
 import json
 from agents.base_agent import BaseAgent
-from core.tools import GET_MACRO_SNAPSHOT
+from core.tools import GET_MACRO_SNAPSHOT, FINANCIAL_ANALYST_TOOLS
 from core.credit_state import log_agent
 
 
@@ -32,8 +32,10 @@ class FinancialAnalystAgent(BaseAgent):
     def run(self, credit_state: dict) -> dict:
         company = credit_state["company"]
         loan_amount = credit_state["loan_amount"]
+        deal_id = credit_state["deal_id"]
 
         financial_data = credit_state.get("documents", {}).get("financials")
+        rag_available = credit_state.get("rag_index_summary", "")
 
         if not financial_data:
             credit_state["financial_analysis"] = {
@@ -42,11 +44,25 @@ class FinancialAnalystAgent(BaseAgent):
             }
             return log_agent(credit_state, self.name)
 
+        retrieval_instruction = ""
+        if rag_available and "financials" in rag_available:
+            retrieval_instruction = f"""
+DOCUMENT RETRIEVAL AVAILABLE (Deal ID: {deal_id}):
+Use retrieve_document_section(deal_id="{deal_id}", doc_type="financials", query="...") to
+search the full uploaded financial statements for specific figures and evidence.
+Call it multiple times with targeted queries such as:
+  - "income statement revenue EBITDA operating income"
+  - "total debt long-term obligations interest expense"
+  - "cash flow from operations capital expenditures"
+  - "audit opinion going concern footnotes"
+Include source_page from retrieval results as citations in your output where possible.
+"""
+
         task = f"""
 Conduct a 3-year financial analysis of {company} for a ${loan_amount:,.0f} credit assessment.
-
-AUDITED FINANCIAL STATEMENTS (extracted):
-{json.dumps(financial_data, indent=2, default=str)[:3000]}
+{retrieval_instruction}
+AUDITED FINANCIAL STATEMENTS (pre-extracted summary):
+{json.dumps(financial_data, indent=2, default=str)[:2000]}
 
 Fetch the macro snapshot for environmental context.
 
@@ -96,7 +112,7 @@ Produce JSON financial analysis:
 }}
 """
 
-        result = self.run_agentic_loop_json(self.role, task, tools=[GET_MACRO_SNAPSHOT])
+        result = self.run_agentic_loop_json(self.role, task, tools=FINANCIAL_ANALYST_TOOLS)
         credit_state["financial_analysis"] = result
         credit_state = log_agent(credit_state, self.name)
         return credit_state

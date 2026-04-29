@@ -20,6 +20,7 @@ Dynamic routing:
 """
 
 from core.credit_state import create_credit_state, log_agent, add_alert, add_routing_note, add_divergence
+from core.document_indexer import build_index, indexed_doc_types, clear_index
 from core.parallel_runner import run_parallel_wave
 from core.credit_policy import check_new_deal, check_existing_deal, get_policy_context_for_agents
 
@@ -421,8 +422,13 @@ def run_due_diligence(
     deal_type: str = "sponsor_backed",
     on_agent_complete=None,
     portfolio: dict = None,
+    documents_raw: dict = None,
 ) -> dict:
-    """Entry point for due diligence pipeline."""
+    """Entry point for due diligence pipeline.
+
+    documents_raw: optional dict of {doc_type: full_text_string} — when provided,
+    each document is indexed for agentic retrieval by Wave 1 agents.
+    """
     credit_state = create_credit_state(
         company=company,
         loan_amount=loan_amount,
@@ -432,8 +438,23 @@ def run_due_diligence(
         deal_type=deal_type,
     )
     credit_state["documents"] = documents
+
+    # Index raw document text for agentic retrieval (Wave 1 agents call RETRIEVE_DOCUMENT_SECTION)
+    if documents_raw:
+        deal_id = credit_state["deal_id"]
+        indexed = []
+        for doc_type, text in documents_raw.items():
+            if text:
+                n_chunks = build_index(deal_id, doc_type, text)
+                if n_chunks:
+                    indexed.append(f"{doc_type}({n_chunks} chunks)")
+        if indexed:
+            credit_state["rag_index_summary"] = f"Indexed for retrieval: {', '.join(indexed)}"
+
     orchestrator = DueDiligenceOrchestrator()
-    return orchestrator.run(credit_state, on_agent_complete=on_agent_complete, portfolio=portfolio)
+    result = orchestrator.run(credit_state, on_agent_complete=on_agent_complete, portfolio=portfolio)
+    clear_index(result.get("deal_id", ""))
+    return result
 
 
 # Legacy compatibility — kept for any existing references
