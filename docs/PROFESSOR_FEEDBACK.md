@@ -47,7 +47,7 @@ Praised (no action required):
 
 | # | Item | Status | File(s) |
 |---|---|---|---|
-| R2-4 | Benchmark folder: labeled cases + faithfulness ≥ 0.85 gate | **OPEN** | `benchmark/` |
+| R2-4 | Benchmark folder: labeled cases + faithfulness ≥ 0.85 gate | **DONE 2026-04-29** | `benchmark/` |
 | R2-5 | Input/output contracts: schema validation, failures logged + retried | **OPEN** | `core/` |
 | R2-6 | Audit trail: per-step token cost + latency, model choice rationale | **OPEN** | `core/` |
 | R2-7 | Prompt changelog: which prompts changed, which metric moved | **OPEN** | `docs/` |

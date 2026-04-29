@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "description": "Standard test case for Ducommun Incorporated senior secured term loan. Used as the primary benchmark case — PDFs are in scripts/.",
+    "documents": {
+      "financials": "scripts/ducommun_annual_report_2025.pdf",
+      "qoe": "scripts/ducommun_qoe_report.pdf",
+      "cim": "scripts/ducommun_cim.pdf"
+    }
+  },
+  "company": "Ducommun Incorporated",
+  "ticker": "DCO",
+  "loan_amount": 300000000,
+  "loan_tenor": "5 years",
+  "loan_type": "senior_secured",
+  "sponsor": "Direct",
+  "deal_type": "direct"
+}
