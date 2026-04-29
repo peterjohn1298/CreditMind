@@ -19,7 +19,8 @@ Dynamic routing:
   - Covenant breach → skip rating reviewer (already escalated)
 """
 
-from core.credit_state import create_credit_state, log_agent, add_alert, add_routing_note, add_divergence
+from core.credit_state import create_credit_state, log_agent, add_alert, add_routing_note, add_divergence, log_validation_failure
+from core.schemas import validate_credit_state_input
 from core.document_indexer import build_index, indexed_doc_types, clear_index
 from core.parallel_runner import run_parallel_wave
 from core.credit_policy import check_new_deal, check_existing_deal, get_policy_context_for_agents
@@ -445,6 +446,19 @@ def run_due_diligence(
         deal_type=deal_type,
     )
     credit_state["documents"] = documents
+
+    # Input contract — validate pipeline parameters before any agent runs
+    is_valid, input_errors = validate_credit_state_input(credit_state)
+    if not is_valid:
+        log_validation_failure(credit_state, "_pipeline_input", input_errors, stage="input")
+        for err in input_errors:
+            add_alert(
+                credit_state,
+                trigger=f"Input contract violation: {err}",
+                severity="HIGH",
+                action_required="Correct the deal parameters and resubmit.",
+            )
+        add_routing_note(credit_state, f"Input contract failed: {input_errors}")
 
     # Index raw document text for agentic retrieval (Wave 1 agents call RETRIEVE_DOCUMENT_SECTION)
     if documents_raw:

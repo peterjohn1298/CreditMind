@@ -118,9 +118,10 @@ Then produce a rigorous commercial assessment JSON:
 }}
 """
 
-        result = self.run_agentic_loop_json(
+        result = self.run_agentic_loop_json_validated(
             self.role, task,
             tools=COMMERCIAL_ANALYST_TOOLS,
+            credit_state=credit_state,
         )
         credit_state["commercial_analysis"] = result
         credit_state = self._log_and_audit(credit_state)

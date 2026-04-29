@@ -82,7 +82,8 @@ def create_credit_state(
         "divergence_flags": [],
         "agent_log": [],
         "routing_notes": [],
-        "audit_trail": [],      # per-agent traces: model, tokens, cost, latency, rationale
+        "audit_trail": [],        # per-agent traces: model, tokens, cost, latency, rationale
+        "validation_failures": [], # input/output contract violations, logged before retry
     }
 
 
@@ -109,6 +110,24 @@ def add_alert(credit_state: dict, trigger: str, severity: str, action_required: 
 def add_divergence(credit_state: dict, message: str) -> dict:
     credit_state["divergence_flags"].append({
         "message": message,
+        "timestamp": datetime.now().isoformat(),
+    })
+    return credit_state
+
+
+def log_validation_failure(
+    credit_state: dict,
+    agent: str,
+    errors: list,
+    stage: str = "output",
+) -> dict:
+    """Record a schema contract violation.  stage: 'input' | 'output' | 'output_retry'."""
+    if "validation_failures" not in credit_state:
+        credit_state["validation_failures"] = []
+    credit_state["validation_failures"].append({
+        "agent":     agent,
+        "stage":     stage,
+        "errors":    errors,
         "timestamp": datetime.now().isoformat(),
     })
     return credit_state

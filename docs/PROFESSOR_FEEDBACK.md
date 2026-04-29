@@ -48,7 +48,7 @@ Praised (no action required):
 | # | Item | Status | File(s) |
 |---|---|---|---|
 | R2-4 | Benchmark folder: labeled cases + faithfulness ≥ 0.85 gate | **DONE 2026-04-29** | `benchmark/` |
-| R2-5 | Input/output contracts: schema validation, failures logged + retried | **OPEN** | `core/` |
+| R2-5 | Input/output contracts: schema validation, failures logged + retried | **DONE 2026-04-29** | `core/schemas.py`, `agents/base_agent.py`, 5 agents |
 | R2-6 | Audit trail: per-step token cost + latency, model choice rationale | **DONE 2026-04-29** | `agents/base_agent.py`, `core/credit_state.py` |
 | R2-7 | Prompt changelog: which prompts changed, which metric moved | **OPEN** | `docs/` |
 

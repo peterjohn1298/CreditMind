@@ -131,7 +131,9 @@ Produce JSON legal analysis:
 }}
 """
 
-        result = self.run_agentic_loop_json(self.role, task, tools=LEGAL_ANALYST_TOOLS)
+        result = self.run_agentic_loop_json_validated(
+            self.role, task, tools=LEGAL_ANALYST_TOOLS, credit_state=credit_state
+        )
         credit_state["legal_analysis"] = result
 
         # Alert on blocking issues

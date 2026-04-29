@@ -116,7 +116,9 @@ conservative_adjusted_ebitda = reported + supportable adjustments only
 base_adjusted_ebitda = reported + supportable + questionable adjustments
 """
 
-        result = self.run_agentic_loop_json(self.role, task, tools=EBITDA_ANALYST_TOOLS)
+        result = self.run_agentic_loop_json_validated(
+            self.role, task, tools=EBITDA_ANALYST_TOOLS, credit_state=credit_state
+        )
         credit_state["ebitda_analysis"] = result
         credit_state = self._log_and_audit(credit_state)
         return credit_state

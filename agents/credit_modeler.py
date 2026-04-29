@@ -99,7 +99,9 @@ Return JSON credit model:
 }}
 """
 
-        result = self.run_agentic_loop_json(self.role, task, tools=[GET_MACRO_SNAPSHOT])
+        result = self.run_agentic_loop_json_validated(
+            self.role, task, tools=[GET_MACRO_SNAPSHOT], credit_state=credit_state
+        )
         credit_state["credit_model"] = result
         credit_state = self._log_and_audit(credit_state)
         return credit_state

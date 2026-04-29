@@ -169,6 +169,46 @@ class BaseAgent(ABC):
         except json.JSONDecodeError:
             return {"raw_response": raw, "parse_error": True}
 
+    def run_agentic_loop_json_validated(
+        self,
+        system_prompt: str,
+        initial_message: str,
+        tools: list,
+        credit_state: dict,
+        max_iterations: int = 10,
+    ) -> dict:
+        """
+        Run the agentic loop, validate the JSON output against this agent's
+        registered output contract, and retry once if the contract is violated.
+
+        Validation failures are logged to credit_state["validation_failures"].
+        If validation still fails after retry, the partial result is returned
+        with a validation_error key — the pipeline is never blocked.
+        """
+        from core.schemas import validate_agent_output
+        from core.credit_state import log_validation_failure, add_routing_note
+
+        result = self.run_agentic_loop_json(system_prompt, initial_message, tools, max_iterations)
+        is_valid, errors = validate_agent_output(self.name, result)
+
+        if not is_valid:
+            log_validation_failure(credit_state, self.name, errors, stage="output")
+            add_routing_note(
+                credit_state,
+                f"Output contract violation for {self.name} — retrying. Issues: {errors}",
+            )
+            result = self.run_agentic_loop_json(system_prompt, initial_message, tools, max_iterations)
+            is_valid_retry, errors_retry = validate_agent_output(self.name, result)
+            if not is_valid_retry:
+                log_validation_failure(credit_state, self.name, errors_retry, stage="output_retry")
+                add_routing_note(
+                    credit_state,
+                    f"Output contract still invalid after retry for {self.name}: {errors_retry}",
+                )
+                result["validation_error"] = errors_retry
+
+        return result
+
     def _log_and_audit(self, credit_state: dict) -> dict:
         """
         Drop-in replacement for log_agent(credit_state, self.name).
