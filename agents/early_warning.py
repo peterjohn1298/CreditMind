@@ -189,6 +189,24 @@ Use your tools to:
 1. Fetch fresh company news independently — look for anything the other agents may have missed
 2. Fetch macro snapshot — assess if macro deterioration amplifies this borrower's risk
 
+SHADOW DEFAULT DETECTION (2025-2026 priority):
+Headline default rates understate true distress. The industry's "shadow default" rate is
+~6% even when reported default is <2%. The gap is explained by:
+  (a) Mid-loan PIK additions (a borrower who was paying cash interest at origination
+      and has since amended to PIK). 56% of current PIK loans were NOT PIK at underwriting.
+  (b) Covenant amendments / waivers / equity cures used to avoid technical default.
+  (c) Selective defaults that don't show up in headline statistics.
+
+When you see news or filings indicating ANY of:
+  - Amendment to credit agreement (especially toggling to PIK, resetting covenant
+    thresholds, granting equity cure)
+  - Covenant waiver request or grant
+  - PIK toggle election by the borrower
+  - Forbearance agreement, standstill, or principal-deferral
+  - Discounted exchange offer or LME maneuver (drop-down, uptier)
+flag it explicitly as a shadow_default_signal — these are pre-default signals that headline
+metrics miss. Severity HIGH or CRITICAL.
+
 Produce structured JSON early warning assessment:
 {{
   "warning_level": "GREEN | AMBER | RED | BLACK",
@@ -197,9 +215,17 @@ Produce structured JSON early warning assessment:
   "score_change_rationale": "explain what drove the score change",
   "active_warnings": [
     {{
-      "warning_type": "NEWS | MACRO | SENTIMENT | FINANCIAL | COMBINED",
+      "warning_type": "NEWS | MACRO | SENTIMENT | FINANCIAL | COMBINED | SHADOW_DEFAULT",
       "description": "specific thing detected",
       "severity": "LOW | MEDIUM | HIGH | CRITICAL"
+    }}
+  ],
+  "shadow_default_flags": [
+    {{
+      "flag_type": "MID_LOAN_PIK | COVENANT_AMENDMENT | COVENANT_WAIVER | EQUITY_CURE | FORBEARANCE | LME_DROPDOWN | LME_UPTIER | DISCOUNTED_EXCHANGE",
+      "evidence":  "specific news article, filing, or signal",
+      "implication": "what this signals about underlying credit",
+      "severity": "HIGH | CRITICAL"
     }}
   ],
   "macro_risk_contribution": "how macro environment is affecting this credit",
