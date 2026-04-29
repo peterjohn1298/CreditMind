@@ -224,3 +224,52 @@ export interface QuarterlyResponse {
   rating_change: string;
   review_summary: string;
 }
+
+// ─── ESG Screening (Wave 4B) ─────────────────────────────────────────────────
+
+export interface ESGEnvironmental {
+  score:             number;
+  carbon_intensity:  "LOW" | "MEDIUM" | "HIGH" | "VERY_HIGH" | string;
+  transition_risk:   "LOW" | "MEDIUM" | "HIGH" | "EXTREME" | string;
+  physical_risk:     "LOW" | "MEDIUM" | "HIGH" | string;
+  key_findings:      string[];
+}
+
+export interface ESGSocial {
+  score:             number;
+  labor_practices:   "STRONG" | "ADEQUATE" | "CONCERNING" | "POOR" | string;
+  customer_safety:   "STRONG" | "ADEQUATE" | "CONCERNING" | "POOR" | "NA" | string;
+  supply_chain:      "STRONG" | "ADEQUATE" | "CONCERNING" | "POOR" | "NA" | string;
+  key_findings:      string[];
+}
+
+export interface ESGGovernance {
+  score:                number;
+  board_independence:   "STRONG" | "ADEQUATE" | "WEAK" | "NA_PRIVATE" | string;
+  audit_quality:        "CLEAN" | "RESTATEMENTS_PRIOR" | "MATERIAL_WEAKNESSES" | string;
+  related_party_risk:   "NONE" | "DISCLOSED" | "UNDISCLOSED_SUSPECTED" | string;
+  key_findings:         string[];
+}
+
+export interface ESGHardExclusionCheck {
+  tobacco:                boolean;
+  controversial_weapons:  boolean;
+  thermal_coal:           boolean;
+  predatory_lending:      boolean;
+  adult_entertainment:    boolean;
+  gambling_over_25pct:    boolean;
+  any_hard_exclusion:     boolean;
+  exclusion_rationale?:   string;
+}
+
+export interface ESGScreen {
+  environmental:                ESGEnvironmental;
+  social:                       ESGSocial;
+  governance:                   ESGGovernance;
+  hard_exclusion_check:         ESGHardExclusionCheck;
+  overall_score:                number;
+  overall_verdict:              "PROCEED" | "PROCEED_WITH_CONDITIONS" | "EDD_REQUIRED" | "REJECT" | string;
+  ic_memo_required_section:     string;
+  lp_disclosure_items:          string[];
+  esg_summary:                  string;
+}

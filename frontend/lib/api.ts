@@ -2,6 +2,7 @@ import type {
   Deal, Alert, HeatMapData, SectorContagion,
   SectorForecastData, SectorImpactBrief, UnderwriteRequest,
   UnderwriteResponse, MonitorResponse, QuarterlyResponse,
+  ESGScreen,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -73,3 +74,8 @@ export const getSectorForecast = (): Promise<SectorForecastData> =>
 
 export const getSectorImpactBrief = (deal_id: string): Promise<SectorImpactBrief> =>
   req(`/api/sector/impact-brief/${encodeURIComponent(deal_id)}`);
+
+// ─── ESG Screening (Wave 4B) ─────────────────────────────────────────────────
+
+export const runESGScreen = (deal_id: string): Promise<ESGScreen> =>
+  req("/api/esg-screen", { method: "POST", body: JSON.stringify({ deal_id }) });

@@ -972,6 +972,27 @@ def generate_docs(req: DocumentationRequest):
         raise HTTPException(status_code=500, detail={"error": str(e)})
 
 
+class ESGRequest(BaseModel):
+    deal_id: str
+
+
+@app.post("/api/esg-screen")
+def esg_screen(req: ESGRequest):
+    """Run ESG screen on a deal — required for >$75M loans per ESG policy."""
+    try:
+        from agents.esg_screening import ESGScreeningAgent
+        credit_state = _get_deal(req.deal_id)
+        agent = ESGScreeningAgent()
+        credit_state = agent.run(copy.deepcopy(credit_state))
+        _portfolio[req.deal_id] = credit_state
+        save_deal(req.deal_id, credit_state)
+        return credit_state.get("esg_screen", {})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
 @app.post("/api/closing-checklist")
 def closing_checklist(req: ClosingRequest):
     """Stage 6: Generate CP checklist and funds flow summary for closing."""
