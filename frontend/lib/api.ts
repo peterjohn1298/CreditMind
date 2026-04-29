@@ -2,6 +2,7 @@ import type {
   Deal, Alert, HeatMapData, SectorContagion,
   SectorForecastData, SectorImpactBrief, UnderwriteRequest,
   UnderwriteResponse, MonitorResponse, QuarterlyResponse,
+  ValuationMark, PortfolioMarksResponse, InconsistencyScanResponse,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -73,3 +74,14 @@ export const getSectorForecast = (): Promise<SectorForecastData> =>
 
 export const getSectorImpactBrief = (deal_id: string): Promise<SectorImpactBrief> =>
   req(`/api/sector/impact-brief/${encodeURIComponent(deal_id)}`);
+
+// ─── Valuation Agent + Mark Inconsistency Detector (Wave 4C) ─────────────────
+
+export const runValuationMark = (deal_id: string): Promise<ValuationMark> =>
+  req("/api/valuation/mark", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+export const getPortfolioMarks = (): Promise<PortfolioMarksResponse> =>
+  req("/api/valuation/portfolio-marks");
+
+export const runInconsistencyScan = (): Promise<InconsistencyScanResponse> =>
+  req("/api/valuation/inconsistency-scan", { method: "POST" });

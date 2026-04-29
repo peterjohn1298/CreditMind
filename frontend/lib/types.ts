@@ -224,3 +224,62 @@ export interface QuarterlyResponse {
   rating_change: string;
   review_summary: string;
 }
+
+// ─── Valuation Agent + Mark Inconsistency Detector (Wave 4C) ─────────────────
+
+export interface ValuationMark {
+  par_amount:                    number;
+  current_sofr_bps:              number | null;
+  comparable_market_spread_bps:  number | null;
+  comparable_market_yield_bps:   number | null;
+  origination_yield_bps:         number | null;
+  yield_differential_bps:        number | null;
+  credit_drift_adjustment_bps:   number | null;
+  illiquidity_discount_bps:      number | null;
+  all_in_mark_yield_bps:         number | null;
+  fair_value_pct_of_par:         number | null;
+  fair_value_usd:                number | null;
+  mark_change_from_par:          number | null;
+  confidence:                    "HIGH" | "MEDIUM" | "LOW" | string;
+  valuation_bridge:              string;
+  auditor_note:                  string;
+  lp_disclosure_summary:         string;
+  asc_820_level:                 string;
+}
+
+export interface PortfolioMarkRow {
+  deal_id:          string;
+  company:          string;
+  sector:           string;
+  rating:           string;
+  loan_amount:      number;
+  fair_value_usd:   number | null;
+  fair_value_pct:   number | null;
+  mark_yield_bps:   number | null;
+  confidence:       string;
+  valuation_bridge: string;
+}
+
+export interface PortfolioMarksResponse {
+  marks: PortfolioMarkRow[];
+  count: number;
+}
+
+export interface InconsistencyFinding {
+  category:         "DIVERGENT_YIELDS" | "STALE_COMPARABLES" | "RATING_MARK_MISMATCH" | "CREDIT_DRIFT_IGNORED" | "SECTOR_INCONSISTENCY" | string;
+  severity:         "HIGH" | "MEDIUM" | "LOW" | string;
+  deals_involved:   string[];
+  description:      string;
+  quantitative_gap: string;
+  recommendation:   string;
+}
+
+export interface InconsistencyScanResponse {
+  findings:                     InconsistencyFinding[];
+  by_severity?:                 { HIGH?: number | null; MEDIUM?: number | null; LOW?: number | null };
+  portfolio_consistency_score:  number | null;
+  review_summary?:              string;
+  ic_action_required?:          string;
+  loans_reviewed:               number;
+  summary?:                     string;
+}

@@ -972,6 +972,60 @@ def generate_docs(req: DocumentationRequest):
         raise HTTPException(status_code=500, detail={"error": str(e)})
 
 
+class ValuationRequest(BaseModel):
+    deal_id: str
+
+
+@app.post("/api/valuation/mark")
+def valuation_mark(req: ValuationRequest):
+    """ASC 820 Level 3 yield-based fair-value mark for a single loan."""
+    try:
+        from agents.valuation_agent import ValuationAgent
+        credit_state = _get_deal(req.deal_id)
+        agent = ValuationAgent()
+        credit_state = agent.run(copy.deepcopy(credit_state))
+        _portfolio[req.deal_id] = credit_state
+        save_deal(req.deal_id, credit_state)
+        return credit_state.get("valuation_mark", {})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
+@app.post("/api/valuation/inconsistency-scan")
+def valuation_inconsistency_scan():
+    """Portfolio-wide qualitative NLP scan for mark inconsistency."""
+    try:
+        from agents.valuation_agent import MarkInconsistencyDetector
+        agent = MarkInconsistencyDetector()
+        return agent.run_on_portfolio(_portfolio)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
+@app.get("/api/valuation/portfolio-marks")
+def valuation_portfolio_marks():
+    """Return all currently-generated marks across the portfolio."""
+    rows = []
+    for d in _portfolio.values():
+        m = d.get("valuation_mark")
+        if m and m.get("fair_value_pct_of_par") is not None:
+            rows.append({
+                "deal_id":          d.get("deal_id"),
+                "company":          d.get("company"),
+                "sector":           d.get("sector"),
+                "rating":           d.get("internal_rating"),
+                "loan_amount":      d.get("loan_amount"),
+                "fair_value_usd":   m.get("fair_value_usd"),
+                "fair_value_pct":   m.get("fair_value_pct_of_par"),
+                "mark_yield_bps":   m.get("all_in_mark_yield_bps"),
+                "confidence":       m.get("confidence"),
+                "valuation_bridge": m.get("valuation_bridge"),
+            })
+    return {"marks": rows, "count": len(rows)}
+
+
 @app.post("/api/closing-checklist")
 def closing_checklist(req: ClosingRequest):
     """Stage 6: Generate CP checklist and funds flow summary for closing."""
