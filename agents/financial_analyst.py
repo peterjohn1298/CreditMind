@@ -66,37 +66,44 @@ AUDITED FINANCIAL STATEMENTS (pre-extracted summary):
 
 Fetch the macro snapshot for environmental context.
 
+CITATION GUIDE — for every cited field use this structure:
+  {{"value": <number>, "confidence": "HIGH | MEDIUM | LOW", "source_page": <int or null>, "source_quote": "<verbatim excerpt, max 120 chars, or null>"}}
+  confidence: HIGH = explicitly stated in document | MEDIUM = calculated from stated values | LOW = estimated or not found
+
 Produce JSON financial analysis:
 {{
   "revenue_trend": {{
-    "cagr_3yr": null,
+    "cagr_3yr": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "description": "organic vs acquired growth, trajectory",
-    "year_over_year": {{"yr1_to_yr2": null, "yr2_to_yr3": null}}
+    "year_over_year": {{
+      "yr1_to_yr2": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+      "yr2_to_yr3": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}}
+    }}
   }},
   "profitability": {{
-    "gross_margin":     {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
-    "ebitda_margin":    {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
-    "operating_margin": {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
-    "net_margin":       {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
+    "gross_margin":     {{"value": null, "trend": "EXPANDING | STABLE | COMPRESSING", "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "ebitda_margin":    {{"value": null, "trend": "EXPANDING | STABLE | COMPRESSING", "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "operating_margin": {{"value": null, "trend": "EXPANDING | STABLE | COMPRESSING", "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "net_margin":       {{"value": null, "trend": "EXPANDING | STABLE | COMPRESSING", "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "assessment": "brief assessment"
   }},
   "liquidity": {{
-    "current_ratio":  null,
-    "cash_balance":   null,
+    "current_ratio":  {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "cash_balance":   {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "cash_trend":     "BUILDING | STABLE | DECLINING",
     "assessment": "brief assessment"
   }},
   "leverage": {{
-    "total_debt":     null,
-    "debt_trend":     "DECREASING | STABLE | INCREASING",
-    "net_debt":       null,
+    "total_debt": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "debt_trend": "DECREASING | STABLE | INCREASING",
+    "net_debt":   {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "assessment": "brief assessment"
   }},
   "cash_flow_quality": {{
-    "operating_cf":       null,
-    "capex":              null,
-    "free_cash_flow":     null,
-    "fcf_conversion":     "FCF as % of EBITDA",
+    "operating_cf":   {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "capex":          {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "free_cash_flow": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "fcf_conversion": "FCF as % of EBITDA",
     "assessment": "HIGH | MEDIUM | LOW"
   }},
   "audit_flags": {{

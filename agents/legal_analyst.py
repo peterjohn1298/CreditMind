@@ -84,13 +84,17 @@ Assess:
 4. Litigation — any material claims that could impair the business?
 5. Regulatory — any licenses, permits, or regulatory risks?
 
+CITATION GUIDE — for every cited field use this structure:
+  {{"value": <number>, "confidence": "HIGH | MEDIUM | LOW", "source_page": <int or null>, "source_quote": "<verbatim excerpt, max 120 chars, or null>"}}
+  confidence: HIGH = explicitly stated | MEDIUM = calculated from stated values | LOW = estimated or not found
+
 Produce JSON legal analysis:
 {{
   "capital_structure": {{
     "proposed_loan_seniority": "first_lien | second_lien | unitranche | mezzanine | unsecured",
-    "existing_senior_debt": null,
-    "existing_total_debt": null,
-    "pro_forma_total_debt": null,
+    "existing_senior_debt":  {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "existing_total_debt":   {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "pro_forma_total_debt":  {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "intercreditor_issues": "description or none"
   }},
   "existing_debt_covenants": [
@@ -110,7 +114,7 @@ Produce JSON legal analysis:
   }},
   "litigation_assessment": {{
     "material_litigation": true_or_false,
-    "total_amount_at_risk": null,
+    "total_amount_at_risk": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "litigation_summary": "brief description",
     "impact_on_credit": "HIGH | MEDIUM | LOW | NONE"
   }},

@@ -84,13 +84,17 @@ Review every add-back with professional skepticism. Challenge:
 - Management fee eliminations (standard but should be verified)
 - Any add-back exceeding 10% of reported EBITDA
 
+CITATION GUIDE — for every cited field use this structure:
+  {{"value": <number>, "confidence": "HIGH | MEDIUM | LOW", "source_page": <int or null>, "source_quote": "<verbatim excerpt, max 120 chars, or null>"}}
+  confidence: HIGH = explicitly stated | MEDIUM = calculated from stated values | LOW = estimated or not found
+
 Produce JSON EBITDA analysis:
 {{
-  "reported_ebitda": null,
+  "reported_ebitda": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
   "add_back_analysis": [
     {{
       "name": "add-back name",
-      "amount": null,
+      "amount": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
       "category": "management_fee | one_time_cost | pro_forma | synergy | other",
       "verdict": "SUPPORTABLE | QUESTIONABLE | REJECT",
       "rationale": "specific reason for verdict",
@@ -100,8 +104,8 @@ Produce JSON EBITDA analysis:
   "total_supportable_adjustments": null,
   "total_questionable_adjustments": null,
   "total_rejected_adjustments": null,
-  "conservative_adjusted_ebitda": null,
-  "base_adjusted_ebitda": null,
+  "conservative_adjusted_ebitda": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+  "base_adjusted_ebitda": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
   "adjustment_quality_score": "HIGH | MEDIUM | LOW",
   "adjustment_as_pct_of_reported": null,
   "key_concerns": ["concern1", "concern2"],

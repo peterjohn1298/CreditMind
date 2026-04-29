@@ -1,61 +1,112 @@
 # Professor Feedback — Final Submission Tracker
 
-## Overall Assessment
+---
+
+## Round 1 Feedback
+
+### Overall Assessment
 
 > "The most complete and reproducible submission. The interface contract table — naming the data, agent, router, LLM, and audit contracts as separate guarantees — shows genuine systems thinking."
 
-Praised elements (no action required):
+Praised (no action required):
 - Interface contract table (data / agent / router / LLM / audit contracts as separate guarantees)
 - Dynamic routing: auto-reject at risk score ≥ 75, fast-track on DISTRESSED health
-- Human IC gate as a harness guardrail (human-in-the-loop before credit decision proceeds)
-- Early warning lead time: 11 trading days ahead of first agency action, false positive rate 0.08
+- Human IC gate as a harness guardrail
+- Early warning lead time: 11 trading days ahead of first agency action, FPR 0.08
 
----
-
-## Feedback Items
-
-### 1. `divergence_flags` — EBITDA cross-check harness loop
-
-**Status: DONE — implemented 2026-04-29**
-
-**Professor's instruction:**
-> "`divergence_flags` in `credit_state.py` remains unpopulated. After Wave 2 agents write their outputs, the harness checks whether EBITDA from Financial Analyst, EBITDA Analyst, and Credit Modeler agree within a defined tolerance before the IC Memo Writer runs. If they do not, the harness routes back. The model synthesizes, the harness verifies."
-
-**Current state:**
-- `divergence_flags` field exists in `credit_state.py:82` and `add_divergence()` helper at line 108
-- `core/orchestrator.py` never calls `add_divergence()` — field is always empty
-- IC Memo Writer runs unconditionally after Wave 2 with no EBITDA consistency check
-
-**What was built:**
-- `_check_ebitda_divergence()` helper in `core/orchestrator.py` — compares `credit_model.ebitda_used` against `ebitda_analysis.conservative_adjusted_ebitda` and `base_adjusted_ebitda` within ±15% tolerance
-- Three checks: absolute gap vs conservative, inflation above base case, basis mismatch (declared conservative but used different figure)
-- Runs immediately after Credit Modeler (Agent 5) — before Stress Tester proceeds on potentially wrong numbers
-- On divergence: calls `add_divergence()`, adds HIGH alert, re-runs Credit Modeler once with explicit conservative constraint in routing_notes
-- If divergence persists after retry: CRITICAL alert + escalation note; IC Memo Writer still runs so committee can see the flags
-- Note: Financial Analyst outputs `ebitda_margin` (%) not absolute EBITDA — check is EBITDA Analyst vs Credit Modeler (both absolute)
-
----
-
-### 2. 10-K Truncation — Agentic RAG Roadmap
-
-**Status: DONE — written into FOUNDATION.md 2026-04-29**
-
-**Professor's instruction:**
-> "The 10-K truncation issue points to agentic RAG as the Week 6 architecture: index the document by section, let each Wave 1 agent issue targeted retrieval queries rather than receiving a truncated window. Name that as the roadmap, even if the implementation follows the final submission."
-
-**Current state:**
-- Wave 1 agents receive a truncated document window — large 10-Ks are cut off
-- No section-level indexing or retrieval in place
-
-**What was written:**
-- New `## Week 6 Architecture Roadmap — Agentic RAG` section in `FOUNDATION.md`
-- Explains the current truncation problem, the target section-indexed retrieval architecture, key design decisions (section-level indexing, per-agent queries, `RETRIEVE_DOCUMENT_SECTION` tool in the agentic loop, fallback for short docs), and an implementation sketch (`core/document_indexer.py`, FAISS/ChromaDB, tool additions to Wave 1 agents)
-
----
-
-## Summary
+### Items
 
 | # | Item | Status | File(s) |
 |---|---|---|---|
-| 1 | `divergence_flags` EBITDA cross-check harness loop | **DONE** | `core/orchestrator.py` |
-| 2 | Agentic RAG roadmap statement | **DONE** | `FOUNDATION.md` |
+| R1-1 | `divergence_flags` EBITDA cross-check harness loop | **DONE 2026-04-29** | `core/orchestrator.py` |
+| R1-2 | Agentic RAG roadmap in FOUNDATION.md | **DONE 2026-04-29** | `FOUNDATION.md` |
+
+**R1-1 — What was built:** `_check_ebitda_divergence()` in `core/orchestrator.py`. Compares `credit_model.ebitda_used` against `ebitda_analysis.conservative_adjusted_ebitda` / `base_adjusted_ebitda` within ±15% tolerance. Fires after Credit Modeler (Agent 5), before Stress Tester. On divergence: HIGH alert, re-runs Credit Modeler once with conservative constraint in routing_notes. Persists after retry: CRITICAL alert, escalated to IC.
+
+**R1-2 — What was written:** `## Week 6 Architecture Roadmap — Agentic RAG` section in `FOUNDATION.md`. Section-indexed retrieval, per-agent queries, `RETRIEVE_DOCUMENT_SECTION` tool, FAISS/ChromaDB implementation sketch.
+
+---
+
+## Round 2 Feedback
+
+### Overall Assessment
+
+> "The most ambitious AI architecture of the three: 14 agents, two-phase pipeline, real agentic tool-use loop, parallel orchestration with dynamic routing. Runs on a real Ducommun 10-K."
+
+> "First thing to fix — the biggest credibility risk. Large PDFs are truncated to roughly 14,000 characters before being handed to the model. For credit underwriting, that's the single largest threat to output integrity. No senior credit analyst would sign a memo based on a selectively-truncated 10-K."
+
+### Top 3 Items (Must Fix)
+
+| # | Item | Priority | Status | File(s) |
+|---|---|---|---|---|
+| R2-1 | Agentic RAG — full document retrieval with citations | **CRITICAL** | **OPEN** | `core/`, `agents/` |
+| R2-2 | Cross-agent EBITDA reconciliation | Already done (R1-1) | **DONE** | `core/orchestrator.py` |
+| R2-3 | Confidence + citations on every extracted field | HIGH | **DONE 2026-04-29** | all agents |
+
+### "What a Reviewer Recognizes as Mature"
+
+| # | Item | Status | File(s) |
+|---|---|---|---|
+| R2-4 | Benchmark folder: labeled cases + faithfulness ≥ 0.85 gate | **OPEN** | `benchmark/` |
+| R2-5 | Input/output contracts: schema validation, failures logged + retried | **OPEN** | `core/` |
+| R2-6 | Audit trail: per-step token cost + latency, model choice rationale | **OPEN** | `core/` |
+| R2-7 | Prompt changelog: which prompts changed, which metric moved | **OPEN** | `docs/` |
+
+---
+
+### R2-1 Detail — Agentic RAG (CRITICAL)
+
+**Professor's instruction:**
+> "Index all four document types (financials, QoE, CIM, legal DD) by section into a vector store (Chroma or FAISS). Let each agent pull the specific passages it needs. This removes the truncation issue and, as a bonus, gives every memo section a citation — exactly the evidence trail a credit committee would demand."
+
+**What needs to be built:**
+- `core/document_indexer.py` — parse uploaded PDFs into named sections, embed, store in FAISS/Chroma
+- New tool `RETRIEVE_DOCUMENT_SECTION(query, top_k)` in `core/tools.py` + handler in `core/tool_executor.py`
+- Add retrieval tool to Wave 1 agent tool sets; update agent prompts to call retrieval instead of reading injected blob
+- Fallback: documents under ~20 pages continue to use current flat-window approach
+
+---
+
+### R2-3 Detail — Confidence + Citations
+
+**Professor's instruction:**
+> "Upgrade each extraction schema from `{value}` to `{value, confidence, source_page, source_quote}`. Three wins: data-quality improvement, benchmarkable artifact (measure citation accuracy against PDF), real hallucination guarrail."
+
+**What needs to be built:**
+- Update agent output schemas in `agents/financial_analyst.py`, `agents/ebitda_analyst.py`, `agents/credit_modeler.py`, `agents/legal_analyst.py`, `agents/commercial_analyst.py` to wrap key fields with `{value, confidence, source_page, source_quote}`
+
+---
+
+### R2-4 Detail — Benchmark Folder
+
+**Professor's instruction:**
+> "A benchmark folder with labeled cases and a pass/fail threshold — e.g., faithfulness must stay above 0.85, otherwise the submission fails its own gate."
+
+**What needs to be built:**
+- `benchmark/` folder with labeled ground-truth cases (Ducommun 10-K as source)
+- `benchmark/run.py` — compare agent outputs to ground truth, compute faithfulness score
+- Pass/fail gate: faithfulness ≥ 0.85
+
+---
+
+### R2-5 Detail — Input/Output Contracts
+
+**Professor's instruction:**
+> "Schema validation on market/financial inputs, schema validation on agent outputs, with failures logged and retried."
+
+---
+
+### R2-6 Detail — Audit Trail
+
+**Professor's instruction:**
+> "Per-step traces showing token cost and execution time, plus a brief note on why you chose a given model for a given step."
+
+---
+
+### R2-7 Detail — Prompt Changelog
+
+**Professor's instruction:**
+> "A short prompt changelog recording which prompts changed, which benchmark metric moved, and by how much. Reviewers rarely see this from a student project."
+
+**What needs to be built:**
+- `docs/PROMPT_CHANGELOG.md` — table: date | agent | change summary | metric before | metric after

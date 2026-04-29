@@ -70,21 +70,25 @@ Use your tools to:
 2. Fetch recent news about {company} to validate or challenge the CIM narrative
 3. Fetch macro snapshot to assess sector-level tailwinds and headwinds
 
+CITATION GUIDE — for every cited field use this structure:
+  {{"value": <number or string>, "confidence": "HIGH | MEDIUM | LOW", "source_page": <int or null>, "source_quote": "<verbatim excerpt, max 120 chars, or null>"}}
+  confidence: HIGH = explicitly stated | MEDIUM = inferred from stated data | LOW = estimated or not found
+
 Then produce a rigorous commercial assessment JSON:
 {{
   "business_quality_score": "A | B | C | D",
   "market_assessment": {{
     "market_size": "description with figures",
-    "growth_rate": "percentage and trend",
+    "growth_rate": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "market_position": "LEADER | STRONG | AVERAGE | WEAK",
     "market_tailwinds": ["tailwind1", "tailwind2"],
     "market_headwinds": ["headwind1", "headwind2"]
   }},
   "revenue_quality": {{
-    "recurring_revenue_pct": null,
+    "recurring_revenue_pct": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "revenue_visibility": "HIGH | MEDIUM | LOW",
     "customer_concentration_risk": "HIGH | MEDIUM | LOW",
-    "top_customer_pct": null,
+    "top_customer_pct": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "churn_risk": "HIGH | MEDIUM | LOW",
     "assessment": "brief assessment"
   }},

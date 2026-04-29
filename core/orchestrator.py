@@ -61,6 +61,13 @@ from core.loan_types import (
 _EBITDA_DIVERGENCE_TOLERANCE = 0.15  # 15% — flag if credit model EBITDA deviates beyond this
 
 
+def _cited_value(field):
+    """Extract scalar from either a plain scalar or a cited {value:...} dict."""
+    if isinstance(field, dict):
+        return field.get("value")
+    return field
+
+
 def _check_ebitda_divergence(credit_state: dict) -> tuple:
     """
     Harness verification loop: after Wave 2 Credit Modeler runs, compare its ebitda_used
@@ -73,9 +80,9 @@ def _check_ebitda_divergence(credit_state: dict) -> tuple:
     ebitda_analysis = credit_state.get("ebitda_analysis") or {}
     credit_model    = credit_state.get("credit_model") or {}
 
-    conservative = ebitda_analysis.get("conservative_adjusted_ebitda")
-    base         = ebitda_analysis.get("base_adjusted_ebitda")
-    ebitda_used  = credit_model.get("ebitda_used")
+    conservative = _cited_value(ebitda_analysis.get("conservative_adjusted_ebitda"))
+    base         = _cited_value(ebitda_analysis.get("base_adjusted_ebitda"))
+    ebitda_used  = _cited_value(credit_model.get("ebitda_used"))
     ebitda_basis = credit_model.get("ebitda_basis", "")
 
     if not all(isinstance(v, (int, float)) for v in [conservative, ebitda_used]):
