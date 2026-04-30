@@ -38,10 +38,10 @@ export default function TopBar() {
       <div className="flex items-center gap-4">
         {/* API status — only shown when offline or still checking */}
         {apiOnline === false && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-warning/30 bg-warning/8">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-warning/30 bg-warning/8" title={`Trying: ${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000 (NEXT_PUBLIC_API_URL not set)"}`}>
             <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
             <span className="text-[10px] font-mono font-bold text-warning uppercase tracking-wider">
-              Demo Data · API Offline
+              Demo · {process.env.NEXT_PUBLIC_API_URL ? "API Offline" : "API URL not configured"}
             </span>
           </div>
         )}
