@@ -63,6 +63,7 @@ from agents.project_finance_analyst import ProjectFinanceAnalystAgent
 from agents.esg_screening import ESGScreeningAgent
 from agents.kyc_aml import KYCAMLAgent
 from agents.valuation_agent import ValuationAgent
+from agents.early_warning import EarlyWarningAgent
 
 from core.loan_types import (
     get_config, normalize_loan_type,
@@ -367,6 +368,17 @@ class DueDiligenceOrchestrator:
         add_routing_note(credit_state, "Running credit underwriter: final serviceability synthesis")
         credit_state = underwriter.run(credit_state)
         _complete(underwriter.name, credit_state)
+
+        # ============================================================
+        # ALTERNATIVE DATA — Yelp/Google Places + Job Signals
+        # Runs after underwriter so risk_score is set. Fetches consumer
+        # signals (physical-location businesses only) and job posting signals.
+        # Results stored in credit_state for frontend display.
+        # ============================================================
+        alt_data_agent = EarlyWarningAgent()
+        add_routing_note(credit_state, "Running alternative data fetch: consumer signals + job signals")
+        credit_state = alt_data_agent.run(credit_state)
+        _complete(alt_data_agent.name, credit_state)
 
         # ============================================================
         # WAVE 3 — COMPLIANCE GATES (parallel)

@@ -5,7 +5,7 @@ import {
   Upload, CheckCircle, XCircle, AlertCircle,
   ChevronDown, ChevronUp, Printer, Zap, FileText,
   Download, ChevronRight, ChevronLeft, Building2,
-  DollarSign, BarChart2, Layers, ShieldAlert, ClipboardCheck,
+  DollarSign, BarChart2, Layers, ShieldAlert, ClipboardCheck, Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "@/components/ui/Select";
@@ -968,6 +968,8 @@ export default function Underwriting() {
     key_risk_drivers?: string[]; mitigating_factors?: string[];
     ebitda_analysis?: import("@/lib/types").EBITDAAnalysis;
     deal_id?: string;
+    consumer_signals?: Record<string, any> | null;
+    job_signals?: Record<string, any> | null;
   } | null>(null);
 
   // Upload state
@@ -1107,6 +1109,8 @@ export default function Underwriting() {
         mitigating_factors: res.risk_assessment?.mitigating_factors,
         ebitda_analysis:    res.ebitda_analysis,
         deal_id:            res.deal_id,
+        consumer_signals:   res.consumer_signals ?? null,
+        job_signals:        res.job_signals ?? null,
       });
     } catch {
       const isRejectCase = form.company === DEMO_REJECT.company;
@@ -1570,6 +1574,104 @@ export default function Underwriting() {
 
             {/* EBITDA Add-back Forensics */}
             {result.ebitda_analysis && <AddBackForensicsPanel analysis={result.ebitda_analysis} />}
+
+            {/* Alternative Data Signals */}
+            {(result.consumer_signals || result.job_signals) && (() => {
+              const cs = result.consumer_signals;
+              const js = result.job_signals;
+              const signalColor = (s: string) =>
+                s === "STRONG" || s === "SURGE" || s === "GROWTH" ? "#00D4A4" :
+                s === "STABLE" ? "#7B8FF7" :
+                s === "WEAKENING" || s === "CONTRACTING" ? "#FF8C00" : "#FF3B5C";
+              return (
+                <div className="glass rounded-lg overflow-hidden">
+                  <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                    <Sparkles size={13} className="text-accent" />
+                    <p className="text-primary text-sm font-semibold">Alternative Data Signals</p>
+                    <span className="text-[10px] font-mono text-muted ml-1">Live · Pre-financial leading indicators</span>
+                  </div>
+                  <div className="p-5 grid grid-cols-2 gap-4">
+
+                    {/* Consumer Signals */}
+                    {cs && !cs.error && (
+                      <div className="space-y-3">
+                        <p className="text-muted text-[10px] uppercase tracking-widest">Consumer Signal (Google Places)</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ background: `${signalColor(cs.consumer_signal)}18`, border: `1px solid ${signalColor(cs.consumer_signal)}30` }}>
+                            <span className="text-base">⭐</span>
+                          </div>
+                          <div>
+                            <p className="text-primary text-lg font-bold leading-none">{cs.rating ?? "—"}<span className="text-muted text-xs font-normal"> / 5</span></p>
+                            <p className="text-muted text-[10px]">{(cs.review_count ?? cs.user_ratings_total ?? 0).toLocaleString()} reviews</p>
+                          </div>
+                          <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded"
+                            style={{ background: `${signalColor(cs.consumer_signal)}18`, color: signalColor(cs.consumer_signal) }}>
+                            {cs.consumer_signal}
+                          </span>
+                        </div>
+                        {cs.business_status && cs.business_status !== "OPERATIONAL" && (
+                          <p className="text-danger text-[10px] font-semibold">⚠ {cs.business_status.replace(/_/g, " ")}</p>
+                        )}
+                        <p className="text-muted text-[10px] leading-relaxed">{cs.credit_implication}</p>
+                      </div>
+                    )}
+                    {cs?.error && (
+                      <div className="space-y-2">
+                        <p className="text-muted text-[10px] uppercase tracking-widest">Consumer Signal</p>
+                        <p className="text-muted/50 text-[10px]">Not available — {cs.error}</p>
+                      </div>
+                    )}
+
+                    {/* Job Signals */}
+                    {js && !js.error && (
+                      <div className="space-y-3">
+                        <p className="text-muted text-[10px] uppercase tracking-widest">Hiring Signal (Arbeitnow)</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ background: `${signalColor(js.hiring_signal)}18`, border: `1px solid ${signalColor(js.hiring_signal)}30` }}>
+                            <span className="text-base">💼</span>
+                          </div>
+                          <div>
+                            <p className="text-primary text-lg font-bold leading-none">{js.open_positions ?? 0}<span className="text-muted text-xs font-normal"> open roles</span></p>
+                            <p className="text-muted text-[10px]">via Arbeitnow · {js.as_of}</p>
+                          </div>
+                          <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded"
+                            style={{ background: `${signalColor(js.hiring_signal)}18`, color: signalColor(js.hiring_signal) }}>
+                            {js.hiring_signal}
+                          </span>
+                        </div>
+                        {js.role_breakdown && (
+                          <div className="grid grid-cols-2 gap-1">
+                            {Object.entries(js.role_breakdown as Record<string, number>)
+                              .filter(([, v]) => v > 0)
+                              .map(([k, v]) => (
+                                <div key={k} className="flex items-center justify-between">
+                                  <p className="text-muted text-[10px] capitalize">{k.replace(/_/g, " ")}</p>
+                                  <p className="text-primary text-[10px] font-mono">{v}</p>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                        {js.distress_keywords && js.distress_keywords.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {(js.distress_keywords as string[]).map((kw: string) => (
+                              <span key={kw} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-danger/10 text-danger border border-danger/20">{kw}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {js?.error && (
+                      <div className="space-y-2">
+                        <p className="text-muted text-[10px] uppercase tracking-widest">Hiring Signal</p>
+                        <p className="text-muted/50 text-[10px]">Not available — {js.error}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* IC Memo Accordion */}
             {Object.keys(result.memo_sections).length > 0 && (
