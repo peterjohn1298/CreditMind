@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from "react";
 import type { Deal, Alert, HeatMapData } from "@/lib/types";
 import { MOCK_DEALS, MOCK_ALERTS, MOCK_HEAT_MAP } from "@/lib/mock";
 
@@ -85,6 +85,7 @@ const CreditContext = createContext<{
   state: CreditState;
   dispatch: React.Dispatch<Action>;
   triggerRefresh: () => Promise<void>;
+  apiOnline: boolean | null;
 } | null>(null);
 
 // How stale the last monitoring run can be before we auto-trigger a new one on load
@@ -92,6 +93,8 @@ const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 export function CreditProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial);
+  // null = checking, true = reachable, false = offline
+  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
 
   // Fetch live portfolio from API
   const refreshPortfolio = useCallback(async () => {
@@ -141,9 +144,12 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     try {
       const { getAlerts } = await import("@/lib/api");
       const data = await getAlerts();
-      dispatch({ type: "SET_ALERTS", payload: data.alerts });
+      // Only replace if the API returned any alerts (mock alerts stay when API is offline)
+      if (data.alerts && data.alerts.length > 0) {
+        dispatch({ type: "SET_ALERTS", payload: data.alerts });
+      }
     } catch {
-      // API not reachable — leave alerts empty, don't show mock data
+      // API not reachable — mock alerts stay as fallback
     }
   }, []);
 
@@ -191,6 +197,12 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
   }, [refreshAlerts, refreshSectorData, refreshPortfolio]);
 
   useEffect(() => {
+    // Health check — determines whether to show DEMO MODE badge in UI
+    const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    fetch(`${BASE}/`, { signal: AbortSignal.timeout(5000) })
+      .then(r => setApiOnline(r.ok))
+      .catch(() => setApiOnline(false));
+
     // Always load portfolio and alerts immediately from API
     refreshPortfolio();
     refreshAlerts();
@@ -219,7 +231,7 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
   }, [refreshPortfolio, refreshAlerts, refreshSectorData, triggerRefresh]);
 
   return (
-    <CreditContext.Provider value={{ state, dispatch, triggerRefresh }}>
+    <CreditContext.Provider value={{ state, dispatch, triggerRefresh, apiOnline }}>
       {children}
     </CreditContext.Provider>
   );

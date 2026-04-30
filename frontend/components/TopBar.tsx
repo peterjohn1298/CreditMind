@@ -28,15 +28,31 @@ export default function TopBar() {
   const path = usePathname();
   if (path === "/" || path === "/home") return null;
   const title = Object.entries(TITLES).find(([k]) => path.startsWith(k))?.[1] ?? "CreditMind";
-  const { state } = useCredit();
+  const { state, apiOnline } = useCredit();
   const { isRefreshing, lastRefreshed, portfolio } = state;
 
   return (
     <header className="h-16 border-b border-white/[0.06] flex items-center justify-between px-6 shrink-0" style={{ background: "rgba(6, 6, 6, 0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
       <h1 className="text-primary font-semibold text-base">{title}</h1>
 
-      <div className="flex items-center gap-3">
-        {/* Live status pulse */}
+      <div className="flex items-center gap-4">
+        {/* API status — only shown when offline or still checking */}
+        {apiOnline === false && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-warning/30 bg-warning/8">
+            <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+            <span className="text-[10px] font-mono font-bold text-warning uppercase tracking-wider">
+              Demo Data · API Offline
+            </span>
+          </div>
+        )}
+        {apiOnline === true && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-success/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-success" />
+            <span className="text-[10px] font-mono text-success">API Live</span>
+          </div>
+        )}
+
+        {/* Monitoring status pulse */}
         <div className="flex items-center gap-2">
           <span className={cn(
             "w-2 h-2 rounded-full",
