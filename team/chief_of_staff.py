@@ -13,6 +13,7 @@ Posts a verdict comment on the PR. Exits non-zero to block merge if issues found
 import os
 import json
 import sys
+import subprocess
 import requests
 from anthropic import Anthropic
 
@@ -202,9 +203,16 @@ def main():
     repo = os.getenv("GITHUB_REPOSITORY", "")
     github_token = os.getenv("GITHUB_TOKEN", "")
     changed_files_raw = os.getenv("CHANGED_FILES", "")
-    diff_content = os.getenv("PR_DIFF", "")
-
     changed_files = [f.strip() for f in changed_files_raw.splitlines() if f.strip()]
+
+    try:
+        result = subprocess.run(
+            ["git", "diff", "origin/master...HEAD"],
+            capture_output=True, text=True, errors="replace"
+        )
+        diff_content = result.stdout[:10000]
+    except Exception:
+        diff_content = ""
 
     ownership_map = load_ownership_map()
 

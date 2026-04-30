@@ -38,15 +38,6 @@ jobs:
             echo "$DELIM"
           } >> "$GITHUB_ENV"
 
-      - name: Get PR diff
-        run: |
-          DELIM="CREDITMIND_$(openssl rand -hex 8)"
-          {
-            echo "PR_DIFF<<$DELIM"
-            git diff origin/master...HEAD | head -c 10000
-            echo "$DELIM"
-          } >> "$GITHUB_ENV"
-
       - name: Run Chief of Staff
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
