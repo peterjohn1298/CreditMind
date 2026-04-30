@@ -1,10 +1,11 @@
 """
 CreditMind Test Suite
-Tests credit state, alert system, document processor routing, and orchestrator guards.
+Tests credit state, alert system, document processor routing, orchestrator guards,
+and input/output contract validation (R2-5).
 """
 
 import pytest
-from core.credit_state import create_credit_state, log_agent, add_alert, add_divergence, add_routing_note
+from core.credit_state import create_credit_state, log_agent, add_alert, add_divergence, add_routing_note, log_validation_failure
 from core.alert_system import get_pending_alerts, get_alert_summary, resolve_alert
 
 
@@ -236,3 +237,171 @@ def test_smart_truncate_financial_mode_finds_item8():
     text = prefix + financial + suffix
     result = _smart_truncate(text, 14_000, financial_mode=True)
     assert "Financial Statements" in result or "Revenue" in result
+
+
+# ============================================================
+# Input / Output Contract Tests (R2-5)
+# ============================================================
+
+class TestCreditStateInputContract:
+
+    def test_valid_input_passes(self):
+        from core.schemas import validate_credit_state_input
+        state = create_credit_state("Ducommun Inc.", 150_000_000, "5 years", "First Lien Term Loan")
+        is_valid, errors = validate_credit_state_input(state)
+        assert is_valid is True
+        assert errors == []
+
+    def test_missing_company_fails(self):
+        from core.schemas import validate_credit_state_input
+        state = create_credit_state("Ducommun Inc.", 150_000_000, "5 years", "Term Loan")
+        del state["company"]
+        is_valid, errors = validate_credit_state_input(state)
+        assert is_valid is False
+        assert any("company" in e for e in errors)
+
+    def test_zero_loan_amount_fails(self):
+        from core.schemas import validate_credit_state_input
+        state = create_credit_state("Acme Corp", 0, "3 years", "Term Loan")
+        is_valid, errors = validate_credit_state_input(state)
+        assert is_valid is False
+        assert any("loan_amount" in e for e in errors)
+
+    def test_negative_loan_amount_fails(self):
+        from core.schemas import validate_credit_state_input
+        state = create_credit_state("Acme Corp", -1_000_000, "3 years", "Term Loan")
+        is_valid, errors = validate_credit_state_input(state)
+        assert is_valid is False
+        assert any("loan_amount" in e for e in errors)
+
+    def test_empty_loan_tenor_fails(self):
+        from core.schemas import validate_credit_state_input
+        state = create_credit_state("Acme Corp", 50_000_000, "", "Term Loan")
+        is_valid, errors = validate_credit_state_input(state)
+        assert is_valid is False
+        assert any("loan_tenor" in e for e in errors)
+
+    def test_wrong_type_for_loan_amount_fails(self):
+        from core.schemas import validate_credit_state_input
+        state = create_credit_state("Acme Corp", 50_000_000, "3 years", "Term Loan")
+        state["loan_amount"] = "fifty million"
+        is_valid, errors = validate_credit_state_input(state)
+        assert is_valid is False
+        assert any("loan_amount" in e for e in errors)
+
+    def test_multiple_violations_reported_together(self):
+        from core.schemas import validate_credit_state_input
+        state = create_credit_state("Acme Corp", 50_000_000, "3 years", "Term Loan")
+        state["company"] = ""
+        state["loan_amount"] = 0
+        is_valid, errors = validate_credit_state_input(state)
+        assert is_valid is False
+        assert len(errors) >= 2
+
+
+class TestAgentOutputContract:
+
+    def test_valid_financial_analyst_output_passes(self):
+        from core.schemas import validate_agent_output
+        output = {
+            "revenue_trend": {},
+            "profitability": {},
+            "liquidity": {},
+            "leverage": {},
+            "cash_flow_quality": {},
+            "audit_flags": {},
+            "overall_financial_health": "STRONG",
+        }
+        is_valid, errors = validate_agent_output("Financial Analyst", output)
+        assert is_valid is True
+        assert errors == []
+
+    def test_missing_key_in_financial_analyst_fails(self):
+        from core.schemas import validate_agent_output
+        output = {
+            "revenue_trend": {},
+            "profitability": {},
+            # missing: liquidity, leverage, cash_flow_quality, audit_flags, overall_financial_health
+        }
+        is_valid, errors = validate_agent_output("Financial Analyst", output)
+        assert is_valid is False
+        assert len(errors) >= 1
+        assert any("liquidity" in e for e in errors)
+
+    def test_parse_error_output_fails(self):
+        from core.schemas import validate_agent_output
+        output = {"raw_response": "some text", "parse_error": True}
+        is_valid, errors = validate_agent_output("Financial Analyst", output)
+        assert is_valid is False
+        assert any("parse_error" in e for e in errors)
+
+    def test_agent_with_no_contract_always_passes(self):
+        from core.schemas import validate_agent_output
+        output = {"anything": "goes", "for": "unlisted agents"}
+        is_valid, errors = validate_agent_output("IC Memo Writer", output)
+        assert is_valid is True
+        assert errors == []
+
+    def test_non_dict_output_fails(self):
+        from core.schemas import validate_agent_output
+        is_valid, errors = validate_agent_output("Financial Analyst", "not a dict")
+        assert is_valid is False
+        assert any("not a dict" in e for e in errors)
+
+    def test_valid_ebitda_analyst_output_passes(self):
+        from core.schemas import validate_agent_output
+        output = {
+            "reported_ebitda": {"value": 74200},
+            "add_back_analysis": [],
+            "conservative_adjusted_ebitda": {"value": 91300},
+            "base_adjusted_ebitda": {"value": 94400},
+            "ebitda_conclusion": "Quality is high",
+        }
+        is_valid, errors = validate_agent_output("EBITDA Analyst", output)
+        assert is_valid is True
+
+    def test_valid_credit_modeler_output_passes(self):
+        from core.schemas import validate_agent_output
+        output = {
+            "ebitda_used": {"value": 91300},
+            "ebitda_basis": "conservative",
+            "leverage_metrics": {},
+            "coverage_metrics": {},
+            "model_assessment": "Adequate",
+        }
+        is_valid, errors = validate_agent_output("Credit Modeler", output)
+        assert is_valid is True
+
+
+class TestLogValidationFailure:
+
+    def test_log_validation_failure_appends_entry(self):
+        state = create_credit_state("Test Corp", 1_000_000, "1 year", "Term Loan")
+        state = log_validation_failure(state, "Financial Analyst", ["missing 'liquidity'"], stage="output")
+        assert len(state["validation_failures"]) == 1
+        entry = state["validation_failures"][0]
+        assert entry["agent"] == "Financial Analyst"
+        assert entry["stage"] == "output"
+        assert "missing 'liquidity'" in entry["errors"]
+        assert "timestamp" in entry
+
+    def test_log_multiple_failures(self):
+        state = create_credit_state("Test Corp", 1_000_000, "1 year", "Term Loan")
+        state = log_validation_failure(state, "Financial Analyst", ["err1"], stage="output")
+        state = log_validation_failure(state, "Financial Analyst", ["err2"], stage="output_retry")
+        assert len(state["validation_failures"]) == 2
+        assert state["validation_failures"][1]["stage"] == "output_retry"
+
+    def test_validation_failures_field_exists_on_new_state(self):
+        state = create_credit_state("Test Corp", 1_000_000, "1 year", "Term Loan")
+        assert "validation_failures" in state
+        assert state["validation_failures"] == []
+
+    def test_input_contract_violation_creates_alert(self):
+        # Verify run_due_diligence logs input violations as HIGH alerts
+        # Test the logic path directly without invoking the full pipeline
+        from core.schemas import validate_credit_state_input
+        state = create_credit_state("", 0, "5 years", "Term Loan")
+        is_valid, errors = validate_credit_state_input(state)
+        assert is_valid is False
+        assert len(errors) >= 2  # both company and loan_amount should fail

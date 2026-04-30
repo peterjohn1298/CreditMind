@@ -1,0 +1,60 @@
+{
+  "_meta": "Sample result from running the Ducommun pipeline. Replace with a fresh run: python benchmark/run.py --live",
+  "deal_id": "SAMPLE01",
+  "company": "Ducommun Incorporated",
+  "documents": {
+    "financials": {
+      "income_statement": {
+        "revenue":          {"year1": 737000, "year2": 689300, "year3": 623600},
+        "interest_expense": {"year1": 26400,  "year2": 25100,  "year3": 23800},
+        "net_income":       {"year1": 35100,  "year2": 29400,  "year3": 22600}
+      }
+    }
+  },
+  "ebitda_analysis": {
+    "reported_ebitda":              {"value": 74200, "confidence": "HIGH", "source_page": 4, "source_quote": "Reported EBITDA (LTM June 2024): $74,200"},
+    "conservative_adjusted_ebitda": {"value": 91300, "confidence": "HIGH", "source_page": 5, "source_quote": "Conservative Adjusted EBITDA: $91,300"},
+    "base_adjusted_ebitda":         {"value": 94400, "confidence": "HIGH", "source_page": 5, "source_quote": "Base Adjusted EBITDA (incl. questionable): $94,400"},
+    "ebitda_conclusion": "EBITDA add-backs are primarily management fees (~$8.5M), one-time transaction costs, and non-cash stock compensation. The majority are supportable. Quality is HIGH. Conservative EBITDA of $91,300 is a defensible basis for the credit model.",
+    "adjustment_quality_score": "HIGH"
+  },
+  "financial_analysis": {
+    "revenue_trend": {
+      "cagr_3yr": {"value": 10.4, "confidence": "HIGH", "source_page": 8, "source_quote": "Revenue CAGR of 10.4% from FY2021 to LTM June 2024"}
+    },
+    "profitability": {
+      "ebitda_margin": {"value": 12.4, "trend": "STABLE", "confidence": "HIGH", "source_page": 4, "source_quote": "EBITDA Margin (Conservative): 12.4%"}
+    },
+    "overall_financial_health": "ADEQUATE"
+  },
+  "commercial_analysis": {
+    "revenue_quality": {
+      "recurring_revenue_pct": {"value": 85, "confidence": "MEDIUM", "source_page": 12, "source_quote": "Approximately 60% of revenue is derived from defense programs under multi-year government contracts"},
+      "revenue_visibility": "HIGH",
+      "top_customer_pct": {"value": 60, "confidence": "HIGH", "source_page": 12, "source_quote": "approximately 60% defense programs"},
+      "customer_concentration_risk": "MEDIUM",
+      "assessment": "Revenue quality is strong. Defense revenue (~60% of total) is backed by multi-year U.S. government contracts providing high visibility. Commercial aerospace recovery adds growth. Customer concentration is moderate with top 5 at ~75%."
+    },
+    "overall_commercial_verdict": "ADEQUATE"
+  },
+  "credit_model": {
+    "ebitda_used": {"value": 91300, "confidence": "HIGH", "source_page": 5, "source_quote": "Conservative Adjusted EBITDA: $91,300"},
+    "ebitda_basis": "conservative",
+    "pro_forma_total_debt": {"value": 500000, "confidence": "HIGH", "source_page": 2, "source_quote": "Total Debt (pro forma): $500.0M"},
+    "leverage_metrics": {
+      "total_leverage": {"value": 5.5, "confidence": "HIGH", "source_page": 2, "source_quote": "Total Leverage: 5.5x"},
+      "leverage_assessment": "ELEVATED (5-6x)"
+    },
+    "coverage_metrics": {
+      "interest_coverage": {"value": 3.5, "confidence": "HIGH", "source_page": 2, "source_quote": "Interest Coverage: 3.5x"},
+      "dscr": {"value": 1.8, "confidence": "MEDIUM", "source_page": null, "source_quote": null},
+      "coverage_assessment": "ADEQUATE (1.75-2.5x)"
+    },
+    "model_assessment": "Credit model shows elevated leverage at 5.5x but adequate coverage. Defense contract backlog supports debt service."
+  },
+  "risk_score": 58,
+  "internal_rating": "BB",
+  "divergence_flags": [],
+  "routing_notes": [],
+  "human_alerts": []
+}

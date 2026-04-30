@@ -6,7 +6,10 @@ import { ArrowLeft, AlertTriangle, TrendingDown, TrendingUp } from "lucide-react
 import AlternativeDataPanel from "@/components/ui/AlternativeDataPanel";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
-import KYCPanel from "@/components/ui/KYCPanel";
+import AddBackForensicsPanel from "@/components/ui/AddBackForensicsPanel";
+import TermSheetViewer from "@/components/ui/TermSheetViewer";
+import ICCommitteePanel from "@/components/ui/ICCommitteePanel";
+import ClosingCPTracker from "@/components/ui/ClosingCPTracker";
 import { useCredit } from "@/context/CreditContext";
 import { formatCurrency, formatDate, getRiskColor, getSeverityColor, cn } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
@@ -424,8 +427,42 @@ export default function DealDetailPage() {
         consumerSignals={deal.consumer_signals}
       />
 
-      {/* KYC / AML / Sanctions — Wave 4A */}
-      <KYCPanel dealId={deal.deal_id} existing={(deal as any).kyc_aml_screen} />
+      {/* EBITDA add-back forensics */}
+      {(deal as any).ebitda_analysis && (
+        <AddBackForensicsPanel analysis={(deal as any).ebitda_analysis} />
+      )}
+
+      {/* IC Committee deliberation */}
+      <ICCommitteePanel
+        dealId={deal.deal_id}
+        existing={{
+          ic_decision:    (deal as any).ic_decision,
+          conditions:     (deal as any).approval_conditions,
+          final_terms:    (deal as any).final_terms,
+          ic_full_output: (deal as any).ic_committee_output,
+        }}
+      />
+
+      {/* Term Sheet & Negotiation Guide */}
+      <TermSheetViewer
+        dealId={deal.deal_id}
+        existing={{
+          term_sheet:        (deal as any).term_sheet,
+          red_lines:         (deal as any).red_lines,
+          concession_map:    (deal as any).concession_map,
+          borrower_pushback: (deal as any).borrower_pushback,
+        }}
+      />
+
+      {/* Closing CP Tracker */}
+      <ClosingCPTracker
+        dealId={deal.deal_id}
+        existing={(deal as any).closing_output ?? {
+          cp_checklist:            (deal as any).cp_checklist,
+          closing_readiness_score: (deal as any).closing_readiness,
+          funds_flow:              (deal as any).funds_flow,
+        }}
+      />
     </div>
   );
 }

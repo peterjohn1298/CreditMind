@@ -69,9 +69,14 @@ class ClosingAgent(BaseAgent):
         term_sheet    = credit_state.get("term_sheet", {})
         credit_model  = credit_state.get("credit_model", {})
 
-        is_lbo         = bool(sponsor)
-        has_revolver   = "revolver" in loan_type.lower() or "rcf" in loan_type.lower()
-        has_mezz       = "mezz" in loan_type.lower() or "subordinat" in loan_type.lower()
+        loan_type_lower = loan_type.lower()
+        is_lbo          = bool(sponsor)
+        has_revolver    = "revolver" in loan_type_lower or "rcf" in loan_type_lower or "abl" in loan_type_lower
+        has_mezz        = "mezz" in loan_type_lower or "subordinat" in loan_type_lower or "mezzanine" in loan_type_lower
+        is_bridge       = "bridge" in loan_type_lower
+        is_project_fin  = "project" in loan_type_lower or "infrastructure" in loan_type_lower
+        is_growth_cap   = "growth" in loan_type_lower or (not sponsor and "term" in loan_type_lower)
+        is_distressed   = "distressed" in loan_type_lower or "dip" in loan_type_lower or "special situation" in loan_type_lower
         origination_fee = float(final_terms.get("origination_fee", "2").replace("%", "") or 2) / 100
 
         today        = datetime.now()
@@ -108,16 +113,105 @@ class ClosingAgent(BaseAgent):
                 "notes":    "",
             })
 
-        # Add revolver-specific CPs
+        # Add revolver / ABL-specific CPs
         if has_revolver:
-            cp_checklist.append({
-                "cp":       "Borrowing base certificate delivered",
-                "category": "diligence",
-                "timing":   "at_closing",
-                "status":   "pending",
-                "owner":    "borrower",
-                "notes":    "",
-            })
+            for cp_text in [
+                "Borrowing base certificate delivered (initial BBC at closing)",
+                "Accounts receivable aging schedule (< 30 days old) delivered to fund",
+                "Inventory appraisal or field exam completed and accepted",
+                "Blocked account / deposit account control agreement (DACA) executed",
+                "Borrowing base formula and advance rates agreed and documented in credit agreement",
+            ]:
+                cp_checklist.append({
+                    "cp": cp_text, "category": "diligence",
+                    "timing": "at_closing", "status": "pending",
+                    "owner": "borrower", "notes": "",
+                })
+
+        # Add mezzanine-specific CPs
+        if has_mezz:
+            for cp_text, owner in [
+                ("Intercreditor / subordination agreement executed by all lenders", "all parties"),
+                ("PIK election notice mechanism documented in credit agreement",     "fund counsel"),
+                ("Equity warrant agreement executed and warrant registered",         "borrower counsel"),
+                ("Senior lender consent to mezzanine financing obtained",            "senior lender"),
+                ("Mezz standstill / enforcement standstill period confirmed in ICA", "fund counsel"),
+            ]:
+                cp_checklist.append({
+                    "cp": cp_text, "category": "structural",
+                    "timing": "at_closing", "status": "pending",
+                    "owner": owner, "notes": "",
+                })
+
+        # Add bridge loan-specific CPs
+        if is_bridge:
+            exit_type = credit_state.get("bridge_exit_type", "permanent financing")
+            for cp_text, owner in [
+                (f"Exit strategy documentation delivered: {exit_type} plan and timeline", "borrower"),
+                ("Extension option and fee schedule documented in credit agreement",       "fund counsel"),
+                ("Exit milestone schedule with default triggers agreed and executed",       "fund counsel"),
+                ("Break fee and exit fee schedule agreed and documented",                  "fund counsel"),
+                ("Evidence of engagement of advisors / bank for exit process",             "borrower"),
+            ]:
+                cp_checklist.append({
+                    "cp": cp_text, "category": "structural",
+                    "timing": "at_closing", "status": "pending",
+                    "owner": owner, "notes": "",
+                })
+
+        # Add project finance-specific CPs
+        if is_project_fin:
+            for cp_text, owner in [
+                ("EPC contract reviewed, accepted, and assigned to fund as lender",          "fund counsel"),
+                ("Offtake / power purchase agreement reviewed and assigned to fund",          "fund counsel"),
+                ("Debt service reserve account (DSRA) funded per credit agreement",           "borrower SPV"),
+                ("O&M reserve and major maintenance reserve accounts established",            "borrower SPV"),
+                ("Environmental impact assessment and all required permits confirmed",         "borrower"),
+                ("Sponsor completion guarantee executed (construction period)",               "sponsor counsel"),
+                ("Independent engineer's report reviewed and accepted",                       "fund diligence"),
+                ("All-risk and business interruption insurance policies naming fund as insured", "borrower"),
+                ("SPV corporate documents and non-recourse structure confirmed by counsel",    "fund counsel"),
+                ("DSCR model agreed between borrower and fund (base case + P90)",             "fund / borrower"),
+            ]:
+                cp_checklist.append({
+                    "cp": cp_text, "category": "diligence" if "report" in cp_text.lower() or "model" in cp_text.lower() else "legal",
+                    "timing": "at_closing", "status": "pending",
+                    "owner": owner, "notes": "",
+                })
+
+        # Add growth capital-specific CPs
+        if is_growth_cap and not is_lbo:
+            for cp_text, owner in [
+                ("Warrant agreement executed — equity kicker registered in cap table",        "borrower counsel"),
+                ("Key-man life and disability insurance policies assigned to fund",            "borrower"),
+                ("Initial ARR / MRR certificate delivered at closing",                        "borrower"),
+                ("Customer list and top-10 contracts reviewed (under NDA)",                   "fund diligence"),
+                ("PIK election mechanism documented in credit agreement",                     "fund counsel"),
+                ("Minimum ARR and minimum cash covenants set and agreed",                     "fund counsel"),
+            ]:
+                cp_checklist.append({
+                    "cp": cp_text, "category": "structural",
+                    "timing": "at_closing", "status": "pending",
+                    "owner": owner, "notes": "",
+                })
+
+        # Add distressed / DIP-specific CPs
+        if is_distressed:
+            for cp_text, owner in [
+                ("Cash dominion / blocked account agreement executed — all receipts to fund account", "fund counsel"),
+                ("Super-priority lien / DIP order entered (if Chapter 11)",                           "bankruptcy counsel"),
+                ("13-week cash flow forecast delivered and accepted by fund",                          "borrower"),
+                ("Existing creditor notification / consent obtained (if out-of-court)",               "fund counsel"),
+                ("Operational milestone schedule with 30-day cure periods agreed",                    "fund / borrower"),
+                ("Management retention plan reviewed — no departures without fund consent",           "borrower counsel"),
+                ("Asset sale restriction agreement — no disposals > $1M without fund consent",        "fund counsel"),
+                ("Forensic accounting / QoE review completed with no new material findings",          "fund diligence"),
+            ]:
+                cp_checklist.append({
+                    "cp": cp_text, "category": "legal" if "agreement" in cp_text.lower() or "order" in cp_text.lower() else "diligence",
+                    "timing": "at_closing", "status": "pending",
+                    "owner": owner, "notes": "",
+                })
 
         # Add IC conditions as deal-specific CPs
         for cond in conditions:
