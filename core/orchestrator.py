@@ -8,7 +8,7 @@ Due Diligence:
   Underwriter: final serviceability synthesis
   Wave 3 (parallel): ESG Screening + KYC/AML — hard go/no-go gates
   Valuation: ASC 820 Level 3 fair value mark
-  Output: IC Memo Writer → status = IC_REVIEW
+  Output: IC Memo Writer → IC Checkpoint (human voting record) → status = IC_REVIEW
 
 Post-Disbursement Daily:
   Parallel across portfolio: News, Sentiment, Early Warning
@@ -30,6 +30,7 @@ from core.schemas import validate_credit_state_input
 from core.document_indexer import build_index, indexed_doc_types, clear_index
 from core.parallel_runner import run_parallel_wave
 from core.credit_policy import check_new_deal, check_existing_deal, get_policy_context_for_agents
+from core.ic_checkpoint import create_checkpoint
 
 from agents.financial_analyst import FinancialAnalystAgent
 from agents.ebitda_analyst import EBITDAAnalystAgent
@@ -410,6 +411,23 @@ class DueDiligenceOrchestrator:
         memo_agent = ICMemoWriterAgent()
         credit_state = memo_agent.run(credit_state)
         _complete(memo_agent.name, credit_state)
+
+        # ============================================================
+        # IC CHECKPOINT — human-in-the-loop decision layer
+        # Create a voting record keyed by deal_id. IC members submit
+        # votes via API; deal lead finalizes after quorum. AI output
+        # (ic_committee_output or ic_memo) is advisory only.
+        # ============================================================
+        deal_id = credit_state.get("deal_id", "")
+        if deal_id:
+            ic_checkpoint = create_checkpoint(deal_id, credit_state)
+            credit_state["ic_checkpoint"] = ic_checkpoint
+            add_routing_note(
+                credit_state,
+                f"IC checkpoint created (deal_id={deal_id}). "
+                f"AI recommendation: {ic_checkpoint.get('ai_recommendation', 'CONDITIONAL_APPROVE')}. "
+                f"Awaiting {3} member votes before deal lead can finalize."
+            )
 
         credit_state["status"] = "IC_REVIEW"
         return credit_state

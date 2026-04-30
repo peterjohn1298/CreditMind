@@ -405,3 +405,117 @@ class TestLogValidationFailure:
         is_valid, errors = validate_credit_state_input(state)
         assert is_valid is False
         assert len(errors) >= 2  # both company and loan_amount should fail
+
+
+# ============================================================
+# IC Checkpoint Tests
+# ============================================================
+
+class TestICCheckpoint:
+
+    def _make_state(self, deal_id="deal-test-001", company="Acme Corp"):
+        from core.credit_state import create_credit_state
+        state = create_credit_state(company, 50_000_000, "5 years", "Term Loan")
+        state["deal_id"] = deal_id
+        state["ic_committee_output"] = {
+            "ic_decision": "CONDITIONAL_APPROVE",
+            "approval_conditions": [{"condition": "Audited financials required", "deadline": "at closing"}],
+            "ic_rationale": "Solid cash flow but leverage is elevated.",
+        }
+        return state
+
+    def test_create_checkpoint_returns_pending(self):
+        import importlib, core.ic_checkpoint as m
+        importlib.reload(m)   # isolate state between tests
+        from core.ic_checkpoint import create_checkpoint
+        state = self._make_state("deal-cp-001")
+        cp = create_checkpoint("deal-cp-001", state)
+        assert cp["status"] == "PENDING"
+        assert cp["ai_recommendation"] == "CONDITIONAL_APPROVE"
+        assert cp["company"] == "Acme Corp"
+        assert cp["final_decision"] is None
+
+    def test_submit_vote_records_vote(self):
+        import importlib, core.ic_checkpoint as m
+        importlib.reload(m)
+        from core.ic_checkpoint import create_checkpoint, submit_vote
+        state = self._make_state("deal-cp-002")
+        create_checkpoint("deal-cp-002", state)
+        cp = submit_vote("deal-cp-002", "Alice", "APPROVE", notes="Strong FCF")
+        assert len(cp["votes"]) == 1
+        assert cp["votes"][0]["member"] == "Alice"
+        assert cp["votes"][0]["vote"] == "APPROVE"
+
+    def test_quorum_reached_after_three_votes(self):
+        import importlib, core.ic_checkpoint as m
+        importlib.reload(m)
+        from core.ic_checkpoint import create_checkpoint, submit_vote
+        state = self._make_state("deal-cp-003")
+        create_checkpoint("deal-cp-003", state)
+        submit_vote("deal-cp-003", "Alice", "APPROVE")
+        submit_vote("deal-cp-003", "Bob", "CONDITIONAL_APPROVE", conditions=["Audited financials"])
+        cp = submit_vote("deal-cp-003", "Carol", "APPROVE")
+        assert cp["status"] == "QUORUM_REACHED"
+        assert cp["vote_tally"]["quorum_reached"] is True
+
+    def test_finalize_decision_locks_checkpoint(self):
+        import importlib, core.ic_checkpoint as m
+        importlib.reload(m)
+        from core.ic_checkpoint import create_checkpoint, submit_vote, finalize_decision
+        state = self._make_state("deal-cp-004")
+        create_checkpoint("deal-cp-004", state)
+        submit_vote("deal-cp-004", "Alice", "APPROVE")
+        submit_vote("deal-cp-004", "Bob", "APPROVE")
+        submit_vote("deal-cp-004", "Carol", "APPROVE")
+        cp = finalize_decision("deal-cp-004", "APPROVE", decided_by="Alice")
+        assert cp["status"] == "FINALIZED"
+        assert cp["final_decision"] == "APPROVE"
+        assert cp["finalized_at"] != ""
+
+    def test_vote_on_finalized_raises(self):
+        import importlib, core.ic_checkpoint as m
+        importlib.reload(m)
+        from core.ic_checkpoint import create_checkpoint, submit_vote, finalize_decision
+        state = self._make_state("deal-cp-005")
+        create_checkpoint("deal-cp-005", state)
+        submit_vote("deal-cp-005", "Alice", "APPROVE")
+        submit_vote("deal-cp-005", "Bob", "APPROVE")
+        submit_vote("deal-cp-005", "Carol", "APPROVE")
+        finalize_decision("deal-cp-005", "APPROVE")
+        with pytest.raises(ValueError, match="finalized"):
+            submit_vote("deal-cp-005", "Dave", "REJECT")
+
+    def test_push_back_sets_status(self):
+        import importlib, core.ic_checkpoint as m
+        importlib.reload(m)
+        from core.ic_checkpoint import create_checkpoint, push_back
+        state = self._make_state("deal-cp-006")
+        create_checkpoint("deal-cp-006", state)
+        cp = push_back("deal-cp-006", "Bob", "Need clarification on EBITDA add-backs")
+        assert cp["status"] == "PUSHED_BACK"
+        assert len(cp["push_back_notes"]) == 1
+
+    def test_invalid_vote_raises(self):
+        import importlib, core.ic_checkpoint as m
+        importlib.reload(m)
+        from core.ic_checkpoint import create_checkpoint, submit_vote
+        state = self._make_state("deal-cp-007")
+        create_checkpoint("deal-cp-007", state)
+        with pytest.raises(ValueError):
+            submit_vote("deal-cp-007", "Alice", "MAYBE")
+
+    def test_member_vote_replaced_on_resubmit(self):
+        import importlib, core.ic_checkpoint as m
+        importlib.reload(m)
+        from core.ic_checkpoint import create_checkpoint, submit_vote
+        state = self._make_state("deal-cp-008")
+        create_checkpoint("deal-cp-008", state)
+        submit_vote("deal-cp-008", "Alice", "REJECT")
+        cp = submit_vote("deal-cp-008", "Alice", "APPROVE")
+        assert len(cp["votes"]) == 1
+        assert cp["votes"][0]["vote"] == "APPROVE"
+
+    def test_get_checkpoint_missing_returns_error(self):
+        from core.ic_checkpoint import get_checkpoint
+        result = get_checkpoint("deal-nonexistent-xyz")
+        assert "error" in result
