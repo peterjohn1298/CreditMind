@@ -125,7 +125,12 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
         job_signals:         d.job_signals ?? null,
         consumer_signals:    d.consumer_signals ?? null,
       }));
-      dispatch({ type: "SET_PORTFOLIO", payload: deals });
+      // Only replace mock data if the API actually returned deals
+      if (deals.length > 0) {
+        dispatch({ type: "SET_PORTFOLIO", payload: deals });
+      } else {
+        dispatch({ type: "SET_LOADING", payload: false });
+      }
     } catch {
       dispatch({ type: "SET_LOADING", payload: false });
     }

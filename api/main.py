@@ -798,21 +798,46 @@ def _run_sector_monitoring():
                 _sector_scores[f"{sector_name}__detail"] = sector_state["sector_stress_detail"]
 
             # Push real signals back to each individual deal in this sector
-            sector_news   = sector_state.get("news_signals", [])[:5]
-            sector_flags  = sector_state.get("early_warning_flags", [])
+            sector_news    = sector_state.get("news_signals", [])[:5]
+            sector_flags   = sector_state.get("early_warning_flags", [])
             sector_halerts = sector_state.get("human_alerts", [])
+            sector_score   = sector_state.get("sector_risk_score", 50)
 
             for deal in deals:
                 deal_id = deal.get("deal_id")
-                if deal_id in _portfolio:
-                    _portfolio[deal_id]["news_signals"]       = sector_news
-                    _portfolio[deal_id]["early_warning_flags"] = sector_flags
-                    for alert in sector_halerts:
-                        _portfolio[deal_id]["human_alerts"].append({
-                            **alert,
-                            "alert_type": "sector",
-                            "sector_id":  sector_name,
-                        })
+                if deal_id not in _portfolio:
+                    continue
+                _portfolio[deal_id]["news_signals"]        = sector_news
+                _portfolio[deal_id]["early_warning_flags"] = sector_flags
+
+                # Replace old sector alerts instead of accumulating them
+                existing = [
+                    a for a in _portfolio[deal_id].get("human_alerts", [])
+                    if a.get("alert_type") != "sector"
+                ]
+                for alert in sector_halerts:
+                    existing.append({**alert, "alert_type": "sector", "sector_id": sector_name})
+                _portfolio[deal_id]["human_alerts"] = existing
+
+                # Recompute live_risk_score: base + sector stress adjustment + flag pressure
+                base_score = _portfolio[deal_id].get("risk_score", 50)
+                flag_adj = min(15, sum(
+                    10 if f.get("severity") == "CRITICAL" else
+                    5  if f.get("severity") == "HIGH"     else
+                    2  if f.get("severity") == "MEDIUM"   else 0
+                    for f in sector_flags[:4]
+                ))
+                sector_adj = int((sector_score - 50) * 0.4)
+                live_score = max(5, min(95, base_score + sector_adj + flag_adj))
+                _portfolio[deal_id]["live_risk_score"] = live_score
+
+                # Update loan status based on live risk score
+                if live_score >= 72:
+                    _portfolio[deal_id]["loan_status"] = "stressed"
+                elif live_score >= 55:
+                    _portfolio[deal_id]["loan_status"] = "watchlist"
+                else:
+                    _portfolio[deal_id]["loan_status"] = "current"
 
             # Tag alerts with sector metadata and unique IDs
             alerts = []
