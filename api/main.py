@@ -1190,6 +1190,124 @@ def refresh_alerts():
     }
 
 
+# ---------------------------------------------------------------------------
+# Valuation endpoints (Wave 4C)
+# ---------------------------------------------------------------------------
+
+class ValuationMarkRequest(BaseModel):
+    deal_id: str
+
+@app.post("/api/valuation/mark")
+def valuation_mark(req: ValuationMarkRequest):
+    """Run ASC 820 Level 3 fair-value mark on a single deal."""
+    from agents.valuation_agent import ValuationAgent
+    deal = _portfolio.get(req.deal_id)
+    if not deal:
+        raise HTTPException(status_code=404, detail=f"Deal {req.deal_id} not found")
+    try:
+        agent = ValuationAgent()
+        updated = agent.run(dict(deal))
+        mark = updated.get("valuation_mark", {})
+        _portfolio[req.deal_id] = updated
+        save_deal(req.deal_id, updated)
+        return {"deal_id": req.deal_id, "company": deal.get("company"), "valuation_mark": mark}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
+@app.get("/api/valuation/portfolio-marks")
+def portfolio_marks():
+    """Return current valuation marks across all portfolio deals."""
+    rows = []
+    for deal_id, deal in _portfolio.items():
+        mark = deal.get("valuation_mark")
+        rows.append({
+            "deal_id":      deal_id,
+            "company":      deal.get("company"),
+            "sector":       deal.get("sector"),
+            "rating":       deal.get("internal_rating"),
+            "loan_amount":  deal.get("loan_amount"),
+            "valuation_mark": mark,
+        })
+    return {"marks": rows, "count": len(rows)}
+
+
+@app.post("/api/valuation/inconsistency-scan")
+def inconsistency_scan():
+    """Run portfolio-wide mark consistency review (MarkInconsistencyDetector)."""
+    from agents.valuation_agent import MarkInconsistencyDetector
+    try:
+        detector = MarkInconsistencyDetector()
+        result = detector.run_on_portfolio(_portfolio)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
+# ---------------------------------------------------------------------------
+# LP Reporting endpoints (Wave 4D)
+# ---------------------------------------------------------------------------
+
+class LPReportingRequest(BaseModel):
+    fund_meta: Optional[dict] = None
+
+class LPNoticeRequest(BaseModel):
+    notice_type: str          # "capital_call" | "distribution"
+    amount: float
+    purpose: str
+    lp_roster: list
+    fund_meta: Optional[dict] = None
+
+@app.post("/api/lp-reporting/template")
+def lp_reporting_template(req: LPReportingRequest):
+    """Generate ILPA Reporting Template 2.0 quarterly LP statement."""
+    from agents.lp_reporting import LPReportingAgent
+    try:
+        agent = LPReportingAgent()
+        result = agent.generate_reporting_template(
+            portfolio=_portfolio,
+            fund_meta=req.fund_meta or {},
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
+@app.post("/api/lp-reporting/performance")
+def lp_reporting_performance(req: LPReportingRequest):
+    """Generate ILPA Performance Template (TVPI, DPI, RVPI, IRR)."""
+    from agents.lp_reporting import LPReportingAgent
+    try:
+        agent = LPReportingAgent()
+        result = agent.generate_performance_template(
+            portfolio=_portfolio,
+            fund_meta=req.fund_meta or {},
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
+@app.post("/api/lp-reporting/notice")
+def lp_reporting_notice(req: LPNoticeRequest):
+    """Generate per-LP capital call or distribution notices."""
+    from agents.lp_reporting import LPReportingAgent
+    if req.notice_type not in ("capital_call", "distribution"):
+        raise HTTPException(status_code=422, detail="notice_type must be 'capital_call' or 'distribution'")
+    try:
+        agent = LPReportingAgent()
+        result = agent.generate_notice(
+            notice_type=req.notice_type,
+            amount=req.amount,
+            purpose=req.purpose,
+            lp_roster=req.lp_roster,
+            fund_meta=req.fund_meta or {},
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
 @app.get("/api/refresh-status")
 def refresh_status():
     """Check whether a refresh is running and when the last one completed."""
