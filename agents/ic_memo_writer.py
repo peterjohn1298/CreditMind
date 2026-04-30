@@ -102,5 +102,5 @@ Structure:
 
         raw = self.run_agentic_loop(self.role, task, tools=[])
         credit_state["ic_memo"] = raw
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state

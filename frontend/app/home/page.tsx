@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
 import {
   LayoutDashboard, FileSearch, Briefcase,
-  Activity, Bell, Globe, ChevronRight,
+  Activity, Bell, Globe, Search, ChevronRight,
 } from "lucide-react";
 import { useCredit } from "@/context/CreditContext";
 
@@ -19,10 +19,19 @@ const MODULES = [
     glow: "rgba(201,168,76,0.07)",
   },
   {
+    label: "Origination",
+    href: "/origination",
+    icon: Search,
+    description: "Stage 1+2: market scout for deals, then 2-min go/no-go screening with policy check",
+    color: "#A78BFA",
+    border: "rgba(167,139,250,0.22)",
+    glow: "rgba(167,139,250,0.07)",
+  },
+  {
     label: "Underwriting",
     href: "/underwriting",
     icon: FileSearch,
-    description: "AI-powered deal origination and credit memo generation",
+    description: "Full DD pipeline, IC memo generation, term sheet, and CP tracker",
     color: "#00D4A4",
     border: "rgba(0,212,164,0.22)",
     glow: "rgba(0,212,164,0.07)",

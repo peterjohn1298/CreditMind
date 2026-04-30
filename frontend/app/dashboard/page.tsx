@@ -8,6 +8,7 @@ import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
 import SectorHeatMap from "@/components/ui/SectorHeatMap";
 import PortfolioCharts from "@/components/ui/PortfolioCharts";
+import PolicyComplianceBanner from "@/components/ui/PolicyComplianceBanner";
 import { SkeletonCard, SkeletonTable } from "@/components/ui/Skeleton";
 import { useCredit } from "@/context/CreditContext";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -33,6 +34,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Policy Compliance Banner */}
+      {!loading && <PolicyComplianceBanner />}
+
       {/* Metric Cards */}
       <div className="grid grid-cols-4 gap-4">
         {loading ? (

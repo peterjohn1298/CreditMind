@@ -2,7 +2,10 @@ import type {
   Deal, Alert, HeatMapData, SectorContagion,
   SectorForecastData, SectorImpactBrief, UnderwriteRequest,
   UnderwriteResponse, MonitorResponse, QuarterlyResponse,
-  ILPAReportingTemplate, ILPAPerformanceTemplate, LPNotice, LPRosterEntry,
+  FundCriteria, OriginationScanResponse, DealTeaserRequest, ScreeningResult,
+  ICCommitteeResponse, DocumentationResponse,
+  ClosingResponse, CPStatus, CPUpdateResponse,
+  PolicyCheckResult, PortfolioComplianceSummary,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -75,22 +78,52 @@ export const getSectorForecast = (): Promise<SectorForecastData> =>
 export const getSectorImpactBrief = (deal_id: string): Promise<SectorImpactBrief> =>
   req(`/api/sector/impact-brief/${encodeURIComponent(deal_id)}`);
 
-// ─── LP Reporting / ILPA 2.0 (Wave 4D) ───────────────────────────────────────
+// ─── Origination + Screening (Stages 1-2) ────────────────────────────────────
 
-export const generateILPAReporting = (fund_meta?: Record<string, unknown>): Promise<ILPAReportingTemplate> =>
-  req("/api/lp-reporting/template", { method: "POST", body: JSON.stringify({ fund_meta: fund_meta ?? null }) });
+export const originationScan = (criteria: FundCriteria = {}): Promise<OriginationScanResponse> =>
+  req("/api/origination-scan", { method: "POST", body: JSON.stringify(criteria) });
 
-export const generateILPAPerformance = (fund_meta?: Record<string, unknown>): Promise<ILPAPerformanceTemplate> =>
-  req("/api/lp-reporting/performance", { method: "POST", body: JSON.stringify({ fund_meta: fund_meta ?? null }) });
+export const screenDeal = (teaser: DealTeaserRequest): Promise<ScreeningResult> =>
+  req("/api/screen-deal", { method: "POST", body: JSON.stringify(teaser) });
 
-export const generateLPNotice = (
-  notice_type: "capital_call" | "distribution",
-  amount: number,
-  purpose: string,
-  lp_roster: LPRosterEntry[],
-  fund_meta?: Record<string, unknown>,
-): Promise<LPNotice> =>
-  req("/api/lp-reporting/notice", {
-    method: "POST",
-    body: JSON.stringify({ notice_type, amount, purpose, lp_roster, fund_meta: fund_meta ?? null }),
+// ─── IC Committee (Stage 4) ──────────────────────────────────────────────────
+
+export const runICCommittee = (deal_id: string): Promise<ICCommitteeResponse> =>
+  req("/api/ic-committee", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+// ─── Documentation (Stage 5) ─────────────────────────────────────────────────
+
+export const generateDocs = (deal_id: string): Promise<DocumentationResponse> =>
+  req("/api/generate-docs", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+// ─── Closing (Stage 6) ───────────────────────────────────────────────────────
+
+export const generateClosingChecklist = (deal_id: string): Promise<ClosingResponse> =>
+  req("/api/closing-checklist", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+export const updateCPStatus = (
+  deal_id: string,
+  cp_index: number,
+  status: CPStatus,
+  notes = ""
+): Promise<CPUpdateResponse> => {
+  const params = new URLSearchParams({
+    cp_index: String(cp_index),
+    status,
+    notes,
   });
+  return req(`/api/closing-checklist/${encodeURIComponent(deal_id)}/cp?${params.toString()}`, {
+    method: "PATCH",
+  });
+};
+
+// ─── Credit Policy ───────────────────────────────────────────────────────────
+
+export const getPortfolioCompliance = (): Promise<PortfolioComplianceSummary> =>
+  req("/api/policy/portfolio-compliance");
+
+export const checkDealPolicy = (teaser: DealTeaserRequest): Promise<PolicyCheckResult> =>
+  req("/api/policy/check-deal", { method: "POST", body: JSON.stringify(teaser) });
+
+export const getWatchList = (): Promise<{ watch_list: Array<{ company: string; reason: string; severity: string }> }> =>
+  req("/api/policy/watch-list");

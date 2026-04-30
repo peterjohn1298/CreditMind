@@ -57,23 +57,27 @@ Fetch macro snapshot to get current SOFR / benchmark rates.
 Build the credit model using CONSERVATIVE adjusted EBITDA.
 Show all calculations explicitly.
 
+CITATION GUIDE — for every cited field use this structure:
+  {{"value": <number>, "confidence": "HIGH | MEDIUM | LOW", "source_page": <int or null>, "source_quote": "<verbatim excerpt, max 120 chars, or null>"}}
+  confidence: HIGH = explicitly stated in source | MEDIUM = calculated from stated values | LOW = estimated
+
 Return JSON credit model:
 {{
-  "ebitda_used": null,
+  "ebitda_used": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
   "ebitda_basis": "conservative | base | management_case",
-  "existing_debt": null,
+  "existing_debt": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
   "proposed_debt": null,
-  "pro_forma_total_debt": null,
+  "pro_forma_total_debt": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
   "leverage_metrics": {{
-    "total_leverage": null,
+    "total_leverage": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "senior_leverage": null,
-    "net_leverage": null,
+    "net_leverage": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "leverage_assessment": "CONSERVATIVE (<4x) | MODERATE (4-5x) | ELEVATED (5-6x) | HIGH (>6x)"
   }},
   "coverage_metrics": {{
-    "interest_coverage": null,
+    "interest_coverage": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "fccr": null,
-    "dscr": null,
+    "dscr": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "coverage_assessment": "STRONG (>2.5x) | ADEQUATE (1.75-2.5x) | TIGHT (1.25-1.75x) | INSUFFICIENT (<1.25x)"
   }},
   "cash_flow_metrics": {{
@@ -95,7 +99,9 @@ Return JSON credit model:
 }}
 """
 
-        result = self.run_agentic_loop_json(self.role, task, tools=[GET_MACRO_SNAPSHOT])
+        result = self.run_agentic_loop_json_validated(
+            self.role, task, tools=[GET_MACRO_SNAPSHOT], credit_state=credit_state
+        )
         credit_state["credit_model"] = result
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state
