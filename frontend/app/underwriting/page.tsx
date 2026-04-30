@@ -144,6 +144,37 @@ const DEMO_REJECT: FormState = {
   notes: "Management team assembled 18 months ago following prior CEO departure. Turnaround plan unproven. Sponsor has invested $60M equity (9.7% of EV) — limited alignment.",
 };
 
+// Full-capability demo — PE-backed behavioral health mezzanine, hits every agent and tool
+const DEMO_MEZZ: FormState = {
+  // Step 1
+  company: "Atlas Health Partners", ticker: "", sponsor: "Warburg Pincus",
+  sector: "Healthcare", jurisdiction: "Delaware, USA",
+  description: "Atlas Health Partners is a PE-backed behavioral health platform operating 87 outpatient treatment centers across 14 US states, specializing in substance-use disorder, anxiety, and depression care. The company has grown via acquisition from 12 to 87 locations since 2021. Revenue is 61% government-payor (Medicaid/Medicare) and 39% commercial insurance. The proposed $75M mezzanine tranche finances the add-on acquisition of PeakCare Clinics (14 locations, $38M revenue), which has not yet been integrated.",
+
+  // Step 2
+  facility: "Mezzanine", total_facility: "75", loan_amount: "75",
+  tenor: "6", purpose: "Add-on Acquisition",
+  pricing_spread: "850", oid: "97.0",
+  call_protection: "Non-Call 2 Years", expected_close: "2026-07-31",
+
+  // Step 3
+  revenue_ltm: "185", ebitda_ltm: "31", adj_ebitda_ltm: "40",
+  revenue_growth: "22", capex: "8", fcf: "14",
+  total_debt_proforma: "248", equity_contribution: "72", enterprise_value: "320",
+
+  // Step 4
+  first_lien: "165", second_lien: "0", revolver: "25",
+  leverage_covenant: "7.5", icr_covenant: "1.8",
+  min_liquidity: "15", capex_limit: "12",
+
+  // Step 5
+  customer_concentration: "18", recurring_revenue: "74",
+  management_tenure: "4", backlog: "",
+  key_risks: "1. Medicaid/Medicare reimbursement rate risk — 61% of revenue from government payors subject to annual rate resets\n2. EBITDA add-backs: $9M of $40M adjusted EBITDA labeled non-recurring includes $4.5M in recurring integration costs — quality of earnings concern\n3. Therapist turnover 34% annually — hiring pipeline is primary operational constraint; job signal monitoring critical\n4. Regulatory: 3 state billing compliance audits pending across TX, FL, OH — outcome and liability unknown\n5. Pro forma leverage 7.8x — exceeds fund mezzanine covenant of 7.5x at close\n6. PeakCare integration unproven — Day 1 synergies of $5.2M assumed in management EBITDA before integration begins",
+  esg_flags: "Social / labour issues",
+  notes: "Yelp consumer signal and job posting monitoring recommended given physical clinic footprint across 14 states. Management EBITDA vs. QoE conservative EBITDA divergence of $9M expected to trigger EBITDA harness re-run. ESG enhanced due diligence required given Medicaid billing audit exposure and patient-care labour practices. IC checkpoint conditions expected around billing audit resolution and integration milestones.",
+};
+
 const BLANK: FormState = {
   company: "", ticker: "", sponsor: "", sector: "", jurisdiction: "Delaware, USA", description: "",
   facility: "First Lien Term Loan B", total_facility: "", loan_amount: "", tenor: "6",
@@ -951,6 +982,7 @@ export default function Underwriting() {
 
   const isDemo       = form.company === DEMO.company;
   const isDemoReject = form.company === DEMO_REJECT.company;
+  const isDemoMezz   = form.company === DEMO_MEZZ.company;
 
   function set(k: keyof FormState, v: string) {
     setFormState(prev => ({ ...prev, [k]: v }));
@@ -1248,7 +1280,16 @@ export default function Underwriting() {
                 )}>
                 <XCircle size={10} /> Rejection Demo
               </button>
-              {(isDemo || isDemoReject) && (
+              <button onClick={() => loadDemo(DEMO_MEZZ)}
+                className={cn(
+                  "flex items-center gap-1.5 border rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all",
+                  isDemoMezz
+                    ? "bg-purple-500/10 border-purple-500/30 text-purple-400"
+                    : "bg-purple-500/[0.06] border-purple-500/20 text-purple-400/70 hover:bg-purple-500/10 hover:text-purple-400"
+                )}>
+                <Layers size={10} /> Full-Capability Demo
+              </button>
+              {(isDemo || isDemoReject || isDemoMezz) && (
                 <button onClick={clearDemo}
                   className="text-muted text-[10px] px-2 py-1.5 hover:text-primary transition-colors">
                   Clear
