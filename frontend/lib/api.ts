@@ -6,6 +6,10 @@ import type {
   ICCommitteeResponse, DocumentationResponse,
   ClosingResponse, CPStatus, CPUpdateResponse,
   PolicyCheckResult, PortfolioComplianceSummary,
+  VintageCohortsResponse, CorrelationResponse, SponsorBehaviorResponse,
+  KYCAMLScreen, ESGScreen,
+  ValuationMark, PortfolioMarksResponse, InconsistencyScanResponse,
+  ILPAReportingTemplate, ILPAPerformanceTemplate, LPNotice, LPRosterEntry,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -127,3 +131,57 @@ export const checkDealPolicy = (teaser: DealTeaserRequest): Promise<PolicyCheckR
 
 export const getWatchList = (): Promise<{ watch_list: Array<{ company: string; reason: string; severity: string }> }> =>
   req("/api/policy/watch-list");
+
+// ─── Portfolio Analytics (Wave 3) ────────────────────────────────────────────
+
+export const getVintageCohorts = (): Promise<VintageCohortsResponse> =>
+  req("/api/portfolio/vintage-cohorts");
+
+export const getPortfolioCorrelation = (focus_deal_id?: string): Promise<CorrelationResponse> => {
+  const qs = focus_deal_id ? `?focus_deal_id=${encodeURIComponent(focus_deal_id)}` : "";
+  return req(`/api/portfolio/correlation${qs}`);
+};
+
+export const getSponsorBehavior = (): Promise<SponsorBehaviorResponse> =>
+  req("/api/portfolio/sponsor-behavior");
+
+// ─── KYC / AML / Sanctions (Wave 4A) ─────────────────────────────────────────
+
+export const runKYCScreen = (deal_id: string): Promise<KYCAMLScreen> =>
+  req("/api/kyc-screen", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+// ─── ESG Screening (Wave 4B) ─────────────────────────────────────────────────
+
+export const runESGScreen = (deal_id: string): Promise<ESGScreen> =>
+  req("/api/esg-screen", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+// ─── Valuation + Mark Inconsistency (Wave 4C) ────────────────────────────────
+
+export const runValuationMark = (deal_id: string): Promise<ValuationMark> =>
+  req("/api/valuation/mark", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+export const getPortfolioMarks = (): Promise<PortfolioMarksResponse> =>
+  req("/api/valuation/portfolio-marks");
+
+export const runInconsistencyScan = (): Promise<InconsistencyScanResponse> =>
+  req("/api/valuation/inconsistency-scan", { method: "POST" });
+
+// ─── LP Reporting / ILPA 2.0 (Wave 4D) ───────────────────────────────────────
+
+export const generateILPAReporting = (fund_meta?: Record<string, unknown>): Promise<ILPAReportingTemplate> =>
+  req("/api/lp-reporting/template", { method: "POST", body: JSON.stringify({ fund_meta: fund_meta ?? null }) });
+
+export const generateILPAPerformance = (fund_meta?: Record<string, unknown>): Promise<ILPAPerformanceTemplate> =>
+  req("/api/lp-reporting/performance", { method: "POST", body: JSON.stringify({ fund_meta: fund_meta ?? null }) });
+
+export const generateLPNotice = (
+  notice_type: "capital_call" | "distribution",
+  amount: number,
+  purpose: string,
+  lp_roster: LPRosterEntry[],
+  fund_meta?: Record<string, unknown>,
+): Promise<LPNotice> =>
+  req("/api/lp-reporting/notice", {
+    method: "POST",
+    body: JSON.stringify({ notice_type, amount, purpose, lp_roster, fund_meta: fund_meta ?? null }),
+  });
