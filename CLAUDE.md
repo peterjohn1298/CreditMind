@@ -46,7 +46,7 @@ CP status updates via `PATCH /api/closing-checklist/{deal_id}/cp`.
 
 ### Orchestration Flow
 `core/orchestrator.py` has three orchestrators:
-- **`DueDiligenceOrchestrator`** — Wave 1 (4 agents, parallel via `core/parallel_runner.py`) → Wave 2 (4 agents, sequential) → IC Memo. Dynamic routing: no docs → abort; DISTRESSED health → fast-track; risk_score ≥ 75 → auto-reject; covenant breach → skip rating reviewer.
+- **`DueDiligenceOrchestrator`** — Wave 1 (parallel) → Wave 2 (sequential) → Specialist → Underwriter → Wave 3 (ESG + KYC/AML parallel, hard gates) → Valuation → IC Memo. Dynamic routing: no docs → abort; DISTRESSED health → fast-track; risk_score ≥ threshold → auto-reject; ESG/KYC REJECT → abort before IC; covenant breach → skip rating reviewer.
 - **`DailyMonitoringOrchestrator`** — News + Sentiment + EarlyWarning in parallel per deal.
 - **`QuarterlyReviewOrchestrator`** — PortfolioMonitor → CovenantCompliance → RatingReviewer sequentially.
 
