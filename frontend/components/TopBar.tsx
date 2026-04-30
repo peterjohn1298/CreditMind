@@ -11,6 +11,7 @@ const TITLES: Record<string, string> = {
   "/portfolio":           "Portfolio",
   "/monitoring":          "Monitoring",
   "/lp-reporting":        "LP Reporting",
+  "/harness":             "Harness — Regulatory Compliance Layer",
   "/alerts":              "Alert Center",
   "/sector-intelligence": "Sector Intelligence Hub",
   "/deal":                "Deal Detail",

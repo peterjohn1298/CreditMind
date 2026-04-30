@@ -5,7 +5,7 @@ import { motion, type Variants } from "framer-motion";
 import {
   LayoutDashboard, FileSearch, Briefcase,
   Activity, Bell, Globe, Search, ChevronRight,
-  Calculator, FileText,
+  Calculator, FileText, Shield,
 } from "lucide-react";
 import { useCredit } from "@/context/CreditContext";
 
@@ -73,6 +73,15 @@ const MODULES = [
     color: "#00B4D8",
     border: "rgba(0,180,216,0.22)",
     glow: "rgba(0,180,216,0.07)",
+  },
+  {
+    label: "Harness",
+    href: "/harness",
+    icon: Shield,
+    description: "Regulator-grade audit layer — 5 pillars, per-agent trail, kill switch, SR 11-7 / EU AI Act ready",
+    color: "#22D3EE",
+    border: "rgba(34,211,238,0.22)",
+    glow: "rgba(34,211,238,0.07)",
   },
   {
     label: "Valuation",
