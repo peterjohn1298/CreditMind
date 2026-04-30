@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from "react";
 import type { Deal, Alert, HeatMapData } from "@/lib/types";
-import { MOCK_DEALS, MOCK_ALERTS, MOCK_HEAT_MAP } from "@/lib/mock";
+import { MOCK_DEALS, MOCK_HEAT_MAP } from "@/lib/mock";
 
 interface CreditState {
   portfolio: Deal[];
@@ -140,9 +140,9 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     try {
       const { getAlerts } = await import("@/lib/api");
       const data = await getAlerts();
-      // Always replace when API responds — empty means monitoring hasn't produced alerts yet,
+      // Always replace when API responds — empty array means monitoring hasn't produced alerts yet,
       // not that we should fall back to mock data
-      if (data.alerts !== undefined) {
+      if (Array.isArray(data.alerts)) {
         dispatch({ type: "SET_ALERTS", payload: data.alerts });
       }
     } catch {
@@ -183,11 +183,11 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
         }
       }, 5000);
 
-      // Safety cap — stop polling after 3 minutes
+      // Safety cap — 11 sectors × (API call ~10s + 12s sleep) ≈ 4–5 min max
       setTimeout(() => {
         clearInterval(poll);
         dispatch({ type: "SET_REFRESHING", payload: false });
-      }, 180_000);
+      }, 360_000);
     } catch {
       dispatch({ type: "SET_REFRESHING", payload: false });
     }
