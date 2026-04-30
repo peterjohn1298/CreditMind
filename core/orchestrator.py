@@ -2,9 +2,13 @@
 Orchestrator — manages the full credit lifecycle with dynamic routing.
 
 Due Diligence:
-  Wave 1 (parallel): Financial, EBITDA, Commercial, Legal analysts
+  Wave 1 (parallel): Financial, EBITDA, Commercial, Legal analysts + Industry Benchmarker
   Wave 2 (sequential): Credit Modeler, Stress Tester, Risk Scorer, Covenant Designer
-  Output: IC Memo Writer
+  Specialist: loan-type analyst (Growth Capital, Mezz, Project Finance, etc.)
+  Underwriter: final serviceability synthesis
+  Wave 3 (parallel): ESG Screening + KYC/AML — hard go/no-go gates
+  Valuation: ASC 820 Level 3 fair value mark
+  Output: IC Memo Writer → status = IC_REVIEW
 
 Post-Disbursement Daily:
   Parallel across portfolio: News, Sentiment, Early Warning
@@ -14,8 +18,10 @@ Post-Disbursement Quarterly:
 
 Dynamic routing:
   - No documents uploaded → abort with clear error
-  - DISTRESSED financial health → skip commercial, fast-track to risk scoring
-  - Risk score >= 75 → auto-reject, skip covenant design
+  - DISTRESSED financial health → fast-track to risk scoring
+  - Risk score >= threshold → auto-reject, skip covenant design
+  - ESG verdict REJECT → abort before IC (status = ESG_REJECTED)
+  - KYC/AML verdict REJECT → abort before IC (status = KYC_REJECTED)
   - Covenant breach → skip rating reviewer (already escalated)
 """
 
@@ -52,6 +58,10 @@ from agents.borrowing_base_analyst import BorrowingBaseAnalystAgent
 from agents.bridge_exit_analyst import BridgeExitAnalystAgent
 from agents.distressed_analyst import DistressedAnalystAgent
 from agents.project_finance_analyst import ProjectFinanceAnalystAgent
+
+from agents.esg_screening import ESGScreeningAgent
+from agents.kyc_aml import KYCAMLAgent
+from agents.valuation_agent import ValuationAgent
 
 from core.loan_types import (
     get_config, normalize_loan_type,
@@ -356,6 +366,43 @@ class DueDiligenceOrchestrator:
         add_routing_note(credit_state, "Running credit underwriter: final serviceability synthesis")
         credit_state = underwriter.run(credit_state)
         _complete(underwriter.name, credit_state)
+
+        # ============================================================
+        # WAVE 3 — COMPLIANCE GATES (parallel)
+        # ESG + KYC/AML run in parallel. Both are hard go/no-go gates.
+        # REJECT from either aborts the pipeline before IC.
+        # ============================================================
+        add_routing_note(credit_state, "Wave 3: running ESG screening and KYC/AML in parallel")
+        wave3_agents = [ESGScreeningAgent(), KYCAMLAgent()]
+        credit_state = run_parallel_wave(wave3_agents, credit_state, on_agent_complete)
+
+        esg_verdict = (credit_state.get("esg_screening") or {}).get("overall_verdict", "")
+        kyc_verdict = (credit_state.get("kyc_aml") or {}).get("overall_verdict", "")
+
+        if esg_verdict == "REJECT":
+            add_routing_note(credit_state, "Pipeline aborted: ESG screening returned REJECT.")
+            credit_state["status"] = "ESG_REJECTED"
+            return credit_state
+
+        if kyc_verdict == "REJECT":
+            add_routing_note(credit_state, "Pipeline aborted: KYC/AML screening returned REJECT.")
+            credit_state["status"] = "KYC_REJECTED"
+            return credit_state
+
+        # Proceed with conditions if escalation required — alerts already created by agents
+        if esg_verdict == "EDD_REQUIRED":
+            add_routing_note(credit_state, "ESG enhanced due diligence required — proceeding to IC with flag.")
+        if kyc_verdict == "ESCALATE_TO_AML_OFFICER":
+            add_routing_note(credit_state, "KYC/AML escalation required — proceeding to IC with flag.")
+
+        # ============================================================
+        # VALUATION — ASC 820 Level 3 mark
+        # Runs after compliance gates so IC has fair value at review.
+        # ============================================================
+        valuation_agent = ValuationAgent()
+        add_routing_note(credit_state, "Running valuation agent: ASC 820 Level 3 fair value mark")
+        credit_state = valuation_agent.run(credit_state)
+        _complete(valuation_agent.name, credit_state)
 
         # ============================================================
         # OUTPUT: IC Memo
