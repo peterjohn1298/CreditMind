@@ -1151,7 +1151,7 @@ def portfolio_compliance():
     """Portfolio-level policy compliance dashboard — concentration limits, watch list."""
     try:
         from core.credit_policy import summarize_portfolio_vs_policy
-        return summarize_portfolio_vs_policy(_portfolio)
+        return summarize_portfolio_vs_policy(_portfolio, fund_size=8_000_000_000)
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": str(e)})
 

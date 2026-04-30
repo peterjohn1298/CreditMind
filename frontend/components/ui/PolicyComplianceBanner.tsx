@@ -59,7 +59,7 @@ export default function PolicyComplianceBanner() {
             </div>
             <p className="text-muted text-[11px] mt-0.5">
               {data.total_deals} deals · {formatCurrency(data.total_deployed_usd ?? 0)} deployed ·{" "}
-              {data.deployment_pct?.toFixed(1)}% of $1B mandate
+              {data.deployment_pct?.toFixed(1)}% of $8B mandate
               {data.watch_list_count > 0 && (
                 <>
                   {" · "}
