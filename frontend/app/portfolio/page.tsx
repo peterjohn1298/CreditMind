@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 import Select from "@/components/ui/Select";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
-import PortfolioAnalyticsPanel from "@/components/ui/PortfolioAnalyticsPanel";
+import PolicyComplianceBanner from "@/components/ui/PolicyComplianceBanner";
 import { useCredit } from "@/context/CreditContext";
 import { formatCurrency, formatDate, getRiskColor, cn } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
@@ -27,10 +27,10 @@ export default function Portfolio() {
   );
 
   return (
-    <div className="space-y-6">
     <div className="flex gap-6 h-full">
       {/* Main table */}
       <div className="flex-1 min-w-0 space-y-4">
+        <PolicyComplianceBanner />
         {/* Filters */}
         <div className="flex gap-3">
           <Select value={sector} onChange={setSector} options={SECTORS} className="w-52" />
@@ -183,10 +183,6 @@ export default function Portfolio() {
           </div>
         </div>
       )}
-    </div>
-
-    {/* Portfolio Analytics — Wave 3 */}
-    <PortfolioAnalyticsPanel />
     </div>
   );
 }

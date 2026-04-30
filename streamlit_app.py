@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from core.orchestrator import run_due_diligence, DailyMonitoringOrchestrator, QuarterlyReviewOrchestrator
-from core.document_processor import extract_financials, extract_qoe, extract_cim, extract_legal
+from core.document_processor import extract_financials, extract_qoe, extract_cim, extract_legal, extract_full_text
 from core.portfolio_store import (
     add_deal, update_deal, get_deal, get_all_deals,
     get_active_deals, get_portfolio_summary, get_all_alerts, resolve_alert,
@@ -145,19 +145,28 @@ with tab1:
             # Extract documents
             status_text.markdown("**Extracting documents...**")
             documents = {}
+            documents_raw = {}
             try:
                 if fin_file:
                     with st.spinner("Reading financial statements..."):
-                        documents["financials"] = extract_financials(fin_file.read())
+                        fin_bytes = fin_file.read()
+                        documents["financials"] = extract_financials(fin_bytes)
+                        documents_raw["financials"] = extract_full_text(fin_bytes)
                 if qoe_file:
                     with st.spinner("Reading QoE report..."):
-                        documents["qoe"] = extract_qoe(qoe_file.read())
+                        qoe_bytes = qoe_file.read()
+                        documents["qoe"] = extract_qoe(qoe_bytes)
+                        documents_raw["qoe"] = extract_full_text(qoe_bytes)
                 if cim_file:
                     with st.spinner("Reading CIM..."):
-                        documents["cim"] = extract_cim(cim_file.read())
+                        cim_bytes = cim_file.read()
+                        documents["cim"] = extract_cim(cim_bytes)
+                        documents_raw["cim"] = extract_full_text(cim_bytes)
                 if legal_file:
                     with st.spinner("Reading legal DD..."):
-                        documents["legal"] = extract_legal(legal_file.read())
+                        legal_bytes = legal_file.read()
+                        documents["legal"] = extract_legal(legal_bytes)
+                        documents_raw["legal"] = extract_full_text(legal_bytes)
             except Exception as e:
                 st.error(f"Document extraction error: {e}")
                 st.stop()
@@ -172,6 +181,7 @@ with tab1:
                     loan_tenor=loan_tenor,
                     loan_type=loan_type,
                     documents=documents,
+                    documents_raw=documents_raw,
                     sponsor=sponsor if sponsor else None,
                     deal_type=deal_type,
                     on_agent_complete=on_complete,

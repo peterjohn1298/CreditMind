@@ -135,6 +135,11 @@ def _extract(pdf_bytes: bytes, prompt: str, financial_mode: bool = False) -> dic
         return {"raw_response": raw, "parse_error": True}
 
 
+def extract_full_text(pdf_bytes: bytes) -> str:
+    """Return the full extracted text of a PDF with no truncation — used for indexing."""
+    return _extract_text_from_pdf(pdf_bytes)
+
+
 def extract_financials(pdf_bytes: bytes) -> dict:
     """
     Extract 3-year income statement, balance sheet, and cash flow
