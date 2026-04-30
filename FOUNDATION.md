@@ -179,6 +179,53 @@ All endpoints return JSON. Authentication: not implemented in V1 (internal demo 
 
 ---
 
+## Week 6 Architecture Roadmap — Agentic RAG
+
+### Problem: 10-K Truncation
+
+Wave 1 agents currently receive a truncated document window. Large 10-Ks and CIMs are cut off mid-document, meaning sections like MD&A, risk factors, and footnotes are silently dropped before an agent ever reads them. This is the primary limit on analysis depth.
+
+### Target Architecture: Section-Indexed Retrieval
+
+The Week 6 architecture replaces the truncated window with **agentic RAG** (Retrieval-Augmented Generation):
+
+```
+CURRENT (truncated window):
+  Document → clip to N chars → agent receives single flat blob
+
+WEEK 6 (agentic RAG):
+  Document → section parser → vector index (MD&A, Risk Factors, Financials, Notes, ...)
+                                     ↓
+  Each Wave 1 agent issues targeted retrieval queries
+  against the index for the sections it needs:
+    Financial Analyst   → "income statement", "cash flow", "debt schedule"
+    EBITDA Analyst      → "EBITDA", "add-backs", "non-recurring items"
+    Legal Analyst       → "litigation", "covenant", "material contracts"
+    Commercial Analyst  → "market position", "competition", "growth strategy"
+```
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|---|---|
+| Index at **section level**, not page level | Sections map to agent responsibilities — Financial Analyst should not retrieve MD&A prose when it needs the income statement |
+| Each Wave 1 agent issues its **own retrieval queries** | Agents know what they need; centralized retrieval misses agent-specific context |
+| Retrieval integrated into the **agentic tool loop** | Agents call a `RETRIEVE_DOCUMENT_SECTION` tool alongside existing tools — no change to orchestrator |
+| Fallback to full-text for short documents | Documents under ~20 pages do not need indexing — current flat window remains as fallback |
+
+### Implementation Sketch
+
+1. `core/document_indexer.py` — parse uploaded PDF into named sections; embed with a lightweight model; store in an in-memory vector store (e.g. FAISS or ChromaDB)
+2. New tool: `RETRIEVE_DOCUMENT_SECTION(query: str, top_k: int)` — returns the top-k most relevant chunks for a query
+3. Add `RETRIEVE_DOCUMENT_SECTION` to Wave 1 agent tool sets in `core/tools.py`
+4. Agent prompts updated to call retrieval before analysis rather than reading a pre-injected blob
+
+### Status
+
+Not yet implemented. Planned for Week 6 following final submission. The current truncated-window approach is adequate for the prototype demo but will be replaced before production use with multi-hundred-page credit agreements.
+
+---
+
 ## Team Assignments
 
 | Team Member | Role | Owns |

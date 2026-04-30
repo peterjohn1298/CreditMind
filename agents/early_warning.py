@@ -262,7 +262,7 @@ Produce structured JSON early warning assessment:
                 action_required=result.get("early_warning_summary", "Immediate review required."),
             )
 
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state
 
     def run_sector(self, sector_state: dict) -> dict:

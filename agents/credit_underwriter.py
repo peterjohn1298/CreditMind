@@ -81,5 +81,5 @@ Produce structured JSON underwriting assessment:
 
         result = self.run_agentic_loop_json(self.role, task, UNDERWRITER_TOOLS)
         credit_state["underwriting_metrics"] = result
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state

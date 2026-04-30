@@ -13,6 +13,7 @@ import AgentProgress from "@/components/ui/AgentProgress";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
 import TypewriterText from "@/components/ui/TypewriterText";
+import AddBackForensicsPanel from "@/components/ui/AddBackForensicsPanel";
 import type { AgentStatus } from "@/lib/types";
 import { underwrite } from "@/lib/api";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -934,6 +935,8 @@ export default function Underwriting() {
     memo_sections: Record<string, string>; company: string;
     scorecard?: Record<string, { score: string; weight: string; notes: string }>;
     key_risk_drivers?: string[]; mitigating_factors?: string[];
+    ebitda_analysis?: import("@/lib/types").EBITDAAnalysis;
+    deal_id?: string;
   } | null>(null);
 
   // Upload state
@@ -1070,6 +1073,8 @@ export default function Underwriting() {
         scorecard:          res.risk_assessment?.scorecard,
         key_risk_drivers:   res.risk_assessment?.key_risk_drivers,
         mitigating_factors: res.risk_assessment?.mitigating_factors,
+        ebitda_analysis:    res.ebitda_analysis,
+        deal_id:            res.deal_id,
       });
     } catch {
       const isRejectCase = form.company === DEMO_REJECT.company;
@@ -1083,6 +1088,34 @@ export default function Underwriting() {
       if (isRejectCase) {
         setResult({
           risk_score: 81, rating: "CCC+", approval: "REJECT", company: form.company,
+          ebitda_analysis: {
+            reported_ebitda: 58_000_000,
+            add_back_analysis: [
+              { name: "Restructuring charges (3-yr recurring)", amount: 8_500_000, category: "one_time_cost",
+                verdict: "REJECT",       rationale: "Restructuring expense has appeared in FY22, FY23, and FY24 — recurring cost mislabeled as one-time.", adjusted_amount: 0 },
+              { name: "Pro-forma store closure savings",         amount: 4_200_000, category: "pro_forma",
+                verdict: "REJECT",       rationale: "Closures not yet executed; speculative future savings cannot be added back.",                       adjusted_amount: 0 },
+              { name: "ERP transformation savings",              amount: 3_800_000, category: "synergy",
+                verdict: "QUESTIONABLE", rationale: "ERP project ongoing; savings unrealized at LTM date.",                                              adjusted_amount: 1_900_000 },
+              { name: "Sponsor management fees",                 amount: 1_200_000, category: "management_fee",
+                verdict: "SUPPORTABLE",  rationale: "Standard PE management fee elimination, well-documented.",                                          adjusted_amount: 1_200_000 },
+              { name: "Stock-based compensation",                amount: 2_100_000, category: "other",
+                verdict: "QUESTIONABLE", rationale: "Recurring SBC — many credit funds reject SBC add-back. Treat as cash cost.",                       adjusted_amount: 0 },
+            ],
+            total_supportable_adjustments:  1_200_000,
+            total_questionable_adjustments: 5_900_000,
+            total_rejected_adjustments:     12_700_000,
+            conservative_adjusted_ebitda:   59_200_000,
+            base_adjusted_ebitda:           65_100_000,
+            adjustment_quality_score:       "LOW",
+            adjustment_as_pct_of_reported:  34.5,
+            key_concerns: [
+              "Restructuring charges appear in three consecutive years — they are recurring, not one-time",
+              "Pro-forma store-closure savings represent ~7% of marketed EBITDA but no closures executed",
+              "Total adjustments at 34.5% of reported EBITDA exceed the S&P 2024 average of 29% — aggressive QoE",
+            ],
+            ebitda_conclusion: "EBITDA quality is LOW. Conservative EBITDA of $59.2M — barely above reported — is the only defensible figure. Build the credit model on $59M, not the marketed $76.7M. The $17.6M gap represents the aggressive add-back risk.",
+          },
           recommendation: "Application REJECTED. Three hard policy fails: (1) leverage 9.2x breaches 6.5x covenant at close; (2) negative free cash flow −$8M cannot service debt; (3) revenue declining −18% YoY with no credible turnaround plan. Structural e-commerce disruption is secular, not cyclical. Sponsor equity at 9.7% of EV provides inadequate loss absorption. Recommend declining and returning application.",
           scorecard: {
             financial_quality: { score: "1", weight: "20%", notes: "Revenue −18% YoY · FCF −$8M · EBITDA margin 7.8% — all below policy minimums" },
@@ -1116,6 +1149,31 @@ export default function Underwriting() {
         setResult({
           risk_score: 55, rating: "BB-", approval: "CONDITIONAL", company: form.company,
           recommendation: "Conditional approval recommended. Proceed subject to final legal review and sponsor equity confirmation.",
+          ebitda_analysis: {
+            reported_ebitda: form.ebitda_ltm ? parseFloat(form.ebitda_ltm) * 1_000_000 : 42_000_000,
+            add_back_analysis: [
+              { name: "Litigation settlement (one-time)", amount: 1_500_000, category: "one_time_cost",
+                verdict: "SUPPORTABLE", rationale: "Settled prior-period customer dispute, well-documented and non-recurring.", adjusted_amount: 1_500_000 },
+              { name: "Sponsor management fees",          amount:   900_000, category: "management_fee",
+                verdict: "SUPPORTABLE", rationale: "Standard PE management fee elimination per term sheet.", adjusted_amount: 900_000 },
+              { name: "ERP transition expense",           amount: 1_200_000, category: "one_time_cost",
+                verdict: "QUESTIONABLE", rationale: "ERP rollout extends 18 months; some cost is recurring license fees.", adjusted_amount: 600_000 },
+              { name: "Pro-forma facility consolidation savings", amount: 800_000, category: "pro_forma",
+                verdict: "QUESTIONABLE", rationale: "Consolidation announced but not yet executed; haircut to 50%.", adjusted_amount: 400_000 },
+            ],
+            total_supportable_adjustments:  2_400_000,
+            total_questionable_adjustments: 2_000_000,
+            total_rejected_adjustments:     0,
+            conservative_adjusted_ebitda:   (form.ebitda_ltm ? parseFloat(form.ebitda_ltm) * 1_000_000 : 42_000_000) + 2_400_000,
+            base_adjusted_ebitda:           (form.ebitda_ltm ? parseFloat(form.ebitda_ltm) * 1_000_000 : 42_000_000) + 4_400_000,
+            adjustment_quality_score:       "MEDIUM",
+            adjustment_as_pct_of_reported:  10.5,
+            key_concerns: [
+              "Pro-forma savings should be tracked quarterly post-close to verify realization",
+              "Two questionable add-backs flagged — credit-model EBITDA uses conservative figure only",
+            ],
+            ebitda_conclusion: "EBITDA quality is MEDIUM. Use conservative EBITDA for leverage and coverage covenants. Adjustments at 10.5% of reported are well below the S&P 29% benchmark — this is a clean QoE.",
+          },
           scorecard: {
             financial_quality: { score: "3", weight: "20%", notes: `Revenue $${form.revenue_ltm}M · EBITDA $${form.ebitda_ltm}M · Margin ${margin ? margin.toFixed(1) + "%" : "—"}` },
             ebitda_quality:    { score: "3", weight: "20%", notes: form.adj_ebitda_ltm ? `Adj. EBITDA $${form.adj_ebitda_ltm}M — add-backs subject to QoE verification` : "EBITDA quality to be confirmed via QoE" },
@@ -1468,6 +1526,9 @@ export default function Underwriting() {
                 </div>
               )}
             </div>
+
+            {/* EBITDA Add-back Forensics */}
+            {result.ebitda_analysis && <AddBackForensicsPanel analysis={result.ebitda_analysis} />}
 
             {/* IC Memo Accordion */}
             {Object.keys(result.memo_sections).length > 0 && (
