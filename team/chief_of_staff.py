@@ -202,8 +202,13 @@ def main():
     pr_number = int(os.getenv("PR_NUMBER", "0"))
     repo = os.getenv("GITHUB_REPOSITORY", "")
     github_token = os.getenv("GITHUB_TOKEN", "")
-    changed_files_raw = os.getenv("CHANGED_FILES", "")
-    changed_files = [f.strip() for f in changed_files_raw.splitlines() if f.strip()]
+    changed_files_path = os.getenv("CHANGED_FILES_PATH", "")
+    if changed_files_path and os.path.exists(changed_files_path):
+        with open(changed_files_path) as f:
+            changed_files = [l.strip() for l in f if l.strip()]
+    else:
+        changed_files_raw = os.getenv("CHANGED_FILES", "")
+        changed_files = [f.strip() for f in changed_files_raw.splitlines() if f.strip()]
 
     try:
         result = subprocess.run(

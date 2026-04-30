@@ -29,14 +29,8 @@ jobs:
       - name: Install dependencies
         run: pip install anthropic requests
 
-      - name: Get changed files
-        run: |
-          DELIM="CREDITMIND_$(openssl rand -hex 8)"
-          {
-            echo "CHANGED_FILES<<$DELIM"
-            git diff --name-only origin/master...HEAD
-            echo "$DELIM"
-          } >> "$GITHUB_ENV"
+      - name: Write changed files to temp file
+        run: git diff --name-only origin/master...HEAD > /tmp/changed_files.txt
 
       - name: Run Chief of Staff
         env:
@@ -46,4 +40,5 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          CHANGED_FILES_PATH: /tmp/changed_files.txt
         run: python team/chief_of_staff.py
