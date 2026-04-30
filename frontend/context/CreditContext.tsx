@@ -64,18 +64,14 @@ function reducer(state: CreditState, action: Action): CreditState {
   }
 }
 
-// MOCK data is shown immediately on load; live API data replaces it once fetched
+// Portfolio companies are synthetic; alerts and sector data must come from live agents.
+// Alerts start empty — populated by agents once monitoring completes.
 const initial: CreditState = {
   portfolio:     MOCK_DEALS,
-  activeAlerts:  MOCK_ALERTS,
+  activeAlerts:  [],
   sectorData:    MOCK_HEAT_MAP,
   selectedDeal:  null,
-  alertSummary: {
-    critical: MOCK_ALERTS.filter((a) => a.severity === "CRITICAL" && !a.resolved).length,
-    high:     MOCK_ALERTS.filter((a) => a.severity === "HIGH"     && !a.resolved).length,
-    medium:   MOCK_ALERTS.filter((a) => a.severity === "MEDIUM"   && !a.resolved).length,
-    low:      MOCK_ALERTS.filter((a) => a.severity === "LOW"      && !a.resolved).length,
-  },
+  alertSummary:  { critical: 0, high: 0, medium: 0, low: 0 },
   isRefreshing:  false,
   lastRefreshed: null,
   isLoading:     true,
@@ -144,12 +140,13 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     try {
       const { getAlerts } = await import("@/lib/api");
       const data = await getAlerts();
-      // Only replace if the API returned any alerts (mock alerts stay when API is offline)
-      if (data.alerts && data.alerts.length > 0) {
+      // Always replace when API responds — empty means monitoring hasn't produced alerts yet,
+      // not that we should fall back to mock data
+      if (data.alerts !== undefined) {
         dispatch({ type: "SET_ALERTS", payload: data.alerts });
       }
     } catch {
-      // API not reachable — mock alerts stay as fallback
+      // API not reachable — alerts stay as-is
     }
   }, []);
 
@@ -208,14 +205,17 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     refreshAlerts();
     refreshSectorData();
 
-    // Only trigger full monitoring run if last run is stale or has never happened
+    // Sync with backend monitoring state on load:
+    // - If backend is already running (startup trigger), poll until complete then fetch data
+    // - If last run is stale, trigger a fresh run
+    // - Otherwise just record the last run time
     (async () => {
       try {
         const { getRefreshStatus } = await import("@/lib/api");
         const status = await getRefreshStatus();
         const lastRun = status.last_run ? new Date(status.last_run).getTime() : 0;
         const isStale = Date.now() - lastRun > STALE_THRESHOLD_MS;
-        if (isStale && !status.running) {
+        if (status.running || isStale) {
           triggerRefresh();
         } else if (status.last_run) {
           dispatch({ type: "SET_LAST_REFRESHED", payload: status.last_run });

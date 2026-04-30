@@ -169,8 +169,11 @@ async def startup_event():
     _scheduler.start()
     log.info("Scheduler started: sector monitoring every 6h, deal monitoring daily at 02:00 UTC.")
 
-    # 5. Sector monitoring runs on schedule only — not on startup
-    # (immediate trigger was causing OOM crashes on container boot)
+    # 5. Always trigger monitoring on startup so live data is ready from the first request.
+    # Sequential execution (max_workers=1) prevents the OOM crashes that occurred with parallel runs.
+    thread = threading.Thread(target=_run_sector_monitoring, daemon=True)
+    thread.start()
+    log.info("Startup monitoring triggered — agents will run sequentially in background.")
 
 
 @app.on_event("shutdown")
