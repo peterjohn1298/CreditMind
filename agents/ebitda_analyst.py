@@ -84,6 +84,15 @@ Review every add-back with professional skepticism. Challenge:
 - Management fee eliminations (standard but should be verified)
 - Any add-back exceeding 10% of reported EBITDA
 
+INDUSTRY BENCHMARK CONTEXT (S&P Add-back Study, 2015-2024):
+Across rated leveraged-finance issuers, EBITDA add-backs averaged ~29% of reported EBITDA.
+- BELOW 24%: clean QoE, conservative management
+- 24-34%: in line with market — moderate scrutiny
+- 35-50%: aggressive — material risk that "true" EBITDA is far below marketed figure
+- ABOVE 50%: highly aggressive — adjustments alone are creating the credit story
+Benchmark adjustment_as_pct_of_reported against this distribution and surface the comparison
+in the vs_sp_benchmark field.
+
 CITATION GUIDE — for every cited field use this structure:
   {{"value": <number>, "confidence": "HIGH | MEDIUM | LOW", "source_page": <int or null>, "source_quote": "<verbatim excerpt, max 120 chars, or null>"}}
   confidence: HIGH = explicitly stated | MEDIUM = calculated from stated values | LOW = estimated or not found
@@ -108,6 +117,8 @@ Produce JSON EBITDA analysis:
   "base_adjusted_ebitda": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
   "adjustment_quality_score": "HIGH | MEDIUM | LOW",
   "adjustment_as_pct_of_reported": null,
+  "vs_sp_benchmark": "BELOW | INLINE | ABOVE | HIGHLY_AGGRESSIVE",
+  "vs_sp_benchmark_note": "1-sentence interpretation vs the 29% industry average",
   "key_concerns": ["concern1", "concern2"],
   "ebitda_conclusion": "overall assessment of EBITDA quality and reliability"
 }}

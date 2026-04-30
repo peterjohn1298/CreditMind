@@ -83,6 +83,32 @@ Assess:
 3. Security — what collateral is available and unencumbered?
 4. Litigation — any material claims that could impair the business?
 5. Regulatory — any licenses, permits, or regulatory risks?
+6. LME (Liability Management Exercise) vulnerability — see explicit checklist below.
+
+LME VULNERABILITY CHECKLIST (2025-2026 industry priority — 65-73% of recent PC defaults
+involved an LME). Specifically scan for:
+
+(a) J.Crew trap — drop-down. Are unrestricted-subsidiary investment baskets large enough
+    that the borrower could transfer material IP or other valuable assets to a non-loan-party
+    sub and pledge them to new debt? Look at: investment baskets, restricted payments
+    capacity, available amount / builder basket, and any IP-specific carve-outs.
+
+(b) Chewy trap — extended drop-down. Are there carve-outs that allow transfer of more
+    asset categories than just IP (customer lists, brand assets, key contracts)?
+    Are step-up sub investments allowed?
+
+(c) Serta uptier — Are voting thresholds for amendments below 100% of affected lenders?
+    Can a majority sublender group execute a non-pro-rata refinancing that subordinates
+    minority lenders? Is pro-rata sharing required on prepayments and refinancings?
+
+(d) Available amount / builder basket — what is its starting balance and how fast does
+    it grow? An unconstrained builder basket is the gateway to most LME maneuvers.
+
+(e) Sacred rights — what amendments require unanimous consent? Pricing, maturity,
+    principal, lien releases, pro-rata sharing — confirm each is sacred.
+
+For each item, output a specific verdict (PROTECTED / VULNERABLE / NEEDS_COUNSEL) with
+the contract section reference if visible.
 
 CITATION GUIDE — for every cited field use this structure:
   {{"value": <number>, "confidence": "HIGH | MEDIUM | LOW", "source_page": <int or null>, "source_quote": "<verbatim excerpt, max 120 chars, or null>"}}
@@ -124,6 +150,15 @@ Produce JSON legal analysis:
     "risk_level": "HIGH | MEDIUM | LOW | NONE"
   }},
   "change_of_control": "how does existing debt handle change of control",
+  "lme_vulnerability_assessment": {{
+    "j_crew_blocker":   {{ "verdict": "PROTECTED | VULNERABLE | NEEDS_COUNSEL", "rationale": "specific reason citing contract section if visible" }},
+    "chewy_blocker":    {{ "verdict": "PROTECTED | VULNERABLE | NEEDS_COUNSEL", "rationale": "" }},
+    "serta_blocker":    {{ "verdict": "PROTECTED | VULNERABLE | NEEDS_COUNSEL", "rationale": "" }},
+    "available_amount": {{ "verdict": "TIGHT | MODERATE | EXPANSIVE",            "rationale": "" }},
+    "sacred_rights":    {{ "verdict": "STANDARD | INSUFFICIENT",                 "rationale": "list amendments that should be sacred but are not" }},
+    "overall_lme_risk": "HIGH | MEDIUM | LOW",
+    "key_lme_traps_present": ["trap1", "trap2"]
+  }},
   "items_for_external_counsel": ["item requiring legal opinion 1", "item2"],
   "overall_legal_risk": "HIGH | MEDIUM | LOW",
   "blocking_issues": ["any issues that could prevent the deal closing"],

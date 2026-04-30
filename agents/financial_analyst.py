@@ -106,6 +106,21 @@ Produce JSON financial analysis:
     "fcf_conversion": "FCF as % of EBITDA",
     "assessment": "HIGH | MEDIUM | LOW"
   }},
+  "liquidity_forecast_13_week": {{
+    "starting_cash":            null,
+    "weekly_operating_cash_in": null,
+    "weekly_operating_cash_out": null,
+    "weekly_debt_service":      null,
+    "minimum_balance_week":     "week_number_1_to_13",
+    "minimum_balance":          null,
+    "ending_cash":              null,
+    "weekly_path": [
+      {{ "week": 1, "starting": null, "operating_in": null, "operating_out": null, "debt_service": null, "ending": null }}
+    ],
+    "covenant_headroom_at_min":  "$M cushion vs minimum-liquidity covenant at week of trough",
+    "assessment": "ADEQUATE | TIGHT | CRITICAL",
+    "note": "Build a forward 13-week cash projection using the most recent quarterly cash burn rate. Required for stressed/watchlist names; for healthy names, populate at least starting_cash, ending_cash, minimum_balance, and assessment."
+  }},
   "audit_flags": {{
     "clean_opinion": true_or_false,
     "going_concern": true_or_false,
