@@ -1,0 +1,121 @@
+{
+  "_meta": {
+    "source": "Ducommun Incorporated — Annual Report LTM June 2024 + QoE Report (Deloitte, Sep 2024) + CIM",
+    "company": "Ducommun Incorporated",
+    "ticker": "DCO",
+    "period": "LTM June 2024",
+    "note": "All monetary values in USD thousands unless stated. Figures derived from scripts/ducommun_*.pdf — the same documents used in the demo pipeline."
+  },
+  "numeric_fields": {
+    "revenue_ltm": {
+      "value": 737000,
+      "unit": "thousands USD",
+      "tolerance_pct": 0.02,
+      "description": "Total revenue LTM June 2024",
+      "source": "QoE Report p.3; CIM Financial Summary"
+    },
+    "reported_ebitda": {
+      "value": 74200,
+      "unit": "thousands USD",
+      "tolerance_pct": 0.02,
+      "description": "Reported EBITDA (GAAP) LTM June 2024",
+      "source": "QoE EBITDA Reconciliation — Net income $35,100 + tax $11,200 + interest $26,400 + D&A $23,100"
+    },
+    "conservative_adjusted_ebitda": {
+      "value": 91300,
+      "unit": "thousands USD",
+      "tolerance_pct": 0.02,
+      "description": "Conservative adjusted EBITDA (supportable add-backs only)",
+      "source": "QoE Report — Deloitte recommendation"
+    },
+    "base_adjusted_ebitda": {
+      "value": 94400,
+      "unit": "thousands USD",
+      "tolerance_pct": 0.02,
+      "description": "Base adjusted EBITDA (supportable + questionable add-backs)",
+      "source": "QoE Report"
+    },
+    "ebitda_margin_conservative_pct": {
+      "value": 12.4,
+      "unit": "percent",
+      "tolerance_abs": 0.6,
+      "description": "Conservative adjusted EBITDA margin (conservative EBITDA / revenue)",
+      "source": "QoE Report / CIM"
+    },
+    "interest_expense": {
+      "value": 26400,
+      "unit": "thousands USD",
+      "tolerance_pct": 0.02,
+      "description": "Cash interest expense LTM June 2024",
+      "source": "QoE EBITDA Reconciliation"
+    },
+    "da_expense": {
+      "value": 23100,
+      "unit": "thousands USD",
+      "tolerance_pct": 0.02,
+      "description": "Depreciation & amortization LTM June 2024",
+      "source": "QoE EBITDA Reconciliation"
+    },
+    "total_debt_proforma": {
+      "value": 500000,
+      "unit": "thousands USD",
+      "tolerance_pct": 0.03,
+      "description": "Pro forma total debt post-transaction",
+      "source": "CIM Financial Summary"
+    },
+    "total_leverage_x": {
+      "value": 5.5,
+      "unit": "times",
+      "tolerance_abs": 0.25,
+      "description": "Total leverage (pro forma debt / conservative adj. EBITDA)",
+      "source": "CIM Financial Summary"
+    },
+    "interest_coverage_x": {
+      "value": 3.5,
+      "unit": "times",
+      "tolerance_abs": 0.25,
+      "description": "Interest coverage ratio (EBITDA / cash interest)",
+      "source": "CIM Financial Summary"
+    },
+    "defense_revenue_pct": {
+      "value": 60,
+      "unit": "percent",
+      "tolerance_abs": 5.0,
+      "description": "Percentage of revenue from U.S. defense programs",
+      "source": "CIM Revenue Quality section"
+    },
+    "revenue_cagr_3yr_pct": {
+      "value": 10.4,
+      "unit": "percent",
+      "tolerance_abs": 1.5,
+      "description": "Revenue 3-year CAGR (FY2021 $550.2M → LTM2024 $737M)",
+      "source": "CIM Historical Financials"
+    }
+  },
+  "qualitative_checks": [
+    {
+      "id": "revenue_visibility_high",
+      "claim": "Revenue visibility should be assessed as HIGH given ~60% defense revenue under multi-year government contracts",
+      "agent_output_path": "commercial_analysis.revenue_quality.revenue_visibility",
+      "expected_contains": ["HIGH"]
+    },
+    {
+      "id": "ebitda_add_backs_largely_supportable",
+      "claim": "EBITDA add-backs are primarily management fees, one-time transaction costs, and non-cash stock comp — the QoE conclusion should indicate add-backs are largely supportable",
+      "agent_output_path": "ebitda_analysis.ebitda_conclusion",
+      "expected_contains": ["supportable", "quality"]
+    },
+    {
+      "id": "leverage_elevated",
+      "claim": "Leverage of 5.5x is ELEVATED or HIGH — the credit model leverage assessment should not say CONSERVATIVE or MODERATE",
+      "agent_output_path": "credit_model.leverage_metrics.leverage_assessment",
+      "expected_contains": ["ELEVATED", "HIGH"]
+    },
+    {
+      "id": "defense_revenue_noted",
+      "claim": "Commercial analysis should specifically note defense revenue concentration and its implications for revenue quality",
+      "agent_output_path": "commercial_analysis.revenue_quality.assessment",
+      "expected_contains": ["defense", "government", "contract"]
+    }
+  ]
+}

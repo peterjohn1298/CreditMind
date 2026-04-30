@@ -6,7 +6,7 @@ Uses document data — no ticker or yfinance dependency.
 
 import json
 from agents.base_agent import BaseAgent
-from core.tools import GET_MACRO_SNAPSHOT
+from core.tools import GET_MACRO_SNAPSHOT, FINANCIAL_ANALYST_TOOLS
 from core.credit_state import log_agent
 
 
@@ -32,56 +32,94 @@ class FinancialAnalystAgent(BaseAgent):
     def run(self, credit_state: dict) -> dict:
         company = credit_state["company"]
         loan_amount = credit_state["loan_amount"]
+        deal_id = credit_state["deal_id"]
 
         financial_data = credit_state.get("documents", {}).get("financials")
+        rag_available = credit_state.get("rag_index_summary", "")
 
         if not financial_data:
             credit_state["financial_analysis"] = {
                 "error": "No financial statements uploaded.",
                 "overall_financial_health": "UNKNOWN",
             }
-            return log_agent(credit_state, self.name)
+            return self._log_and_audit(credit_state)
+
+        retrieval_instruction = ""
+        if rag_available and "financials" in rag_available:
+            retrieval_instruction = f"""
+DOCUMENT RETRIEVAL AVAILABLE (Deal ID: {deal_id}):
+Use retrieve_document_section(deal_id="{deal_id}", doc_type="financials", query="...") to
+search the full uploaded financial statements for specific figures and evidence.
+Call it multiple times with targeted queries such as:
+  - "income statement revenue EBITDA operating income"
+  - "total debt long-term obligations interest expense"
+  - "cash flow from operations capital expenditures"
+  - "audit opinion going concern footnotes"
+Include source_page from retrieval results as citations in your output where possible.
+"""
 
         task = f"""
 Conduct a 3-year financial analysis of {company} for a ${loan_amount:,.0f} credit assessment.
-
-AUDITED FINANCIAL STATEMENTS (extracted):
-{json.dumps(financial_data, indent=2, default=str)[:3000]}
+{retrieval_instruction}
+AUDITED FINANCIAL STATEMENTS (pre-extracted summary):
+{json.dumps(financial_data, indent=2, default=str)[:2000]}
 
 Fetch the macro snapshot for environmental context.
+
+CITATION GUIDE — for every cited field use this structure:
+  {{"value": <number>, "confidence": "HIGH | MEDIUM | LOW", "source_page": <int or null>, "source_quote": "<verbatim excerpt, max 120 chars, or null>"}}
+  confidence: HIGH = explicitly stated in document | MEDIUM = calculated from stated values | LOW = estimated or not found
 
 Produce JSON financial analysis:
 {{
   "revenue_trend": {{
-    "cagr_3yr": null,
+    "cagr_3yr": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "description": "organic vs acquired growth, trajectory",
-    "year_over_year": {{"yr1_to_yr2": null, "yr2_to_yr3": null}}
+    "year_over_year": {{
+      "yr1_to_yr2": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+      "yr2_to_yr3": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}}
+    }}
   }},
   "profitability": {{
-    "gross_margin":     {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
-    "ebitda_margin":    {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
-    "operating_margin": {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
-    "net_margin":       {{"current": null, "trend": "EXPANDING | STABLE | COMPRESSING"}},
+    "gross_margin":     {{"value": null, "trend": "EXPANDING | STABLE | COMPRESSING", "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "ebitda_margin":    {{"value": null, "trend": "EXPANDING | STABLE | COMPRESSING", "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "operating_margin": {{"value": null, "trend": "EXPANDING | STABLE | COMPRESSING", "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "net_margin":       {{"value": null, "trend": "EXPANDING | STABLE | COMPRESSING", "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "assessment": "brief assessment"
   }},
   "liquidity": {{
-    "current_ratio":  null,
-    "cash_balance":   null,
+    "current_ratio":  {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "cash_balance":   {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "cash_trend":     "BUILDING | STABLE | DECLINING",
     "assessment": "brief assessment"
   }},
   "leverage": {{
-    "total_debt":     null,
-    "debt_trend":     "DECREASING | STABLE | INCREASING",
-    "net_debt":       null,
+    "total_debt": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "debt_trend": "DECREASING | STABLE | INCREASING",
+    "net_debt":   {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
     "assessment": "brief assessment"
   }},
   "cash_flow_quality": {{
-    "operating_cf":       null,
-    "capex":              null,
-    "free_cash_flow":     null,
-    "fcf_conversion":     "FCF as % of EBITDA",
+    "operating_cf":   {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "capex":          {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "free_cash_flow": {{"value": null, "confidence": "HIGH|MEDIUM|LOW", "source_page": null, "source_quote": null}},
+    "fcf_conversion": "FCF as % of EBITDA",
     "assessment": "HIGH | MEDIUM | LOW"
+  }},
+  "liquidity_forecast_13_week": {{
+    "starting_cash":            null,
+    "weekly_operating_cash_in": null,
+    "weekly_operating_cash_out": null,
+    "weekly_debt_service":      null,
+    "minimum_balance_week":     "week_number_1_to_13",
+    "minimum_balance":          null,
+    "ending_cash":              null,
+    "weekly_path": [
+      {{ "week": 1, "starting": null, "operating_in": null, "operating_out": null, "debt_service": null, "ending": null }}
+    ],
+    "covenant_headroom_at_min":  "$M cushion vs minimum-liquidity covenant at week of trough",
+    "assessment": "ADEQUATE | TIGHT | CRITICAL",
+    "note": "Build a forward 13-week cash projection using the most recent quarterly cash burn rate. Required for stressed/watchlist names; for healthy names, populate at least starting_cash, ending_cash, minimum_balance, and assessment."
   }},
   "audit_flags": {{
     "clean_opinion": true_or_false,
@@ -96,7 +134,9 @@ Produce JSON financial analysis:
 }}
 """
 
-        result = self.run_agentic_loop_json(self.role, task, tools=[GET_MACRO_SNAPSHOT])
+        result = self.run_agentic_loop_json_validated(
+            self.role, task, tools=FINANCIAL_ANALYST_TOOLS, credit_state=credit_state
+        )
         credit_state["financial_analysis"] = result
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state

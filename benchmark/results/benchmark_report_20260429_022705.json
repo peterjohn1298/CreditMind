@@ -1,0 +1,184 @@
+{
+  "summary": {
+    "faithfulness": 0.688,
+    "pass": false,
+    "threshold": 0.85,
+    "total_fields": 16,
+    "fields_passed": 11,
+    "auditor_model": "claude-opus-4-7"
+  },
+  "numeric": [
+    {
+      "field": "revenue_ltm",
+      "expected": 737000,
+      "extracted": 737000,
+      "confidence": "UNKNOWN",
+      "source_page": null,
+      "unit": "thousands USD",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b12%",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "reported_ebitda",
+      "expected": 74200,
+      "extracted": 74200,
+      "confidence": "HIGH",
+      "source_page": 4,
+      "unit": "thousands USD",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b12%",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "conservative_adjusted_ebitda",
+      "expected": 91300,
+      "extracted": 91300,
+      "confidence": "HIGH",
+      "source_page": 5,
+      "unit": "thousands USD",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b12%",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "base_adjusted_ebitda",
+      "expected": 94400,
+      "extracted": 94400,
+      "confidence": "HIGH",
+      "source_page": 5,
+      "unit": "thousands USD",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b12%",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "ebitda_margin_conservative_pct",
+      "expected": 12.4,
+      "extracted": 12.4,
+      "confidence": "HIGH",
+      "source_page": 4,
+      "unit": "percent",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b10.6",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "interest_expense",
+      "expected": 26400,
+      "extracted": 26400,
+      "confidence": "UNKNOWN",
+      "source_page": null,
+      "unit": "thousands USD",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b12%",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "da_expense",
+      "expected": 23100,
+      "extracted": null,
+      "confidence": "UNKNOWN",
+      "source_page": null,
+      "unit": "thousands USD",
+      "pass": false,
+      "note": "NOT EXTRACTED \u2014 agent returned null",
+      "delta_pct": null
+    },
+    {
+      "field": "total_debt_proforma",
+      "expected": 500000,
+      "extracted": 500000,
+      "confidence": "HIGH",
+      "source_page": 2,
+      "unit": "thousands USD",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b13%",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "total_leverage_x",
+      "expected": 5.5,
+      "extracted": 5.5,
+      "confidence": "HIGH",
+      "source_page": 2,
+      "unit": "times",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b10.25",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "interest_coverage_x",
+      "expected": 3.5,
+      "extracted": 3.5,
+      "confidence": "HIGH",
+      "source_page": 2,
+      "unit": "times",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b10.25",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "defense_revenue_pct",
+      "expected": 60,
+      "extracted": 60,
+      "confidence": "HIGH",
+      "source_page": 12,
+      "unit": "percent",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b15.0",
+      "pass": true,
+      "note": "PASS"
+    },
+    {
+      "field": "revenue_cagr_3yr_pct",
+      "expected": 10.4,
+      "extracted": 10.4,
+      "confidence": "HIGH",
+      "source_page": 8,
+      "unit": "percent",
+      "delta_pct": 0.0,
+      "tolerance": "\u00b11.5",
+      "pass": true,
+      "note": "PASS"
+    }
+  ],
+  "qualitative": [
+    {
+      "id": "revenue_visibility_high",
+      "pass": false,
+      "score": 0.0,
+      "rationale": "Auditor call failed: \"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+    },
+    {
+      "id": "ebitda_add_backs_largely_supportable",
+      "pass": false,
+      "score": 0.0,
+      "rationale": "Auditor call failed: \"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+    },
+    {
+      "id": "leverage_elevated",
+      "pass": false,
+      "score": 0.0,
+      "rationale": "Auditor call failed: \"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+    },
+    {
+      "id": "defense_revenue_noted",
+      "pass": false,
+      "score": 0.0,
+      "rationale": "Auditor call failed: \"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+    }
+  ],
+  "ground_truth_source": "C:\\ai project folder\\creditmind\\benchmark\\ground_truth\\ducommun_2024.json",
+  "auditor_model": "claude-opus-4-7",
+  "timestamp": "2026-04-29T02:27:05.285789"
+}

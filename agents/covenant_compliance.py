@@ -87,5 +87,5 @@ Produce structured JSON compliance report:
                 action_required="Increased monitoring. Proactive discussion with borrower recommended.",
             )
 
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state
