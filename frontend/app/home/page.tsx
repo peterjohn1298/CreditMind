@@ -5,6 +5,7 @@ import { motion, type Variants } from "framer-motion";
 import {
   LayoutDashboard, FileSearch, Briefcase,
   Activity, Bell, Globe, Search, ChevronRight,
+  Calculator, FileText,
 } from "lucide-react";
 import { useCredit } from "@/context/CreditContext";
 
@@ -72,6 +73,24 @@ const MODULES = [
     color: "#00B4D8",
     border: "rgba(0,180,216,0.22)",
     glow: "rgba(0,180,216,0.07)",
+  },
+  {
+    label: "Valuation",
+    href: "/valuation",
+    icon: Calculator,
+    description: "ASC 820 Level 3 quarterly marks, portfolio fair-value and mark consistency scan",
+    color: "#F472B6",
+    border: "rgba(244,114,182,0.22)",
+    glow: "rgba(244,114,182,0.07)",
+  },
+  {
+    label: "LP Reporting",
+    href: "/lp-reporting",
+    icon: FileText,
+    description: "ILPA RT 2.0 quarterly statements, performance template, and capital call notices",
+    color: "#34D399",
+    border: "rgba(52,211,153,0.22)",
+    glow: "rgba(52,211,153,0.07)",
   },
 ];
 
