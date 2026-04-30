@@ -115,7 +115,7 @@ Produce structured JSON:
   "escalation_reason": "reason if escalation_required is true, else null"
 }}
 """
-        result = self.run_agentic_loop_json(role, task, SECTOR_MONITOR_TOOLS)
+        result = self.run_agentic_loop_json(role, task, SECTOR_MONITOR_TOOLS, max_tokens=1000)
         sector_state["news_signals"] = [result]
 
         if result.get("escalation_required"):

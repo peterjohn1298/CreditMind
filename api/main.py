@@ -852,28 +852,26 @@ def _run_sector_monitoring():
                 })
             return alerts
 
-        # Run all sectors in parallel
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            futures = {
-                executor.submit(_monitor_one_sector, sector, deals): sector
-                for sector, deals in sector_deals.items()
-                if deals  # only sectors that have deals
-            }
-            for future in as_completed(futures):
-                try:
-                    new_sector_alerts.extend(future.result())
-                except Exception as e:
-                    sector = futures[future]
-                    new_sector_alerts.append({
-                        "alert_id":   f"sector-error-{int(datetime.now().timestamp())}",
-                        "sector_id":  sector,
-                        "alert_type": "sector",
-                        "company":    f"{sector} Sector",
-                        "severity":   "LOW",
-                        "message":    f"Monitoring check failed: {str(e)}",
-                        "timestamp":  datetime.now().isoformat(),
-                        "resolved":   False,
-                    })
+        # Run sectors sequentially with a pause to respect API rate limits
+        # (8,000 output tokens/min on free tier — parallel calls blow past this instantly)
+        for i, (sector, deals) in enumerate(sector_deals.items()):
+            if not deals:
+                continue
+            try:
+                new_sector_alerts.extend(_monitor_one_sector(sector, deals))
+            except Exception as e:
+                new_sector_alerts.append({
+                    "alert_id":   f"sector-error-{int(datetime.now().timestamp())}",
+                    "sector_id":  sector,
+                    "alert_type": "sector",
+                    "company":    f"{sector} Sector",
+                    "severity":   "LOW",
+                    "message":    f"Monitoring check failed: {str(e)}",
+                    "timestamp":  datetime.now().isoformat(),
+                    "resolved":   False,
+                })
+            if i < len(sector_deals) - 1:
+                time.sleep(12)
 
         # Replace sector alerts with fresh results
         _sector_alerts.clear()

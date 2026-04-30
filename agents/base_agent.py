@@ -68,6 +68,7 @@ class BaseAgent(ABC):
         initial_message: str,
         tools: list,
         max_iterations: int = 10,
+        max_tokens: int = 4096,
     ) -> str:
         """
         Run the Claude tool-use agentic loop.
@@ -92,7 +93,7 @@ class BaseAgent(ABC):
             _iterations += 1
             response = self.client.messages.create(
                 model=self.model,
-                max_tokens=4096,
+                max_tokens=max_tokens,
                 system=system_prompt,
                 tools=tools,
                 messages=messages,
@@ -147,6 +148,7 @@ class BaseAgent(ABC):
         initial_message: str,
         tools: list,
         max_iterations: int = 10,
+        max_tokens: int = 4096,
     ) -> dict:
         """
         Run the agentic loop and parse the final response as JSON.
@@ -162,6 +164,7 @@ class BaseAgent(ABC):
             initial_message=initial_message,
             tools=tools,
             max_iterations=max_iterations,
+            max_tokens=max_tokens,
         )
         try:
             clean = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()

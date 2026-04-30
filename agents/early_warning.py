@@ -326,7 +326,7 @@ assessment warrants an adjustment of up to ±10 points — explain any adjustmen
   "early_warning_summary": "concise 2-sentence summary for credit officer"
 }}
 """
-        result = self.run_agentic_loop_json(role, task, SECTOR_MONITOR_TOOLS)
+        result = self.run_agentic_loop_json(role, task, SECTOR_MONITOR_TOOLS, max_tokens=1000)
 
         # Store the final score and the full component breakdown
         sector_state["sector_risk_score"]    = result.get("sector_risk_score", formula_score)
