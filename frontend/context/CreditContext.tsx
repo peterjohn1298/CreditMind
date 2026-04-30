@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
 import type { Deal, Alert, HeatMapData } from "@/lib/types";
+import { MOCK_DEALS, MOCK_ALERTS, MOCK_HEAT_MAP } from "@/lib/mock";
 
 interface CreditState {
   portfolio: Deal[];
@@ -63,13 +64,18 @@ function reducer(state: CreditState, action: Action): CreditState {
   }
 }
 
-// Empty initial state — all data comes from the live API, never from mock files
+// MOCK data is shown immediately on load; live API data replaces it once fetched
 const initial: CreditState = {
-  portfolio:     [],
-  activeAlerts:  [],
-  sectorData:    null,
+  portfolio:     MOCK_DEALS,
+  activeAlerts:  MOCK_ALERTS,
+  sectorData:    MOCK_HEAT_MAP,
   selectedDeal:  null,
-  alertSummary:  { critical: 0, high: 0, medium: 0, low: 0 },
+  alertSummary: {
+    critical: MOCK_ALERTS.filter((a) => a.severity === "CRITICAL" && !a.resolved).length,
+    high:     MOCK_ALERTS.filter((a) => a.severity === "HIGH"     && !a.resolved).length,
+    medium:   MOCK_ALERTS.filter((a) => a.severity === "MEDIUM"   && !a.resolved).length,
+    low:      MOCK_ALERTS.filter((a) => a.severity === "LOW"      && !a.resolved).length,
+  },
   isRefreshing:  false,
   lastRefreshed: null,
   isLoading:     true,
