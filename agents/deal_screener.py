@@ -70,6 +70,81 @@ class DealScreenerAgent(BaseAgent):
         sector_count  = sector_concentration.get(sector, 0)
         sponsor_count = sponsor_concentration.get(sponsor, 0)
 
+        # ── Hard-block pre-checks (no AI call needed) ─────────────────────────
+        hard_blocks = []
+
+        if excluded_sectors and any(
+            sector.lower() == s.lower() for s in excluded_sectors
+        ):
+            hard_blocks.append(
+                f"Sector '{sector}' is on the fund's excluded-sectors list — automatic NO-GO."
+            )
+
+        if loan_ask > 0 and loan_ask > fund_loan_max:
+            hard_blocks.append(
+                f"Loan ask ${loan_ask/1e6:.0f}M exceeds fund maximum ${fund_loan_max/1e6:.0f}M."
+            )
+
+        if ebitda_est > 0 and ebitda_est < fund_ebitda_min:
+            hard_blocks.append(
+                f"Estimated EBITDA ${ebitda_est/1e6:.1f}M is below fund minimum ${fund_ebitda_min/1e6:.0f}M."
+            )
+
+        if leverage_ask > 0 and fund_max_leverage > 0 and leverage_ask > fund_max_leverage + 0.5:
+            hard_blocks.append(
+                f"Leverage ask {leverage_ask:.1f}x exceeds fund maximum {fund_max_leverage:.1f}x "
+                f"(hard stop at {fund_max_leverage + 0.5:.1f}x)."
+            )
+
+        if sector_count >= 5:
+            hard_blocks.append(
+                f"Portfolio already has {sector_count} deals in '{sector}' — "
+                f"sector concentration limit reached (max 5)."
+            )
+
+        if sponsor and sponsor_count >= 3:
+            hard_blocks.append(
+                f"Portfolio already has {sponsor_count} deals with sponsor '{sponsor}' — "
+                f"sponsor concentration limit reached (max 3)."
+            )
+
+        if hard_blocks:
+            result = {
+                "company":  company,
+                "sector":   sector,
+                "sponsor":  sponsor,
+                "decision": "NO-GO",
+                "confidence": 10,
+                "hard_blocks": hard_blocks,
+                "screening_results": {
+                    "sector_fit":         {"pass": "excluded" not in hard_blocks[0].lower(), "notes": ""},
+                    "size_fit":           {"pass": True, "notes": ""},
+                    "leverage_fit":       {"pass": True, "notes": ""},
+                    "concentration_risk": {"pass": True, "notes": ""},
+                    "sponsor_quality":    {"pass": True, "notes": ""},
+                },
+                "key_concerns":    hard_blocks,
+                "key_positives":   [],
+                "recommended_next_steps": "Deal does not meet minimum criteria. Do not proceed to diligence.",
+                "indicative_terms_if_proceed": {},
+                "screen_rationale": (
+                    f"Hard-block: {hard_blocks[0]} "
+                    + (f"Additional flags: {'; '.join(hard_blocks[1:])}" if len(hard_blocks) > 1 else "")
+                ),
+            }
+            credit_state["screening_result"]   = result
+            credit_state["screening_decision"] = "NO-GO"
+            credit_state["hard_blocks"]        = hard_blocks
+            credit_state["agent_log"] = credit_state.get("agent_log", [])
+            credit_state["agent_log"].append({
+                "agent":    self.name,
+                "decision": "NO-GO",
+                "reason":   "hard_block",
+                "blocks":   hard_blocks,
+            })
+            return credit_state
+        # ── End hard-block checks ──────────────────────────────────────────────
+
         task = f"""Screen this incoming deal teaser and give a go/no-go recommendation.
 
 DEAL TEASER:

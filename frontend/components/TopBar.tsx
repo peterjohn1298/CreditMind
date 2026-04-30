@@ -6,10 +6,11 @@ import { cn } from "@/lib/utils";
 
 const TITLES: Record<string, string> = {
   "/dashboard":           "Dashboard",
+  "/origination":         "Origination & Screening",
   "/underwriting":        "New Underwriting",
   "/portfolio":           "Portfolio",
   "/monitoring":          "Monitoring",
-  "/valuation":           "Valuation & Marks",
+  "/lp-reporting":        "LP Reporting",
   "/alerts":              "Alert Center",
   "/sector-intelligence": "Sector Intelligence Hub",
   "/deal":                "Deal Detail",

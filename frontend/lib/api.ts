@@ -2,7 +2,10 @@ import type {
   Deal, Alert, HeatMapData, SectorContagion,
   SectorForecastData, SectorImpactBrief, UnderwriteRequest,
   UnderwriteResponse, MonitorResponse, QuarterlyResponse,
-  ValuationMark, PortfolioMarksResponse, InconsistencyScanResponse,
+  FundCriteria, OriginationScanResponse, DealTeaserRequest, ScreeningResult,
+  ICCommitteeResponse, DocumentationResponse,
+  ClosingResponse, CPStatus, CPUpdateResponse,
+  PolicyCheckResult, PortfolioComplianceSummary,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -75,13 +78,52 @@ export const getSectorForecast = (): Promise<SectorForecastData> =>
 export const getSectorImpactBrief = (deal_id: string): Promise<SectorImpactBrief> =>
   req(`/api/sector/impact-brief/${encodeURIComponent(deal_id)}`);
 
-// ─── Valuation Agent + Mark Inconsistency Detector (Wave 4C) ─────────────────
+// ─── Origination + Screening (Stages 1-2) ────────────────────────────────────
 
-export const runValuationMark = (deal_id: string): Promise<ValuationMark> =>
-  req("/api/valuation/mark", { method: "POST", body: JSON.stringify({ deal_id }) });
+export const originationScan = (criteria: FundCriteria = {}): Promise<OriginationScanResponse> =>
+  req("/api/origination-scan", { method: "POST", body: JSON.stringify(criteria) });
 
-export const getPortfolioMarks = (): Promise<PortfolioMarksResponse> =>
-  req("/api/valuation/portfolio-marks");
+export const screenDeal = (teaser: DealTeaserRequest): Promise<ScreeningResult> =>
+  req("/api/screen-deal", { method: "POST", body: JSON.stringify(teaser) });
 
-export const runInconsistencyScan = (): Promise<InconsistencyScanResponse> =>
-  req("/api/valuation/inconsistency-scan", { method: "POST" });
+// ─── IC Committee (Stage 4) ──────────────────────────────────────────────────
+
+export const runICCommittee = (deal_id: string): Promise<ICCommitteeResponse> =>
+  req("/api/ic-committee", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+// ─── Documentation (Stage 5) ─────────────────────────────────────────────────
+
+export const generateDocs = (deal_id: string): Promise<DocumentationResponse> =>
+  req("/api/generate-docs", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+// ─── Closing (Stage 6) ───────────────────────────────────────────────────────
+
+export const generateClosingChecklist = (deal_id: string): Promise<ClosingResponse> =>
+  req("/api/closing-checklist", { method: "POST", body: JSON.stringify({ deal_id }) });
+
+export const updateCPStatus = (
+  deal_id: string,
+  cp_index: number,
+  status: CPStatus,
+  notes = ""
+): Promise<CPUpdateResponse> => {
+  const params = new URLSearchParams({
+    cp_index: String(cp_index),
+    status,
+    notes,
+  });
+  return req(`/api/closing-checklist/${encodeURIComponent(deal_id)}/cp?${params.toString()}`, {
+    method: "PATCH",
+  });
+};
+
+// ─── Credit Policy ───────────────────────────────────────────────────────────
+
+export const getPortfolioCompliance = (): Promise<PortfolioComplianceSummary> =>
+  req("/api/policy/portfolio-compliance");
+
+export const checkDealPolicy = (teaser: DealTeaserRequest): Promise<PolicyCheckResult> =>
+  req("/api/policy/check-deal", { method: "POST", body: JSON.stringify(teaser) });
+
+export const getWatchList = (): Promise<{ watch_list: Array<{ company: string; reason: string; severity: string }> }> =>
+  req("/api/policy/watch-list");

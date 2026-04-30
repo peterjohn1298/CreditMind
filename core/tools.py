@@ -278,10 +278,55 @@ SCAN_SEC_EDGAR = {
     },
 }
 
+RETRIEVE_DOCUMENT_SECTION = {
+    "name": "retrieve_document_section",
+    "description": (
+        "Search the uploaded deal documents for specific passages. "
+        "Use this to find evidence, figures, and quotes from the full document text — "
+        "not just the pre-extracted summary. Returns the most relevant passages with "
+        "page numbers for citation. "
+        "doc_type options: 'financials' (audited financial statements), "
+        "'qoe' (quality of earnings), 'cim' (confidential information memorandum), "
+        "'legal' (legal due diligence). "
+        "Call this multiple times with different queries to triangulate evidence."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "deal_id": {
+                "type": "string",
+                "description": "The deal ID provided in your task instructions.",
+            },
+            "doc_type": {
+                "type": "string",
+                "enum": ["financials", "qoe", "cim", "legal"],
+                "description": "Which uploaded document to search.",
+            },
+            "query": {
+                "type": "string",
+                "description": (
+                    "What to search for. Be specific — e.g. "
+                    "'EBITDA add-backs non-recurring items', "
+                    "'total debt long-term obligations', "
+                    "'revenue breakdown by segment', "
+                    "'litigation pending lawsuits', "
+                    "'leverage covenant net debt EBITDA'."
+                ),
+            },
+            "top_k": {
+                "type": "integer",
+                "description": "Number of passages to return (1-8). Default 4.",
+            },
+        },
+        "required": ["deal_id", "doc_type", "query"],
+    },
+}
+
 # --- Tool sets by agent ---
 # Each agent only gets the tools relevant to its job.
 
 FINANCIAL_ANALYST_TOOLS = [
+    RETRIEVE_DOCUMENT_SECTION,
     GET_COMPANY_INFO,
     GET_INCOME_STATEMENT,
     GET_BALANCE_SHEET,
@@ -289,6 +334,20 @@ FINANCIAL_ANALYST_TOOLS = [
     GET_KEY_METRICS,
     GET_SEC_FILINGS,
     GET_MACRO_SNAPSHOT,
+]
+
+EBITDA_ANALYST_TOOLS = [
+    RETRIEVE_DOCUMENT_SECTION,
+]
+
+COMMERCIAL_ANALYST_TOOLS = [
+    RETRIEVE_DOCUMENT_SECTION,
+    GET_COMPANY_NEWS,
+    GET_MACRO_SNAPSHOT,
+]
+
+LEGAL_ANALYST_TOOLS = [
+    RETRIEVE_DOCUMENT_SECTION,
 ]
 
 UNDERWRITER_TOOLS = [
@@ -453,8 +512,10 @@ PROJECT_FINANCE_TOOLS = [
     GET_CASH_FLOW,
 ]
 
-VALUATION_TOOLS = [
-    GET_MACRO_SNAPSHOT,
+ESG_TOOLS = [
+    GET_COMPANY_INFO,
+    GET_COMPANY_NEWS,
+    GET_SEC_FILINGS,
     GET_SECTOR_NEWS,
-    GET_KEY_METRICS,
+    GET_MACRO_SNAPSHOT,
 ]

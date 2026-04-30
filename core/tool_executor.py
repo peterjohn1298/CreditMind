@@ -143,5 +143,13 @@ def _dispatch(tool_name: str, tool_input: dict):
         days_back = int(tool_input.get("days_back", 30))
         return scan_sec_8k_filings(keywords, days_back=days_back)
 
+    elif tool_name == "retrieve_document_section":
+        from core.document_indexer import retrieve
+        deal_id  = tool_input["deal_id"]
+        doc_type = tool_input["doc_type"]
+        query    = tool_input["query"]
+        top_k    = min(int(tool_input.get("top_k", 4)), 8)
+        return retrieve(deal_id, doc_type, query, top_k)
+
     else:
         return {"error": f"Unknown tool: {tool_name}"}
