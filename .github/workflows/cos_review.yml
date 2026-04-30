@@ -31,18 +31,20 @@ jobs:
 
       - name: Get changed files
         run: |
+          DELIM="CREDITMIND_$(openssl rand -hex 8)"
           {
-            echo 'CHANGED_FILES<<EOF'
+            echo "CHANGED_FILES<<$DELIM"
             git diff --name-only origin/master...HEAD
-            echo EOF
+            echo "$DELIM"
           } >> "$GITHUB_ENV"
 
       - name: Get PR diff
         run: |
+          DELIM="CREDITMIND_$(openssl rand -hex 8)"
           {
-            echo 'PR_DIFF<<EOF'
+            echo "PR_DIFF<<$DELIM"
             git diff origin/master...HEAD | head -c 10000
-            echo EOF
+            echo "$DELIM"
           } >> "$GITHUB_ENV"
 
       - name: Run Chief of Staff
