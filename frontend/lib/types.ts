@@ -224,3 +224,66 @@ export interface QuarterlyResponse {
   rating_change: string;
   review_summary: string;
 }
+
+// ─── LP Reporting (Wave 4D — ILPA 2.0) ───────────────────────────────────────
+
+export interface ILPAReportingTemplate {
+  report_period:                string;
+  report_date:                  string;
+  fund_name:                    string;
+  fund_size:                    number | null;
+  commitments:                  number | null;
+  called_to_date:               number | null;
+  uncalled:                     number | null;
+  capital_account:              Array<{ lp_class: string; commitment: number | null; called: number | null; distributed: number | null; nav: number | null }>;
+  schedule_of_investments:      Array<Record<string, unknown>>;
+  schedule_of_realised:         Array<Record<string, unknown>>;
+  fees_and_expenses:            Record<string, number | null>;
+  cash_flows_quarter:           Record<string, number | null>;
+  nav_bridge:                   Record<string, number | null>;
+  concentration_disclosures:    Record<string, unknown[]>;
+  narrative:                    string;
+  ilpa_compliance:              string;
+  auditor_review_status?:       string;
+}
+
+export interface ILPAPerformanceTemplate {
+  as_of_date:        string;
+  vintage_year:      number | null;
+  fund_age_years:    number | null;
+  since_inception:   Record<string, number | null>;
+  ytd:               Record<string, number | null>;
+  quarterly_history: Array<Record<string, unknown>>;
+  benchmark_comparison: Record<string, number | null>;
+  loss_history:      Record<string, number | null>;
+  attribution:       Record<string, number | null>;
+  narrative:         string;
+  ilpa_compliance:   string;
+}
+
+export interface LPNotice {
+  notice_type:                "capital_call" | "distribution" | string;
+  event_date:                 string;
+  due_date:                   string;
+  total_amount:               number | null;
+  purpose:                    string;
+  lp_notices: Array<{
+    lp_id:              string | null;
+    lp_name:            string;
+    commitment:         number | null;
+    ownership_pct:      number | null;
+    amount:             number | null;
+    updated_paid_in:    number | null;
+    updated_unfunded:   number | null;
+    notice_paragraph:   string;
+  }>;
+  wire_instructions_reminder: string;
+  fund_note:                  string;
+}
+
+export interface LPRosterEntry {
+  lp_id?:           string;
+  lp_name:          string;
+  commitment:       number;
+  paid_in_to_date?: number;
+}

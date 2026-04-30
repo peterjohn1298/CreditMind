@@ -2,6 +2,7 @@ import type {
   Deal, Alert, HeatMapData, SectorContagion,
   SectorForecastData, SectorImpactBrief, UnderwriteRequest,
   UnderwriteResponse, MonitorResponse, QuarterlyResponse,
+  ILPAReportingTemplate, ILPAPerformanceTemplate, LPNotice, LPRosterEntry,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -73,3 +74,23 @@ export const getSectorForecast = (): Promise<SectorForecastData> =>
 
 export const getSectorImpactBrief = (deal_id: string): Promise<SectorImpactBrief> =>
   req(`/api/sector/impact-brief/${encodeURIComponent(deal_id)}`);
+
+// ─── LP Reporting / ILPA 2.0 (Wave 4D) ───────────────────────────────────────
+
+export const generateILPAReporting = (fund_meta?: Record<string, unknown>): Promise<ILPAReportingTemplate> =>
+  req("/api/lp-reporting/template", { method: "POST", body: JSON.stringify({ fund_meta: fund_meta ?? null }) });
+
+export const generateILPAPerformance = (fund_meta?: Record<string, unknown>): Promise<ILPAPerformanceTemplate> =>
+  req("/api/lp-reporting/performance", { method: "POST", body: JSON.stringify({ fund_meta: fund_meta ?? null }) });
+
+export const generateLPNotice = (
+  notice_type: "capital_call" | "distribution",
+  amount: number,
+  purpose: string,
+  lp_roster: LPRosterEntry[],
+  fund_meta?: Record<string, unknown>,
+): Promise<LPNotice> =>
+  req("/api/lp-reporting/notice", {
+    method: "POST",
+    body: JSON.stringify({ notice_type, amount, purpose, lp_roster, fund_meta: fund_meta ?? null }),
+  });

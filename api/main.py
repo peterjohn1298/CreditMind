@@ -972,6 +972,73 @@ def generate_docs(req: DocumentationRequest):
         raise HTTPException(status_code=500, detail={"error": str(e)})
 
 
+class LPReportingRequest(BaseModel):
+    fund_meta: Optional[dict] = None
+
+
+class LPNoticeRequest(BaseModel):
+    notice_type: str   # "capital_call" or "distribution"
+    amount:      float
+    purpose:     str
+    lp_roster:   list[dict]
+    fund_meta:   Optional[dict] = None
+
+
+_DEFAULT_FUND_META = {
+    "fund_name":         "CreditMind Capital Fund I",
+    "vintage_year":      2023,
+    "fund_size":         1_000_000_000,
+    "strategy":          "Senior secured direct lending — US middle-market",
+    "currency":          "USD",
+    "domicile":          "Delaware, USA",
+    "gp":                "CreditMind Capital Management LLC",
+    "fund_admin":        "Citco Fund Services",
+    "auditor":           "PwC",
+}
+
+
+@app.post("/api/lp-reporting/template")
+def lp_reporting_template(req: LPReportingRequest):
+    """Generate the ILPA Reporting Template 2.0 for the current quarter."""
+    try:
+        from agents.lp_reporting import LPReportingAgent
+        agent = LPReportingAgent()
+        meta = {**_DEFAULT_FUND_META, **(req.fund_meta or {})}
+        return agent.generate_reporting_template(_portfolio, meta)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
+@app.post("/api/lp-reporting/performance")
+def lp_reporting_performance(req: LPReportingRequest):
+    """Generate the ILPA Performance Template (TVPI / DPI / RVPI / IRR)."""
+    try:
+        from agents.lp_reporting import LPReportingAgent
+        agent = LPReportingAgent()
+        meta = {**_DEFAULT_FUND_META, **(req.fund_meta or {})}
+        return agent.generate_performance_template(_portfolio, meta)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
+@app.post("/api/lp-reporting/notice")
+def lp_reporting_notice(req: LPNoticeRequest):
+    """Generate a per-LP capital call or distribution notice batch."""
+    try:
+        from agents.lp_reporting import LPReportingAgent
+        agent = LPReportingAgent()
+        meta = {**_DEFAULT_FUND_META, **(req.fund_meta or {})}
+        return agent.generate_notice(
+            notice_type=req.notice_type,
+            amount=req.amount,
+            purpose=req.purpose,
+            lp_roster=req.lp_roster,
+            fund_meta=meta,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
 @app.post("/api/closing-checklist")
 def closing_checklist(req: ClosingRequest):
     """Stage 6: Generate CP checklist and funds flow summary for closing."""
