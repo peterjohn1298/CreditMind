@@ -123,6 +123,9 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
         human_alerts:        d.human_alerts ?? [],
         job_signals:         d.job_signals ?? null,
         consumer_signals:    d.consumer_signals ?? null,
+        deal_type:           d.deal_type,
+        industry:            d.industry,
+        last_reviewed:       d.last_reviewed ?? d.created_at,
       }));
       // Only replace mock data if the API actually returned deals
       if (deals.length > 0) {
