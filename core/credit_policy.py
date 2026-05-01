@@ -334,6 +334,33 @@ def summarize_portfolio_vs_policy(portfolio: dict[str, dict], fund_size: float =
     if dist_pct >= dist_limit:
         warnings_list.append(f"WARNING: Distressed at {dist_pct}% (limit {dist_limit}%)")
 
+    # ── Drift risk: post-origination concentration drift ──────────────────
+    # Catches sectors that are currently compliant but close to limits, and
+    # computes how much passive fund shrinkage (repayments/exits) would push
+    # them into breach — without any new origination decision being made.
+
+    approaching_sector_limits = []
+    for s, amt in sector_totals.items():
+        pct = _pct(amt)
+        headroom_to_soft = sector_limit - pct
+        headroom_to_hard = sector_hard - pct
+        if 0 < headroom_to_soft <= 5:
+            # Fund NAV at which this sector would hit the soft limit
+            breach_nav = (amt / (sector_limit / 100)) if sector_limit else nav
+            shrinkage_to_soft = max(0, nav - breach_nav)
+            approaching_sector_limits.append({
+                "sector":                  s,
+                "current_pct":             pct,
+                "headroom_to_soft_pct":    round(headroom_to_soft, 1),
+                "headroom_to_hard_pct":    round(headroom_to_hard, 1),
+                "shrinkage_to_breach_usd": round(shrinkage_to_soft),
+            })
+
+    # Distressed headroom: how many more average-sized deals downgrading would breach
+    avg_deal_size = total_deployed / len(portfolio) if portfolio else 0
+    dist_headroom_usd = max(0, (dist_limit / 100 * nav) - distressed_total)
+    distressed_deals_to_breach = int(dist_headroom_usd / avg_deal_size) if avg_deal_size else 0
+
     return {
         "status":                "BREACH" if breaches else ("WARNING" if warnings_list else "COMPLIANT"),
         "total_deals":           len(portfolio),
@@ -347,6 +374,10 @@ def summarize_portfolio_vs_policy(portfolio: dict[str, dict], fund_size: float =
         "watch_list_count":      len(watch_list_deals),
         "policy_breaches":       breaches,
         "policy_warnings":       warnings_list,
+        "drift_risks": {
+            "approaching_sector_limits":  approaching_sector_limits,
+            "distressed_deals_to_breach": distressed_deals_to_breach,
+        },
     }
 
 

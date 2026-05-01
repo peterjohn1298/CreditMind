@@ -413,6 +413,16 @@ export interface PortfolioComplianceSummary {
   watch_list_count:     number;
   policy_breaches:      string[];
   warnings?:            string[];
+  drift_risks?: {
+    approaching_sector_limits: Array<{
+      sector:                  string;
+      current_pct:             number;
+      headroom_to_soft_pct:    number;
+      headroom_to_hard_pct:    number;
+      shrinkage_to_breach_usd: number;
+    }>;
+    distressed_deals_to_breach: number;
+  };
 }
 
 // ─── Portfolio Analytics (Wave 3) ────────────────────────────────────────────

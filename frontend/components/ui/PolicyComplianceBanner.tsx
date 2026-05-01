@@ -165,6 +165,53 @@ export default function PolicyComplianceBanner() {
               </span>
             )}
           </div>
+
+          {/* Drift risk — post-origination concentration drift */}
+          {((data.drift_risks?.approaching_sector_limits?.length ?? 0) > 0 ||
+            (data.drift_risks?.distressed_deals_to_breach ?? Infinity) <= 5) && (
+            <div className="border-t border-white/[0.04] pt-3 space-y-2">
+              <p className="text-warning text-[10px] uppercase tracking-wider font-mono font-semibold">
+                Drift Risk — Passive Concentration Exposure
+              </p>
+              <p className="text-muted text-[10px] leading-relaxed">
+                These limits could be breached without any new origination — through loan repayments shrinking the fund denominator, rating downgrades, or sector reclassification.
+              </p>
+              {data.drift_risks?.approaching_sector_limits?.map((item) => {
+                const shrinkageB = (item.shrinkage_to_breach_usd / 1_000_000_000).toFixed(2);
+                return (
+                  <div key={item.sector} className="flex items-start justify-between gap-4 rounded-md bg-warning/5 border border-warning/15 px-3 py-2">
+                    <div>
+                      <span className="text-warning text-[10px] font-mono font-semibold">{item.sector}</span>
+                      <p className="text-muted text-[10px] mt-0.5">
+                        Currently <span className="font-mono text-primary">{item.current_pct.toFixed(1)}%</span> — only <span className="font-mono text-warning">{item.headroom_to_soft_pct.toFixed(1)}%</span> from soft limit
+                      </p>
+                      <p className="text-muted text-[10px]">
+                        Soft limit breached if fund shrinks by <span className="font-mono text-warning">${shrinkageB}B</span> via repayments or exits elsewhere
+                      </p>
+                    </div>
+                    <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border border-warning/30 text-warning shrink-0">
+                      APPROACHING
+                    </span>
+                  </div>
+                );
+              })}
+              {(data.drift_risks?.distressed_deals_to_breach ?? Infinity) <= 5 && (
+                <div className="flex items-start justify-between gap-4 rounded-md bg-warning/5 border border-warning/15 px-3 py-2">
+                  <div>
+                    <span className="text-warning text-[10px] font-mono font-semibold">Distressed Cap</span>
+                    <p className="text-muted text-[10px] mt-0.5">
+                      Currently <span className="font-mono text-primary">{data.distressed_pct?.toFixed(1)}%</span> — only{" "}
+                      <span className="font-mono text-warning">{data.drift_risks?.distressed_deals_to_breach}</span> more deal
+                      {data.drift_risks?.distressed_deals_to_breach !== 1 ? "s" : ""} downgrading to distressed would breach the 10% cap
+                    </p>
+                  </div>
+                  <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border border-warning/30 text-warning shrink-0">
+                    APPROACHING
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
