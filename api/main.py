@@ -60,6 +60,9 @@ _sector_scores: dict[str, int] = {}
 # Refresh state — tracks whether a background refresh is running
 _refresh_state: dict = {"running": False, "last_run": None, "last_error": None}
 
+# Kill switch — when True, all agent execution is refused platform-wide
+_kill_switch: dict = {"enabled": False, "set_at": None}
+
 # Sector keyword config (from Jasmin's data file)
 _NEWS_SOURCES_PATH = Path(__file__).parent.parent / "data" / "news_sources.json"
 try:
@@ -389,6 +392,8 @@ def _run_daily_monitoring_all():
 @app.post("/api/underwrite")
 def underwrite(req: UnderwriteRequest):
     """Run full credit underwriting pipeline. Returns full credit_state dict."""
+    if _kill_switch["enabled"]:
+        raise HTTPException(status_code=503, detail="Kill switch is active — agent execution is disabled platform-wide.")
     try:
         from core.loan_types import normalize_loan_type
         canonical = normalize_loan_type(req.loan_type)
@@ -744,7 +749,25 @@ def sector_alerts():
 
 
 # ---------------------------------------------------------------------------
-# 7. Sector Refresh — runs monitoring agents across all portfolio sectors
+# 7. Kill Switch
+# ---------------------------------------------------------------------------
+
+@app.get("/api/kill-switch")
+def get_kill_switch():
+    return _kill_switch
+
+
+@app.post("/api/kill-switch")
+def set_kill_switch(body: dict):
+    enabled = bool(body.get("enabled", False))
+    _kill_switch["enabled"] = enabled
+    _kill_switch["set_at"] = datetime.now().isoformat() if enabled else None
+    log.warning(f"Kill switch {'ENABLED' if enabled else 'DISABLED'} at {_kill_switch['set_at']}")
+    return _kill_switch
+
+
+# ---------------------------------------------------------------------------
+# 8. Sector Refresh — runs monitoring agents across all portfolio sectors
 # ---------------------------------------------------------------------------
 
 def _run_sector_monitoring():
@@ -752,6 +775,10 @@ def _run_sector_monitoring():
     from agents.news_intelligence import NewsIntelligenceAgent
     from agents.early_warning import EarlyWarningAgent
     from core.credit_state import add_alert
+
+    if _kill_switch["enabled"]:
+        log.warning("Kill switch is ON — sector monitoring aborted.")
+        return
 
     _refresh_state["running"] = True
     _refresh_state["last_error"] = None

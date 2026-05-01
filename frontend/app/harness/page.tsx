@@ -99,6 +99,8 @@ const STATUS_CONFIG: Record<PillarStatus, { color: string; bg: string; border: s
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
+const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function HarnessPage() {
   const { state } = useCredit();
   const portfolio = state.portfolio;
@@ -107,6 +109,15 @@ export default function HarnessPage() {
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(false);
   const [killSwitchOn, setKillSwitchOn] = useState(false);
+  const [killSwitchLoading, setKillSwitchLoading] = useState(false);
+
+  // Load kill switch state from backend on mount
+  useEffect(() => {
+    fetch(`${BASE}/api/kill-switch`)
+      .then(r => r.json())
+      .then(d => setKillSwitchOn(!!d.enabled))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!selectedDealId && portfolio.length > 0) {
@@ -122,6 +133,25 @@ export default function HarnessPage() {
       .catch(() => setDeal(null))
       .finally(() => setLoading(false));
   }, [selectedDealId]);
+
+  async function toggleKillSwitch() {
+    setKillSwitchLoading(true);
+    try {
+      const next = !killSwitchOn;
+      const res = await fetch(`${BASE}/api/kill-switch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      const data = await res.json();
+      setKillSwitchOn(!!data.enabled);
+    } catch {
+      // API unreachable — toggle locally as fallback
+      setKillSwitchOn(v => !v);
+    } finally {
+      setKillSwitchLoading(false);
+    }
+  }
 
   const compliantCount = PILLARS.filter((p) => p.status === "COMPLIANT").length;
 
@@ -167,15 +197,19 @@ export default function HarnessPage() {
           </div>
         </div>
         <button
-          onClick={() => setKillSwitchOn((v) => !v)}
+          onClick={toggleKillSwitch}
+          disabled={killSwitchLoading}
           className={cn(
-            "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-mono uppercase tracking-wider border transition-all",
+            "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-mono uppercase tracking-wider border transition-all disabled:opacity-60",
             killSwitchOn
               ? "bg-danger/15 border-danger/40 text-danger hover:bg-danger/25"
               : "bg-white/[0.04] border-white/[0.1] text-muted hover:text-primary hover:border-white/[0.2]"
           )}
         >
-          {killSwitchOn ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+          {killSwitchLoading
+            ? <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+            : killSwitchOn ? <ToggleRight size={14} /> : <ToggleLeft size={14} />
+          }
           {killSwitchOn ? "Disable Kill Switch" : "Enable Kill Switch"}
         </button>
       </div>
