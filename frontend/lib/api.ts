@@ -84,8 +84,20 @@ export const getSectorImpactBrief = (deal_id: string): Promise<SectorImpactBrief
 
 // ─── Origination + Screening (Stages 1-2) ────────────────────────────────────
 
-export const originationScan = (criteria: FundCriteria = {}): Promise<OriginationScanResponse> =>
-  req("/api/origination-scan", { method: "POST", body: JSON.stringify(criteria) });
+export async function originationScan(criteria: FundCriteria = {}): Promise<OriginationScanResponse> {
+  const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  // Fire the job — returns immediately with a job_id
+  const { job_id } = await req("/api/origination-scan", { method: "POST", body: JSON.stringify(criteria) });
+  // Poll until done (up to 6 minutes)
+  const deadline = Date.now() + 6 * 60 * 1000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 4000));
+    const job = await fetch(`${BASE}/api/origination-scan/${job_id}`).then((r) => r.json());
+    if (job.status === "done") return job.result as OriginationScanResponse;
+    if (job.status === "error") throw new Error(job.error ?? "Scan failed");
+  }
+  throw new Error("Origination scan timed out");
+}
 
 export const screenDeal = (teaser: DealTeaserRequest): Promise<ScreeningResult> =>
   req("/api/screen-deal", { method: "POST", body: JSON.stringify(teaser) });

@@ -63,6 +63,9 @@ _refresh_state: dict = {"running": False, "last_run": None, "last_error": None}
 # Kill switch — when True, all agent execution is refused platform-wide
 _kill_switch: dict = {"enabled": False, "set_at": None}
 
+# Origination scan jobs — keyed by job_id
+_origination_jobs: dict = {}
+
 # Sector keyword config (from Jasmin's data file)
 _NEWS_SOURCES_PATH = Path(__file__).parent.parent / "data" / "news_sources.json"
 try:
@@ -961,16 +964,14 @@ class ClosingRequest(BaseModel):
     deal_id: str
 
 
-@app.post("/api/origination-scan")
-def origination_scan(req: FundCriteria):
-    """Stage 1: Scan market signals for deal origination opportunities."""
+def _run_origination_scan(job_id: str, criteria: dict):
+    """Background worker for origination scan."""
     try:
         from agents.origination_scout import OriginationScoutAgent
-        state = {"fund_criteria": req.model_dump()}
+        state = {"fund_criteria": criteria}
         agent = OriginationScoutAgent()
         state = agent.run(state)
         raw = state.get("origination_scan", {})
-        # Agent returns "opportunities"; frontend expects "candidates"
         candidates = [
             {
                 "company":   opp.get("company", ""),
@@ -984,13 +985,36 @@ def origination_scan(req: FundCriteria):
             }
             for opp in raw.get("opportunities", [])
         ]
-        return {
-            "candidates":   candidates,
-            "scan_summary": raw.get("macro_backdrop"),
-            "signals_seen": len(candidates),
+        _origination_jobs[job_id] = {
+            "status": "done",
+            "result": {
+                "candidates":   candidates,
+                "scan_summary": raw.get("macro_backdrop"),
+                "signals_seen": len(candidates),
+            },
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+        _origination_jobs[job_id] = {"status": "error", "error": str(e)}
+
+
+@app.post("/api/origination-scan")
+def origination_scan(req: FundCriteria):
+    """Stage 1: Start origination scan in background. Returns job_id for polling."""
+    import uuid
+    job_id = str(uuid.uuid4())
+    _origination_jobs[job_id] = {"status": "running"}
+    t = threading.Thread(target=_run_origination_scan, args=(job_id, req.model_dump()), daemon=True)
+    t.start()
+    return {"job_id": job_id, "status": "running"}
+
+
+@app.get("/api/origination-scan/{job_id}")
+def get_origination_scan(job_id: str):
+    """Poll origination scan job status and result."""
+    job = _origination_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
 
 
 @app.post("/api/screen-deal")
