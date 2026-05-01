@@ -984,20 +984,97 @@ class ClosingRequest(BaseModel):
 
 
 def _do_origination_scan(criteria: dict) -> dict:
-    from agents.origination_scout import OriginationScoutAgent
-    state = {"fund_criteria": criteria}
-    agent = OriginationScoutAgent()
-    state = agent.run(state)
-    raw = state.get("origination_scan", {})
+    import os, json, requests
+    from anthropic import Anthropic
+
+    target_sectors = criteria.get("target_sectors", ["Healthcare", "Technology", "Industrials"])
+    ebitda_min  = criteria.get("ebitda_min",  10_000_000) / 1_000_000
+    ebitda_max  = criteria.get("ebitda_max", 150_000_000) / 1_000_000
+    loan_min    = criteria.get("loan_size_min", 25_000_000) / 1_000_000
+    loan_max    = criteria.get("loan_size_max", 500_000_000) / 1_000_000
+    max_lev     = criteria.get("max_leverage", 6.5)
+
+    # Pull Finnhub general news as context; gracefully skip if no key or timeout
+    news_text = ""
+    finnhub_key = os.environ.get("FINNHUB_API_KEY", "")
+    if finnhub_key:
+        try:
+            resp = requests.get(
+                "https://finnhub.io/api/v1/news",
+                params={"category": "general", "token": finnhub_key},
+                timeout=10,
+            )
+            if resp.ok:
+                ma_terms = {"acquisition", "buyout", "leveraged", "private equity", "lbo",
+                            "credit", "refinanc", "sponsor", "debt"}
+                articles = [
+                    a for a in resp.json()
+                    if any(t in (a.get("headline","") + " " + a.get("summary","")).lower()
+                           for t in ma_terms)
+                ][:12]
+                news_text = "\n".join(
+                    f"- {a.get('headline','')}: {a.get('summary','')[:180]}"
+                    for a in articles
+                )
+        except Exception:
+            pass
+
+    news_block = f"Recent M&A / credit news signals:\n{news_text}" if news_text else \
+                 "No live news retrieved — use your knowledge of current deal flow."
+
+    prompt = f"""You are a private credit origination analyst at a $8B direct lending fund.
+Identify 4-5 realistic private credit origination opportunities matching our fund's criteria.
+
+Fund criteria:
+- Target sectors: {', '.join(target_sectors)}
+- EBITDA range: ${ebitda_min:.0f}M – ${ebitda_max:.0f}M
+- Loan size: ${loan_min:.0f}M – ${loan_max:.0f}M
+- Max leverage: {max_lev}x
+- Instrument: senior secured direct lending / unitranche preferred
+
+{news_block}
+
+Identify 4-5 realistic middle-market companies that could be seeking private credit right now —
+LBO debt from a recent sponsor acquisition, refinancing of existing bank debt, growth capital,
+or a distressed situation. Use realistic company names and specific, plausible rationale.
+
+Return ONLY valid JSON — no markdown, no explanation:
+{{
+  "macro_backdrop": "2-3 sentence macro context for private credit deal flow right now",
+  "opportunities": [
+    {{
+      "company": "realistic company name",
+      "sector": "one of the target sectors",
+      "opportunity_type": "LBO debt | growth capital | refinancing | distressed",
+      "signal_source": "M&A news | sponsor activity | sector stress | refinancing need",
+      "signal_summary": "specific signal — e.g. PE sponsor acquired this company in Q4 2024 and is now seeking to place senior debt",
+      "fit_rationale": "why this matches our fund criteria on size, sector, leverage",
+      "timing": "near-term (0-3 months) | medium-term (3-9 months) | watch list",
+      "risk_flags": ["key risk 1", "key risk 2"],
+      "recommended_action": "outreach | monitor | pass"
+    }}
+  ]
+}}"""
+
+    client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+    response = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw_text = response.content[0].text.strip()
+    raw_text = raw_text.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    raw = json.loads(raw_text)
+
     candidates = [
         {
             "company":   opp.get("company", ""),
-            "ticker":    opp.get("ticker"),
+            "ticker":    None,
             "sector":    opp.get("sector"),
-            "signal":    opp.get("signal_summary") or opp.get("signal_source", ""),
-            "rationale": opp.get("fit_rationale") or opp.get("signal_summary", ""),
+            "signal":    opp.get("signal_summary", ""),
+            "rationale": opp.get("fit_rationale", ""),
             "urgency":   opp.get("timing"),
-            "fit_score": opp.get("fit_score"),
+            "fit_score": None,
             "source":    opp.get("signal_source"),
         }
         for opp in raw.get("opportunities", [])
