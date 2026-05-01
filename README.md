@@ -1,67 +1,119 @@
 # CreditMind
 
-**Autonomous Credit Intelligence Platform** — AI agents that manage the full credit lifecycle for private credit lenders.
+**AI-Native Private Credit Intelligence Platform** — autonomous AI agents managing the full credit lifecycle for private credit funds.
 
 [![CI](https://github.com/peterjohn1298/CreditMind/actions/workflows/ci.yml/badge.svg)](https://github.com/peterjohn1298/CreditMind/actions/workflows/ci.yml)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://creditmind-kujyspvs8dn5skfdiwcglw.streamlit.app/)
 
 ---
 
 ## What It Does
 
-Upload deal documents (financial statements, QoE, CIM, legal DD) and set loan parameters. CreditMind runs 11 autonomous AI agents that replicate the work of a full private credit team — from initial due diligence through ongoing portfolio monitoring.
+CreditMind replaces the manual workflows of a private credit team — origination screening, full underwriting, post-disbursement monitoring, quarterly valuation marks, and LP reporting — with AI agents that run autonomously on a live portfolio of 50 companies.
 
-Target users: Private credit funds (direct lending, unitranche, mezzanine) managing mid-market corporate loan portfolios.
+**Target users:** Private credit funds (direct lending, unitranche, mezzanine) managing mid-market corporate loan portfolios up to $10B AUM.
+
+---
+
+## Live Deployment
+
+| Service | Platform | URL |
+|---|---|---|
+| Frontend | Vercel (Next.js) | Set via `NEXT_PUBLIC_API_URL` |
+| Backend API | Railway (FastAPI) | Configured in Railway project settings |
+
+The backend triggers a full sector monitoring run on every deploy. The frontend polls for completion and surfaces live AI-generated alerts automatically.
 
 ---
 
 ## Architecture
 
 ```
-INPUT: PDF Documents + Loan Parameters
-              ↓
-┌─────────────────────────────────────────────────┐
-│  PHASE 1 — DUE DILIGENCE                        │
-│                                                 │
-│  Wave 1 (parallel):                             │
-│    Agent 1: Financial Analyst                   │
-│    Agent 2: EBITDA Analyst (QoE validation)     │
-│    Agent 3: Commercial Analyst (CIM review)     │
-│    Agent 4: Legal Analyst                       │
-│                    ↓                            │
-│  Wave 2 (sequential):                           │
-│    Agent 5: Credit Modeler                      │
-│    Agent 6: Stress Tester                       │
-│    Agent 7: Risk Scorer → auto-reject if ≥75   │
-│    Agent 8: Covenant Designer                   │
-│                    ↓                            │
-│    Output: IC Memo Writer (full IC memo)        │
-└─────────────────────────────────────────────────┘
-              ↓
-        Human IC Review Gate
-              ↓
-┌─────────────────────────────────────────────────┐
-│  PHASE 2 — PORTFOLIO MONITORING                 │
-│                                                 │
-│  Daily (parallel):                              │
-│    Agent 9:  News Intelligence                  │
-│    Agent 10: Sentiment Scorer                   │
-│    Agent 11: Early Warning System               │
-│                                                 │
-│  Quarterly (sequential):                        │
-│    Agent 12: Portfolio Monitor                  │
-│    Agent 13: Covenant Compliance                │
-│    Agent 14: Rating Reviewer                    │
-└─────────────────────────────────────────────────┘
-              ↓
-OUTPUT: IC Memo + Daily Briefings + Quarterly Reports + Escalation Alerts
+┌─────────────────────────────────────────────────────────┐
+│  ORIGINATION                                            │
+│  Origination Scout → Deal Screener → Policy Checker     │
+│  (news scan + sector check + fund mandate fit)          │
+└──────────────────────────┬──────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  UNDERWRITING (9 agents, sequential)                    │
+│                                                         │
+│  Financial Analyst  → EBITDA Analyst (add-back QA)      │
+│  Credit Modeler     → Covenant Structurer               │
+│  KYC / AML          → Legal Analyst                     │
+│  Early Warning      → IC Committee → Term Sheet         │
+└──────────────────────────┬──────────────────────────────┘
+                           ↓
+                   Human IC Review Gate
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  POST-DISBURSEMENT MONITORING                           │
+│                                                         │
+│  Daily (per company):                                   │
+│    News Intelligence · Sentiment Scorer · Early Warning │
+│                                                         │
+│  Daily (per sector — 11 sectors sequentially):          │
+│    News Intelligence (sector) · Early Warning (sector)  │
+│                                                         │
+│  Quarterly (per company):                               │
+│    Portfolio Monitor · Covenant Compliance              │
+│    Rating Reviewer · Valuation Agent                    │
+└──────────────────────────┬──────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  REPORTING                                              │
+│  LP Reporting Agent → ILPA RT 2.0 + Performance +      │
+│  Capital Call / Distribution Notices                    │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ### Dynamic Routing
-- No documents → pipeline aborts immediately
-- DISTRESSED financial health → adds HIGH alert, fast-tracks to risk scoring
-- Risk score ≥ 75 → auto-reject path, covenant design skipped
-- Covenant breach detected → rating reviewer skipped, escalated to credit committee
+- Risk score ≥ 75 at underwriting → auto-reject, covenant design skipped
+- Covenant breach detected → immediate escalation, rating review fast-tracked
+- Early Warning RED/BLACK → CRITICAL alert, rating downgrade executed automatically
+- Shadow default signals (PIK toggle, covenant waiver, LME) → flagged as pre-default, HIGH/CRITICAL severity
+
+---
+
+## Key Features
+
+### Origination
+- Live news scan on any company using Finnhub
+- Sector stress check against current portfolio concentration
+- Fund mandate policy fit check before analyst time is spent
+
+### Underwriting
+- 9-agent sequential pipeline producing a full credit file
+- EBITDA forensics: conservative / base / bull scenarios, add-back validation
+- IC Committee deliberation with conditions and final terms
+- Term sheet generation with red lines and concession map
+- Closing CP tracker with funds flow
+
+### Portfolio Management
+- 50-company live portfolio with real-time risk scores and internal ratings
+- Policy Compliance Banner: sector concentration, sponsor concentration, deployment %
+- Per-deal: covenant status, rating history decision trail, upgrade/downgrade triggers
+
+### Monitoring
+- Background monitoring fires on every deploy and every manual Refresh
+- Sequential sector processing (12s sleep between sectors) to respect API rate limits
+- Alternative data: LinkedIn job signals + Yelp consumer sentiment for relevant sectors
+- Shadow default detection: PIK additions, covenant amendments, LME maneuvers
+
+### Sector Intelligence
+- 11-sector heatmap with live stress scores
+- Contagion analysis: click a sector to see which portfolio loans are exposed and by how much
+- 4-agent AI analysis pipeline with written sector brief
+- 6-month sector stress forecast
+
+### Valuation
+- ASC 820 Level 3 fair-value marks per loan (yield-based)
+- Portfolio-wide mark inconsistency scan: divergent yields, stale comparables, rating-mark mismatches
+- Mark confidence scoring
+
+### LP Reporting
+- ILPA Reporting Template 2.0: NAV bridge, cash flows, fees, capital account by LP class
+- ILPA Performance Template: TVPI, DPI, RVPI, IRR (gross and net), peer benchmark
+- LP Notice Generator: capital call and distribution notices, pro-rata across LP roster
 
 ---
 
@@ -69,28 +121,17 @@ OUTPUT: IC Memo + Daily Briefings + Quarterly Reports + Escalation Alerts
 
 | Layer | Technology |
 |---|---|
-| Language | Python 3.11 |
-| UI | Streamlit |
-| AI | Claude API (claude-sonnet-4-6) with tool use |
-| Document Parsing | Claude Document API + pypdf text extraction |
+| Frontend | Next.js 14 (App Router), Tailwind CSS, Recharts |
+| Backend API | FastAPI (Python 3.11) |
+| AI | Claude API — `claude-sonnet-4-6` with tool use |
+| News Data | Finnhub |
 | Macro Data | FRED API |
-| News Data | NewsAPI |
+| SEC Filings | SEC EDGAR API |
+| Consumer Signals | Yelp Fusion API |
+| Job Signals | LinkedIn / job posting heuristics |
 | CI/CD | GitHub Actions |
-| Deployment | Streamlit Community Cloud |
-
----
-
-## Data Pipeline
-
-```
-PDF Upload → document_processor.py
-    ├── Small PDFs (<500KB): Claude Document API (native)
-    └── Large PDFs (≥500KB): pypdf text extraction → smart truncation
-                                  → financial_mode: jumps to Item 8
-
-Macro Data → data/macro_data.py → FRED API (rates, spreads, GDP)
-News Data  → data/news_data.py  → NewsAPI (company + macro signals)
-```
+| Frontend Deploy | Vercel |
+| Backend Deploy | Railway |
 
 ---
 
@@ -98,27 +139,82 @@ News Data  → data/news_data.py  → NewsAPI (company + macro signals)
 
 ```
 creditmind/
-├── agents/          # 14 AI agents (financial, EBITDA, legal, risk, etc.)
-├── core/            # orchestrator, credit state, document processor, tools
-├── data/            # financial, macro, and news data fetchers
-├── outputs/         # credit memo formatter
-├── scripts/         # PDF generators + test documents (Ducommun DCO)
-├── tests/           # pytest test suite
-├── streamlit_app.py # main UI
-└── requirements.txt
+├── agents/              # 30+ AI agents (underwriting, monitoring, reporting)
+│   ├── base_agent.py    # agentic loop with tool use + JSON extraction
+│   ├── early_warning.py # daily risk surveillance + rating migration
+│   ├── news_intelligence.py
+│   ├── lp_reporting.py
+│   ├── valuation_agent.py
+│   └── ...
+├── api/
+│   └── main.py          # FastAPI routes + background monitoring scheduler
+├── core/
+│   ├── orchestrator.py  # underwriting pipeline runner
+│   ├── credit_state.py  # shared deal state + alert system
+│   ├── credit_policy.py # fund mandate policy engine
+│   └── tools.py         # Claude tool definitions
+├── data/
+│   ├── macro_data.py    # FRED API
+│   ├── news_data.py     # Finnhub
+│   ├── sec_edgar.py     # SEC EDGAR
+│   ├── consumer_signals.py  # Yelp
+│   ├── jobs_data.py     # job signal data
+│   ├── sector_stress.py # quantitative sector stress model
+│   └── seed_portfolio.py    # 50-company demo portfolio
+├── frontend/            # Next.js app
+│   ├── app/             # page routes (dashboard, portfolio, monitoring, etc.)
+│   ├── components/      # UI components
+│   ├── context/         # CreditContext (global state + API polling)
+│   └── lib/             # API client, types, utils, mock data
+├── tests/               # pytest suite
+└── requirements-api.txt # backend dependencies
 ```
 
 ---
 
 ## Run Locally
 
+### Backend
+
 ```bash
 git clone https://github.com/peterjohn1298/CreditMind.git
 cd CreditMind
-pip install -r requirements.txt
-cp .env.example .env   # add ANTHROPIC_API_KEY
-streamlit run streamlit_app.py
+pip install -r requirements-api.txt
+cp .env.example .env   # add ANTHROPIC_API_KEY, FINNHUB_API_KEY, FRED_API_KEY
+uvicorn api.main:app --reload --port 8000
 ```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+npm run dev
+```
+
+App runs at `http://localhost:3000`.
+
+---
+
+## Environment Variables
+
+### Backend (`.env`)
+
+| Variable | Required | Source |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes | console.anthropic.com |
+| `FINNHUB_API_KEY` | Yes | finnhub.io |
+| `FRED_API_KEY` | Yes | fred.stlouisfed.org |
+| `YELP_API_KEY` | No | yelp.com/developers |
+
+### Frontend (`.env.local`)
+
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | Yes | Backend URL (e.g. `https://your-app.railway.app`) |
+
+---
 
 ## Run Tests
 
@@ -128,14 +224,28 @@ pytest tests/ -v
 
 ---
 
-## Demo Documents (Ducommun Incorporated — DCO)
+## Fund Policy Configuration
 
-Test documents are included in `scripts/` for end-to-end pipeline testing:
+Fund mandate parameters are set in `data/credit_policy.json` and enforced by `core/credit_policy.py`. Default configuration:
 
-| Document | File | Description |
-|---|---|---|
-| Financial Statements | `ducommun_annual_report_2025.pdf` | FY2024 Annual Report (5.3MB) |
-| Quality of Earnings | `ducommun_qoe_report.pdf` | Synthetic QoE — $91.3M adj. EBITDA |
-| CIM | `ducommun_cim.pdf` | Synthetic CIM — $150M TLB deal |
+- Fund size: $8B
+- Max single sector concentration: 25% of NAV
+- Soft warning threshold: 20% of NAV
+- Max single sponsor concentration: 15%
+- Max non-sponsored exposure: 20%
+- Max distressed exposure: 10%
 
-Deal parameters: Ducommun Inc · $150M · 5yr · First Lien Term Loan · Sponsor: KKR
+These thresholds drive the Policy Compliance Banner on the Portfolio and Dashboard pages.
+
+---
+
+## Monitoring Cadence
+
+On every deploy and every manual Refresh:
+1. Backend triggers `_run_sector_monitoring()` in a background thread
+2. 11 sectors run sequentially (News Intelligence + Early Warning per sector)
+3. 12-second sleep between sectors to respect Anthropic API rate limits
+4. Frontend polls `/api/refresh/status` every 5 seconds until complete
+5. Alerts, sector heatmap, and portfolio data refresh automatically
+
+Worst-case runtime: ~4–5 minutes for a full 11-sector pass.

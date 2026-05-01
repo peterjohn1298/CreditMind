@@ -5,7 +5,7 @@ import {
   Upload, CheckCircle, XCircle, AlertCircle,
   ChevronDown, ChevronUp, Printer, Zap, FileText,
   Download, ChevronRight, ChevronLeft, Building2,
-  DollarSign, BarChart2, Layers, ShieldAlert, ClipboardCheck,
+  DollarSign, BarChart2, Layers, ShieldAlert, ClipboardCheck, Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "@/components/ui/Select";
@@ -13,6 +13,7 @@ import AgentProgress from "@/components/ui/AgentProgress";
 import RatingBadge from "@/components/ui/RatingBadge";
 import RiskGauge from "@/components/ui/RiskGauge";
 import TypewriterText from "@/components/ui/TypewriterText";
+import AddBackForensicsPanel from "@/components/ui/AddBackForensicsPanel";
 import type { AgentStatus } from "@/lib/types";
 import { underwrite } from "@/lib/api";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -141,6 +142,37 @@ const DEMO_REJECT: FormState = {
   key_risks: "1. E-commerce disruption — online captures 34% of addressable market, accelerating\n2. Secular decline in department store foot traffic (-22% over 3 years)\n3. Leverage 9.2x — covenant breach at close\n4. Negative free cash flow — $8M outflow LTM\n5. Lease liability obligations of $1.2B across 340 stores",
   esg_flags: "Social / labour issues",
   notes: "Management team assembled 18 months ago following prior CEO departure. Turnaround plan unproven. Sponsor has invested $60M equity (9.7% of EV) — limited alignment.",
+};
+
+// Full-capability demo — PE-backed behavioral health mezzanine, hits every agent and tool
+const DEMO_MEZZ: FormState = {
+  // Step 1
+  company: "Atlas Health Partners", ticker: "", sponsor: "Warburg Pincus",
+  sector: "Healthcare", jurisdiction: "Delaware, USA",
+  description: "Atlas Health Partners is a PE-backed behavioral health platform operating 87 outpatient treatment centers across 14 US states, specializing in substance-use disorder, anxiety, and depression care. The company has grown via acquisition from 12 to 87 locations since 2021. Revenue is 61% government-payor (Medicaid/Medicare) and 39% commercial insurance. The proposed $75M mezzanine tranche finances the add-on acquisition of PeakCare Clinics (14 locations, $38M revenue), which has not yet been integrated.",
+
+  // Step 2
+  facility: "Mezzanine", total_facility: "75", loan_amount: "75",
+  tenor: "6", purpose: "Add-on Acquisition",
+  pricing_spread: "850", oid: "97.0",
+  call_protection: "Non-Call 2 Years", expected_close: "2026-07-31",
+
+  // Step 3
+  revenue_ltm: "185", ebitda_ltm: "31", adj_ebitda_ltm: "40",
+  revenue_growth: "22", capex: "8", fcf: "14",
+  total_debt_proforma: "248", equity_contribution: "72", enterprise_value: "320",
+
+  // Step 4
+  first_lien: "165", second_lien: "0", revolver: "25",
+  leverage_covenant: "7.5", icr_covenant: "1.8",
+  min_liquidity: "15", capex_limit: "12",
+
+  // Step 5
+  customer_concentration: "18", recurring_revenue: "74",
+  management_tenure: "4", backlog: "",
+  key_risks: "1. Medicaid/Medicare reimbursement rate risk — 61% of revenue from government payors subject to annual rate resets\n2. EBITDA add-backs: $9M of $40M adjusted EBITDA labeled non-recurring includes $4.5M in recurring integration costs — quality of earnings concern\n3. Therapist turnover 34% annually — hiring pipeline is primary operational constraint; job signal monitoring critical\n4. Regulatory: 3 state billing compliance audits pending across TX, FL, OH — outcome and liability unknown\n5. Pro forma leverage 7.8x — exceeds fund mezzanine covenant of 7.5x at close\n6. PeakCare integration unproven — Day 1 synergies of $5.2M assumed in management EBITDA before integration begins",
+  esg_flags: "Social / labour issues",
+  notes: "Yelp consumer signal and job posting monitoring recommended given physical clinic footprint across 14 states. Management EBITDA vs. QoE conservative EBITDA divergence of $9M expected to trigger EBITDA harness re-run. ESG enhanced due diligence required given Medicaid billing audit exposure and patient-care labour practices. IC checkpoint conditions expected around billing audit resolution and integration milestones.",
 };
 
 const BLANK: FormState = {
@@ -934,6 +966,10 @@ export default function Underwriting() {
     memo_sections: Record<string, string>; company: string;
     scorecard?: Record<string, { score: string; weight: string; notes: string }>;
     key_risk_drivers?: string[]; mitigating_factors?: string[];
+    ebitda_analysis?: import("@/lib/types").EBITDAAnalysis;
+    deal_id?: string;
+    consumer_signals?: Record<string, any> | null;
+    job_signals?: Record<string, any> | null;
   } | null>(null);
 
   // Upload state
@@ -948,6 +984,7 @@ export default function Underwriting() {
 
   const isDemo       = form.company === DEMO.company;
   const isDemoReject = form.company === DEMO_REJECT.company;
+  const isDemoMezz   = form.company === DEMO_MEZZ.company;
 
   function set(k: keyof FormState, v: string) {
     setFormState(prev => ({ ...prev, [k]: v }));
@@ -1070,6 +1107,10 @@ export default function Underwriting() {
         scorecard:          res.risk_assessment?.scorecard,
         key_risk_drivers:   res.risk_assessment?.key_risk_drivers,
         mitigating_factors: res.risk_assessment?.mitigating_factors,
+        ebitda_analysis:    res.ebitda_analysis,
+        deal_id:            res.deal_id,
+        consumer_signals:   res.consumer_signals ?? null,
+        job_signals:        res.job_signals ?? null,
       });
     } catch {
       const isRejectCase = form.company === DEMO_REJECT.company;
@@ -1083,6 +1124,34 @@ export default function Underwriting() {
       if (isRejectCase) {
         setResult({
           risk_score: 81, rating: "CCC+", approval: "REJECT", company: form.company,
+          ebitda_analysis: {
+            reported_ebitda: 58_000_000,
+            add_back_analysis: [
+              { name: "Restructuring charges (3-yr recurring)", amount: 8_500_000, category: "one_time_cost",
+                verdict: "REJECT",       rationale: "Restructuring expense has appeared in FY22, FY23, and FY24 — recurring cost mislabeled as one-time.", adjusted_amount: 0 },
+              { name: "Pro-forma store closure savings",         amount: 4_200_000, category: "pro_forma",
+                verdict: "REJECT",       rationale: "Closures not yet executed; speculative future savings cannot be added back.",                       adjusted_amount: 0 },
+              { name: "ERP transformation savings",              amount: 3_800_000, category: "synergy",
+                verdict: "QUESTIONABLE", rationale: "ERP project ongoing; savings unrealized at LTM date.",                                              adjusted_amount: 1_900_000 },
+              { name: "Sponsor management fees",                 amount: 1_200_000, category: "management_fee",
+                verdict: "SUPPORTABLE",  rationale: "Standard PE management fee elimination, well-documented.",                                          adjusted_amount: 1_200_000 },
+              { name: "Stock-based compensation",                amount: 2_100_000, category: "other",
+                verdict: "QUESTIONABLE", rationale: "Recurring SBC — many credit funds reject SBC add-back. Treat as cash cost.",                       adjusted_amount: 0 },
+            ],
+            total_supportable_adjustments:  1_200_000,
+            total_questionable_adjustments: 5_900_000,
+            total_rejected_adjustments:     12_700_000,
+            conservative_adjusted_ebitda:   59_200_000,
+            base_adjusted_ebitda:           65_100_000,
+            adjustment_quality_score:       "LOW",
+            adjustment_as_pct_of_reported:  34.5,
+            key_concerns: [
+              "Restructuring charges appear in three consecutive years — they are recurring, not one-time",
+              "Pro-forma store-closure savings represent ~7% of marketed EBITDA but no closures executed",
+              "Total adjustments at 34.5% of reported EBITDA exceed the S&P 2024 average of 29% — aggressive QoE",
+            ],
+            ebitda_conclusion: "EBITDA quality is LOW. Conservative EBITDA of $59.2M — barely above reported — is the only defensible figure. Build the credit model on $59M, not the marketed $76.7M. The $17.6M gap represents the aggressive add-back risk.",
+          },
           recommendation: "Application REJECTED. Three hard policy fails: (1) leverage 9.2x breaches 6.5x covenant at close; (2) negative free cash flow −$8M cannot service debt; (3) revenue declining −18% YoY with no credible turnaround plan. Structural e-commerce disruption is secular, not cyclical. Sponsor equity at 9.7% of EV provides inadequate loss absorption. Recommend declining and returning application.",
           scorecard: {
             financial_quality: { score: "1", weight: "20%", notes: "Revenue −18% YoY · FCF −$8M · EBITDA margin 7.8% — all below policy minimums" },
@@ -1116,6 +1185,31 @@ export default function Underwriting() {
         setResult({
           risk_score: 55, rating: "BB-", approval: "CONDITIONAL", company: form.company,
           recommendation: "Conditional approval recommended. Proceed subject to final legal review and sponsor equity confirmation.",
+          ebitda_analysis: {
+            reported_ebitda: form.ebitda_ltm ? parseFloat(form.ebitda_ltm) * 1_000_000 : 42_000_000,
+            add_back_analysis: [
+              { name: "Litigation settlement (one-time)", amount: 1_500_000, category: "one_time_cost",
+                verdict: "SUPPORTABLE", rationale: "Settled prior-period customer dispute, well-documented and non-recurring.", adjusted_amount: 1_500_000 },
+              { name: "Sponsor management fees",          amount:   900_000, category: "management_fee",
+                verdict: "SUPPORTABLE", rationale: "Standard PE management fee elimination per term sheet.", adjusted_amount: 900_000 },
+              { name: "ERP transition expense",           amount: 1_200_000, category: "one_time_cost",
+                verdict: "QUESTIONABLE", rationale: "ERP rollout extends 18 months; some cost is recurring license fees.", adjusted_amount: 600_000 },
+              { name: "Pro-forma facility consolidation savings", amount: 800_000, category: "pro_forma",
+                verdict: "QUESTIONABLE", rationale: "Consolidation announced but not yet executed; haircut to 50%.", adjusted_amount: 400_000 },
+            ],
+            total_supportable_adjustments:  2_400_000,
+            total_questionable_adjustments: 2_000_000,
+            total_rejected_adjustments:     0,
+            conservative_adjusted_ebitda:   (form.ebitda_ltm ? parseFloat(form.ebitda_ltm) * 1_000_000 : 42_000_000) + 2_400_000,
+            base_adjusted_ebitda:           (form.ebitda_ltm ? parseFloat(form.ebitda_ltm) * 1_000_000 : 42_000_000) + 4_400_000,
+            adjustment_quality_score:       "MEDIUM",
+            adjustment_as_pct_of_reported:  10.5,
+            key_concerns: [
+              "Pro-forma savings should be tracked quarterly post-close to verify realization",
+              "Two questionable add-backs flagged — credit-model EBITDA uses conservative figure only",
+            ],
+            ebitda_conclusion: "EBITDA quality is MEDIUM. Use conservative EBITDA for leverage and coverage covenants. Adjustments at 10.5% of reported are well below the S&P 29% benchmark — this is a clean QoE.",
+          },
           scorecard: {
             financial_quality: { score: "3", weight: "20%", notes: `Revenue $${form.revenue_ltm}M · EBITDA $${form.ebitda_ltm}M · Margin ${margin ? margin.toFixed(1) + "%" : "—"}` },
             ebitda_quality:    { score: "3", weight: "20%", notes: form.adj_ebitda_ltm ? `Adj. EBITDA $${form.adj_ebitda_ltm}M — add-backs subject to QoE verification` : "EBITDA quality to be confirmed via QoE" },
@@ -1190,7 +1284,16 @@ export default function Underwriting() {
                 )}>
                 <XCircle size={10} /> Rejection Demo
               </button>
-              {(isDemo || isDemoReject) && (
+              <button onClick={() => loadDemo(DEMO_MEZZ)}
+                className={cn(
+                  "flex items-center gap-1.5 border rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all",
+                  isDemoMezz
+                    ? "bg-purple-500/10 border-purple-500/30 text-purple-400"
+                    : "bg-purple-500/[0.06] border-purple-500/20 text-purple-400/70 hover:bg-purple-500/10 hover:text-purple-400"
+                )}>
+                <Layers size={10} /> Full-Capability Demo
+              </button>
+              {(isDemo || isDemoReject || isDemoMezz) && (
                 <button onClick={clearDemo}
                   className="text-muted text-[10px] px-2 py-1.5 hover:text-primary transition-colors">
                   Clear
@@ -1468,6 +1571,107 @@ export default function Underwriting() {
                 </div>
               )}
             </div>
+
+            {/* EBITDA Add-back Forensics */}
+            {result.ebitda_analysis && <AddBackForensicsPanel analysis={result.ebitda_analysis} />}
+
+            {/* Alternative Data Signals */}
+            {(result.consumer_signals || result.job_signals) && (() => {
+              const cs = result.consumer_signals;
+              const js = result.job_signals;
+              const signalColor = (s: string) =>
+                s === "STRONG" || s === "SURGE" || s === "GROWTH" ? "#00D4A4" :
+                s === "STABLE" ? "#7B8FF7" :
+                s === "WEAKENING" || s === "CONTRACTING" ? "#FF8C00" : "#FF3B5C";
+              return (
+                <div className="glass rounded-lg overflow-hidden">
+                  <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                    <Sparkles size={13} className="text-accent" />
+                    <p className="text-primary text-sm font-semibold">Alternative Data Signals</p>
+                    <span className="text-[10px] font-mono text-muted ml-1">Live · Pre-financial leading indicators</span>
+                  </div>
+                  <div className="p-5 grid grid-cols-2 gap-4">
+
+                    {/* Consumer Signals */}
+                    {cs && !cs.error && (
+                      <div className="space-y-3">
+                        <p className="text-muted text-[10px] uppercase tracking-widest">Consumer Signal (Google Places)</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ background: `${signalColor(cs.consumer_signal)}18`, border: `1px solid ${signalColor(cs.consumer_signal)}30` }}>
+                            <span className="text-base">⭐</span>
+                          </div>
+                          <div>
+                            <p className="text-primary text-lg font-bold leading-none">{cs.rating ?? "—"}<span className="text-muted text-xs font-normal"> / 5</span></p>
+                            <p className="text-muted text-[10px]">{(cs.review_count ?? cs.user_ratings_total ?? 0).toLocaleString()} reviews</p>
+                          </div>
+                          <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded"
+                            style={{ background: `${signalColor(cs.consumer_signal)}18`, color: signalColor(cs.consumer_signal) }}>
+                            {cs.consumer_signal}
+                          </span>
+                        </div>
+                        {cs.business_status && cs.business_status !== "OPERATIONAL" && (
+                          <p className="text-danger text-[10px] font-semibold">⚠ {cs.business_status.replace(/_/g, " ")}</p>
+                        )}
+                        <p className="text-muted text-[10px] leading-relaxed">{cs.credit_implication}</p>
+                      </div>
+                    )}
+                    {cs?.error && (
+                      <div className="space-y-2">
+                        <p className="text-muted text-[10px] uppercase tracking-widest">Consumer Signal</p>
+                        <p className="text-muted/50 text-[10px]">Not available — {cs.error}</p>
+                      </div>
+                    )}
+
+                    {/* Job Signals */}
+                    {js && !js.error && (
+                      <div className="space-y-3">
+                        <p className="text-muted text-[10px] uppercase tracking-widest">Hiring Signal (Arbeitnow)</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ background: `${signalColor(js.hiring_signal)}18`, border: `1px solid ${signalColor(js.hiring_signal)}30` }}>
+                            <span className="text-base">💼</span>
+                          </div>
+                          <div>
+                            <p className="text-primary text-lg font-bold leading-none">{js.open_positions ?? 0}<span className="text-muted text-xs font-normal"> open roles</span></p>
+                            <p className="text-muted text-[10px]">via Arbeitnow · {js.as_of}</p>
+                          </div>
+                          <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded"
+                            style={{ background: `${signalColor(js.hiring_signal)}18`, color: signalColor(js.hiring_signal) }}>
+                            {js.hiring_signal}
+                          </span>
+                        </div>
+                        {js.role_breakdown && (
+                          <div className="grid grid-cols-2 gap-1">
+                            {Object.entries(js.role_breakdown as Record<string, number>)
+                              .filter(([, v]) => v > 0)
+                              .map(([k, v]) => (
+                                <div key={k} className="flex items-center justify-between">
+                                  <p className="text-muted text-[10px] capitalize">{k.replace(/_/g, " ")}</p>
+                                  <p className="text-primary text-[10px] font-mono">{v}</p>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                        {js.distress_keywords && js.distress_keywords.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {(js.distress_keywords as string[]).map((kw: string) => (
+                              <span key={kw} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-danger/10 text-danger border border-danger/20">{kw}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {js?.error && (
+                      <div className="space-y-2">
+                        <p className="text-muted text-[10px] uppercase tracking-widest">Hiring Signal</p>
+                        <p className="text-muted/50 text-[10px]">Not available — {js.error}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* IC Memo Accordion */}
             {Object.keys(result.memo_sections).length > 0 && (

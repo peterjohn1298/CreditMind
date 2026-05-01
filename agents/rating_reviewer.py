@@ -106,5 +106,5 @@ Produce structured JSON rating review:
             )
 
         credit_state["_rating_review_full"] = result
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state

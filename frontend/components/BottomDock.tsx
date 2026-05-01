@@ -5,16 +5,18 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutGrid, LayoutDashboard, FileSearch,
-  Briefcase, Activity, Bell, Globe,
+  Briefcase, Activity, Bell, Globe, Search, Shield,
 } from "lucide-react";
 import { useCredit } from "@/context/CreditContext";
 
 const NAV = [
   { label: "Hub",                href: "/home",              icon: LayoutGrid,       hub: true },
   { label: "Dashboard",         href: "/dashboard",         icon: LayoutDashboard },
+  { label: "Origination",       href: "/origination",       icon: Search },
   { label: "Underwriting",      href: "/underwriting",      icon: FileSearch },
   { label: "Portfolio",         href: "/portfolio",         icon: Briefcase },
   { label: "Monitoring",        href: "/monitoring",        icon: Activity },
+  { label: "Harness",           href: "/harness",           icon: Shield },
   { label: "Alerts",            href: "/alerts",            icon: Bell,             badge: true },
   { label: "Sector Intelligence", href: "/sector-intelligence", icon: Globe },
 ];

@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
 import {
   LayoutDashboard, FileSearch, Briefcase,
-  Activity, Bell, Globe, ChevronRight,
+  Activity, Bell, Globe, Search, ChevronRight,
+  Calculator, FileText, Shield,
 } from "lucide-react";
 import { useCredit } from "@/context/CreditContext";
 
@@ -19,10 +20,19 @@ const MODULES = [
     glow: "rgba(91,107,255,0.07)",
   },
   {
+    label: "Origination",
+    href: "/origination",
+    icon: Search,
+    description: "Stage 1+2: market scout for deals, then 2-min go/no-go screening with policy check",
+    color: "#A78BFA",
+    border: "rgba(167,139,250,0.22)",
+    glow: "rgba(167,139,250,0.07)",
+  },
+  {
     label: "Underwriting",
     href: "/underwriting",
     icon: FileSearch,
-    description: "AI-powered deal origination and credit memo generation",
+    description: "Full DD pipeline, IC memo generation, term sheet, and CP tracker",
     color: "#00D4A4",
     border: "rgba(0,212,164,0.22)",
     glow: "rgba(0,212,164,0.07)",
@@ -63,6 +73,33 @@ const MODULES = [
     color: "#00B4D8",
     border: "rgba(0,180,216,0.22)",
     glow: "rgba(0,180,216,0.07)",
+  },
+  {
+    label: "Harness",
+    href: "/harness",
+    icon: Shield,
+    description: "Regulator-grade audit layer — 5 pillars, per-agent trail, kill switch, SR 11-7 / EU AI Act ready",
+    color: "#22D3EE",
+    border: "rgba(34,211,238,0.22)",
+    glow: "rgba(34,211,238,0.07)",
+  },
+  {
+    label: "Valuation",
+    href: "/valuation",
+    icon: Calculator,
+    description: "ASC 820 Level 3 quarterly marks, portfolio fair-value and mark consistency scan",
+    color: "#F472B6",
+    border: "rgba(244,114,182,0.22)",
+    glow: "rgba(244,114,182,0.07)",
+  },
+  {
+    label: "LP Reporting",
+    href: "/lp-reporting",
+    icon: FileText,
+    description: "ILPA RT 2.0 quarterly statements, performance template, and capital call notices",
+    color: "#34D399",
+    border: "rgba(52,211,153,0.22)",
+    glow: "rgba(52,211,153,0.07)",
   },
 ];
 

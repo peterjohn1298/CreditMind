@@ -2,9 +2,13 @@
 Orchestrator — manages the full credit lifecycle with dynamic routing.
 
 Due Diligence:
-  Wave 1 (parallel): Financial, EBITDA, Commercial, Legal analysts
+  Wave 1 (parallel): Financial, EBITDA, Commercial, Legal analysts + Industry Benchmarker
   Wave 2 (sequential): Credit Modeler, Stress Tester, Risk Scorer, Covenant Designer
-  Output: IC Memo Writer
+  Specialist: loan-type analyst (Growth Capital, Mezz, Project Finance, etc.)
+  Underwriter: final serviceability synthesis
+  Wave 3 (parallel): ESG Screening + KYC/AML — hard go/no-go gates
+  Valuation: ASC 820 Level 3 fair value mark
+  Output: IC Memo Writer → IC Checkpoint (human voting record) → status = IC_REVIEW
 
 Post-Disbursement Daily:
   Parallel across portfolio: News, Sentiment, Early Warning
@@ -14,14 +18,19 @@ Post-Disbursement Quarterly:
 
 Dynamic routing:
   - No documents uploaded → abort with clear error
-  - DISTRESSED financial health → skip commercial, fast-track to risk scoring
-  - Risk score >= 75 → auto-reject, skip covenant design
+  - DISTRESSED financial health → fast-track to risk scoring
+  - Risk score >= threshold → auto-reject, skip covenant design
+  - ESG verdict REJECT → abort before IC (status = ESG_REJECTED)
+  - KYC/AML verdict REJECT → abort before IC (status = KYC_REJECTED)
   - Covenant breach → skip rating reviewer (already escalated)
 """
 
-from core.credit_state import create_credit_state, log_agent, add_alert, add_routing_note
+from core.credit_state import create_credit_state, log_agent, add_alert, add_routing_note, add_divergence, log_validation_failure
+from core.schemas import validate_credit_state_input
+from core.document_indexer import build_index, indexed_doc_types, clear_index
 from core.parallel_runner import run_parallel_wave
 from core.credit_policy import check_new_deal, check_existing_deal, get_policy_context_for_agents
+from core.ic_checkpoint import create_checkpoint
 
 from agents.financial_analyst import FinancialAnalystAgent
 from agents.ebitda_analyst import EBITDAAnalystAgent
@@ -51,11 +60,94 @@ from agents.bridge_exit_analyst import BridgeExitAnalystAgent
 from agents.distressed_analyst import DistressedAnalystAgent
 from agents.project_finance_analyst import ProjectFinanceAnalystAgent
 
+from agents.esg_screening import ESGScreeningAgent
+from agents.kyc_aml import KYCAMLAgent
+from agents.valuation_agent import ValuationAgent
+from agents.early_warning import EarlyWarningAgent
+
 from core.loan_types import (
     get_config, normalize_loan_type,
     SENIOR_SECURED, GROWTH_CAPITAL, UNITRANCHE,
     MEZZANINE, REVOLVER, BRIDGE, DISTRESSED, PROJECT_FINANCE,
 )
+
+_EBITDA_DIVERGENCE_TOLERANCE = 0.15  # 15% — flag if credit model EBITDA deviates beyond this
+
+
+def _cited_value(field):
+    """Extract scalar from either a plain scalar or a cited {value:...} dict."""
+    if isinstance(field, dict):
+        return field.get("value")
+    return field
+
+
+def _check_ebitda_divergence(credit_state: dict) -> tuple:
+    """
+    Harness verification loop: after Wave 2 Credit Modeler runs, compare its ebitda_used
+    against the EBITDA Analyst's conservative_adjusted_ebitda and base_adjusted_ebitda.
+    Financial Analyst outputs margin only (no absolute) — represented via ebitda_basis check.
+
+    Returns (credit_state, divergence_detected: bool).
+    Does not raise — missing/non-numeric values silently skip the check.
+    """
+    ebitda_analysis = credit_state.get("ebitda_analysis") or {}
+    credit_model    = credit_state.get("credit_model") or {}
+
+    conservative = _cited_value(ebitda_analysis.get("conservative_adjusted_ebitda"))
+    base         = _cited_value(ebitda_analysis.get("base_adjusted_ebitda"))
+    ebitda_used  = _cited_value(credit_model.get("ebitda_used"))
+    ebitda_basis = credit_model.get("ebitda_basis", "")
+
+    if not all(isinstance(v, (int, float)) for v in [conservative, ebitda_used]):
+        add_routing_note(
+            credit_state,
+            "EBITDA divergence check skipped — one or more values non-numeric or missing."
+        )
+        return credit_state, False
+
+    divergence_detected = False
+
+    # Check 1: ebitda_used vs conservative_adjusted_ebitda within tolerance
+    if conservative > 0:
+        pct_diff = abs(ebitda_used - conservative) / conservative
+        if pct_diff > _EBITDA_DIVERGENCE_TOLERANCE:
+            add_divergence(
+                credit_state,
+                f"EBITDA gap: Credit Modeler used ${ebitda_used:,.0f} vs "
+                f"EBITDA Analyst conservative ${conservative:,.0f} "
+                f"({pct_diff:.1%} gap, tolerance ±{_EBITDA_DIVERGENCE_TOLERANCE:.0%})."
+            )
+            divergence_detected = True
+
+    # Check 2: ebitda_used exceeds base case — model built on inflated figure
+    if isinstance(base, (int, float)) and base > 0 and ebitda_used > base * 1.05:
+        add_divergence(
+            credit_state,
+            f"EBITDA inflation: Credit Modeler used ${ebitda_used:,.0f} which exceeds "
+            f"EBITDA Analyst base case ${base:,.0f} — model may be built on management case."
+        )
+        divergence_detected = True
+
+    # Check 3: basis mismatch — modeler claimed conservative but used a different figure
+    if ebitda_basis == "conservative" and isinstance(conservative, (int, float)):
+        pct_diff = abs(ebitda_used - conservative) / conservative if conservative > 0 else 0
+        if pct_diff > _EBITDA_DIVERGENCE_TOLERANCE:
+            add_divergence(
+                credit_state,
+                f"Basis mismatch: Credit Modeler declared ebitda_basis='conservative' "
+                f"but used ${ebitda_used:,.0f} vs EBITDA Analyst conservative ${conservative:,.0f}."
+            )
+            divergence_detected = True
+
+    if divergence_detected:
+        add_routing_note(
+            credit_state,
+            f"HARNESS: EBITDA divergence detected — routing back to Credit Modeler. "
+            f"Constraint: use conservative_adjusted_ebitda=${conservative:,.0f} from ebitda_analysis."
+        )
+
+    return credit_state, divergence_detected
+
 
 # Map loan type → specialist agent class
 _SPECIALIST_AGENTS = {
@@ -186,6 +278,47 @@ class DueDiligenceOrchestrator:
         credit_state = agent5.run(credit_state)
         _complete(agent5.name, credit_state)
 
+        # ============================================================
+        # HARNESS VERIFICATION — EBITDA cross-check
+        # The model synthesizes; the harness verifies. Compare ebitda_used
+        # from Credit Modeler against EBITDA Analyst conservative/base figures.
+        # On divergence: flag, alert, re-run once with explicit constraint.
+        # ============================================================
+        credit_state, divergence_detected = _check_ebitda_divergence(credit_state)
+        if divergence_detected:
+            add_alert(
+                credit_state,
+                trigger="EBITDA divergence: Credit Modeler and EBITDA Analyst figures do not agree",
+                severity="HIGH",
+                action_required=(
+                    "IC committee must resolve EBITDA discrepancy. "
+                    "Credit model has been re-run with conservative constraint — verify ebitda_used."
+                ),
+            )
+            # Re-run Credit Modeler once — credit_state now carries the routing note
+            # explicitly naming the conservative figure the modeler must use.
+            add_routing_note(credit_state, "Re-running Credit Modeler with conservative EBITDA constraint.")
+            agent5_retry = CreditModelerAgent()
+            credit_state = agent5_retry.run(credit_state)
+            _complete(f"{agent5_retry.name} (divergence re-run)", credit_state)
+
+            # Final check — if still divergent after retry, escalate to IC but continue
+            credit_state, still_divergent = _check_ebitda_divergence(credit_state)
+            if still_divergent:
+                add_routing_note(
+                    credit_state,
+                    "EBITDA divergence persists after re-run — escalated to IC committee for manual reconciliation."
+                )
+                add_alert(
+                    credit_state,
+                    trigger="Persistent EBITDA divergence after Credit Modeler re-run",
+                    severity="CRITICAL",
+                    action_required=(
+                        "IC must manually reconcile EBITDA figures before approving. "
+                        "Do not rely on modelled leverage/coverage ratios without resolution."
+                    ),
+                )
+
         # Agent 6: Stress Tester
         agent6 = StressTesterAgent()
         credit_state = agent6.run(credit_state)
@@ -237,11 +370,76 @@ class DueDiligenceOrchestrator:
         _complete(underwriter.name, credit_state)
 
         # ============================================================
+        # ALTERNATIVE DATA — Yelp/Google Places + Job Signals
+        # Runs after underwriter so risk_score is set. Fetches consumer
+        # signals (physical-location businesses only) and job posting signals.
+        # Results stored in credit_state for frontend display.
+        # ============================================================
+        alt_data_agent = EarlyWarningAgent()
+        add_routing_note(credit_state, "Running alternative data fetch: consumer signals + job signals")
+        credit_state = alt_data_agent.run(credit_state)
+        _complete(alt_data_agent.name, credit_state)
+
+        # ============================================================
+        # WAVE 3 — COMPLIANCE GATES (parallel)
+        # ESG + KYC/AML run in parallel. Both are hard go/no-go gates.
+        # REJECT from either aborts the pipeline before IC.
+        # ============================================================
+        add_routing_note(credit_state, "Wave 3: running ESG screening and KYC/AML in parallel")
+        wave3_agents = [ESGScreeningAgent(), KYCAMLAgent()]
+        credit_state = run_parallel_wave(wave3_agents, credit_state, on_agent_complete)
+
+        esg_verdict = (credit_state.get("esg_screening") or {}).get("overall_verdict", "")
+        kyc_verdict = (credit_state.get("kyc_aml") or {}).get("overall_verdict", "")
+
+        if esg_verdict == "REJECT":
+            add_routing_note(credit_state, "Pipeline aborted: ESG screening returned REJECT.")
+            credit_state["status"] = "ESG_REJECTED"
+            return credit_state
+
+        if kyc_verdict == "REJECT":
+            add_routing_note(credit_state, "Pipeline aborted: KYC/AML screening returned REJECT.")
+            credit_state["status"] = "KYC_REJECTED"
+            return credit_state
+
+        # Proceed with conditions if escalation required — alerts already created by agents
+        if esg_verdict == "EDD_REQUIRED":
+            add_routing_note(credit_state, "ESG enhanced due diligence required — proceeding to IC with flag.")
+        if kyc_verdict == "ESCALATE_TO_AML_OFFICER":
+            add_routing_note(credit_state, "KYC/AML escalation required — proceeding to IC with flag.")
+
+        # ============================================================
+        # VALUATION — ASC 820 Level 3 mark
+        # Runs after compliance gates so IC has fair value at review.
+        # ============================================================
+        valuation_agent = ValuationAgent()
+        add_routing_note(credit_state, "Running valuation agent: ASC 820 Level 3 fair value mark")
+        credit_state = valuation_agent.run(credit_state)
+        _complete(valuation_agent.name, credit_state)
+
+        # ============================================================
         # OUTPUT: IC Memo
         # ============================================================
         memo_agent = ICMemoWriterAgent()
         credit_state = memo_agent.run(credit_state)
         _complete(memo_agent.name, credit_state)
+
+        # ============================================================
+        # IC CHECKPOINT — human-in-the-loop decision layer
+        # Create a voting record keyed by deal_id. IC members submit
+        # votes via API; deal lead finalizes after quorum. AI output
+        # (ic_committee_output or ic_memo) is advisory only.
+        # ============================================================
+        deal_id = credit_state.get("deal_id", "")
+        if deal_id:
+            ic_checkpoint = create_checkpoint(deal_id, credit_state)
+            credit_state["ic_checkpoint"] = ic_checkpoint
+            add_routing_note(
+                credit_state,
+                f"IC checkpoint created (deal_id={deal_id}). "
+                f"AI recommendation: {ic_checkpoint.get('ai_recommendation', 'CONDITIONAL_APPROVE')}. "
+                f"Awaiting {3} member votes before deal lead can finalize."
+            )
 
         credit_state["status"] = "IC_REVIEW"
         return credit_state
@@ -309,8 +507,13 @@ def run_due_diligence(
     deal_type: str = "sponsor_backed",
     on_agent_complete=None,
     portfolio: dict = None,
+    documents_raw: dict = None,
 ) -> dict:
-    """Entry point for due diligence pipeline."""
+    """Entry point for due diligence pipeline.
+
+    documents_raw: optional dict of {doc_type: full_text_string} — when provided,
+    each document is indexed for agentic retrieval by Wave 1 agents.
+    """
     credit_state = create_credit_state(
         company=company,
         loan_amount=loan_amount,
@@ -320,8 +523,36 @@ def run_due_diligence(
         deal_type=deal_type,
     )
     credit_state["documents"] = documents
+
+    # Input contract — validate pipeline parameters before any agent runs
+    is_valid, input_errors = validate_credit_state_input(credit_state)
+    if not is_valid:
+        log_validation_failure(credit_state, "_pipeline_input", input_errors, stage="input")
+        for err in input_errors:
+            add_alert(
+                credit_state,
+                trigger=f"Input contract violation: {err}",
+                severity="HIGH",
+                action_required="Correct the deal parameters and resubmit.",
+            )
+        add_routing_note(credit_state, f"Input contract failed: {input_errors}")
+
+    # Index raw document text for agentic retrieval (Wave 1 agents call RETRIEVE_DOCUMENT_SECTION)
+    if documents_raw:
+        deal_id = credit_state["deal_id"]
+        indexed = []
+        for doc_type, text in documents_raw.items():
+            if text:
+                n_chunks = build_index(deal_id, doc_type, text)
+                if n_chunks:
+                    indexed.append(f"{doc_type}({n_chunks} chunks)")
+        if indexed:
+            credit_state["rag_index_summary"] = f"Indexed for retrieval: {', '.join(indexed)}"
+
     orchestrator = DueDiligenceOrchestrator()
-    return orchestrator.run(credit_state, on_agent_complete=on_agent_complete, portfolio=portfolio)
+    result = orchestrator.run(credit_state, on_agent_complete=on_agent_complete, portfolio=portfolio)
+    clear_index(result.get("deal_id", ""))
+    return result
 
 
 # Legacy compatibility — kept for any existing references

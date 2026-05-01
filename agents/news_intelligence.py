@@ -71,7 +71,7 @@ Produce structured JSON news analysis:
                 action_required="Portfolio manager review of news intelligence report.",
             )
 
-        credit_state = log_agent(credit_state, self.name)
+        credit_state = self._log_and_audit(credit_state)
         return credit_state
 
     def run_sector(self, sector_state: dict) -> dict:
@@ -115,7 +115,7 @@ Produce structured JSON:
   "escalation_reason": "reason if escalation_required is true, else null"
 }}
 """
-        result = self.run_agentic_loop_json(role, task, SECTOR_MONITOR_TOOLS)
+        result = self.run_agentic_loop_json(role, task, SECTOR_MONITOR_TOOLS, max_tokens=1000)
         sector_state["news_signals"] = [result]
 
         if result.get("escalation_required"):

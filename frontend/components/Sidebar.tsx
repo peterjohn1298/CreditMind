@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileSearch, Briefcase,
-  Activity, Bell, Globe,
+  Activity, Bell, Globe, Calculator, FileText,
 } from "lucide-react";
 import { useCredit } from "@/context/CreditContext";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,8 @@ const NAV = [
   { label: "Monitoring",          href: "/monitoring",           icon: Activity },
   { label: "Alerts",              href: "/alerts",               icon: Bell, badge: true },
   { label: "Sector Intelligence", href: "/sector-intelligence",  icon: Globe },
+  { label: "Valuation",           href: "/valuation",            icon: Calculator },
+  { label: "LP Reporting",        href: "/lp-reporting",         icon: FileText },
 ];
 
 export default function Sidebar() {
