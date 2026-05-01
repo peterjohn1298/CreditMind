@@ -63,8 +63,23 @@ _refresh_state: dict = {"running": False, "last_run": None, "last_error": None}
 # Kill switch — when True, all agent execution is refused platform-wide
 _kill_switch: dict = {"enabled": False, "set_at": None}
 
-# Origination scan jobs — keyed by job_id
-_origination_jobs: dict = {}
+# Generic background job store — all agent endpoints use this
+_jobs: dict = {}
+
+
+def _start_job(fn, *args, **kwargs) -> str:
+    """Run fn(*args, **kwargs) in a daemon thread. Returns job_id for polling."""
+    import uuid
+    job_id = str(uuid.uuid4())
+    _jobs[job_id] = {"status": "running"}
+    def _worker():
+        try:
+            _jobs[job_id] = {"status": "done", "result": fn(*args, **kwargs)}
+        except Exception as exc:
+            log.exception(f"Job {job_id} failed")
+            _jobs[job_id] = {"status": "error", "error": str(exc)}
+    threading.Thread(target=_worker, daemon=True).start()
+    return job_id
 
 # Sector keyword config (from Jasmin's data file)
 _NEWS_SOURCES_PATH = Path(__file__).parent.parent / "data" / "news_sources.json"
@@ -392,136 +407,131 @@ def _run_daily_monitoring_all():
     log.info("Daily monitoring complete.")
 
 
+def _do_underwrite(req_dict: dict) -> dict:
+    from core.loan_types import normalize_loan_type
+    canonical = normalize_loan_type(req_dict["loan_type"])
+    prefilled = {}
+    for attr in (
+        "sector", "description", "jurisdiction", "purpose",
+        "total_facility", "pricing_spread_bps", "oid_pct", "call_protection", "expected_close",
+        "revenue_ltm", "ebitda_ltm", "adj_ebitda_ltm", "revenue_growth_pct",
+        "capex", "fcf", "total_debt_proforma", "equity_contribution", "enterprise_value",
+        "leverage_covenant", "icr_covenant", "min_liquidity",
+        "customer_concentration_pct", "recurring_revenue_pct",
+        "management_tenure_years", "backlog", "key_risks", "esg_flags", "notes",
+    ):
+        val = req_dict.get(attr)
+        if val is not None:
+            prefilled[attr] = val
+    from core.orchestrator import run_full_underwriting
+    credit_state = run_full_underwriting(
+        company=req_dict["company"],
+        ticker=req_dict["ticker"],
+        loan_amount=req_dict["loan_amount"],
+        loan_tenor=req_dict["loan_tenor"],
+        loan_type=canonical,
+        sponsor=req_dict.get("sponsor", ""),
+        portfolio=_portfolio,
+        prefilled_application=prefilled,
+    )
+    for field in ("project_type", "offtake_type", "total_project_capex", "equity_pct", "bridge_exit_type"):
+        if req_dict.get(field):
+            credit_state[field] = req_dict[field]
+    deal_id = credit_state.get("deal_id", f"{req_dict['ticker']}_{int(datetime.now().timestamp())}")
+    credit_state["deal_id"] = deal_id
+    credit_state = record_initial_rating(credit_state)
+    _portfolio[deal_id] = credit_state
+    save_deal(deal_id, credit_state)
+    return credit_state
+
+
 @app.post("/api/underwrite")
 def underwrite(req: UnderwriteRequest):
-    """Run full credit underwriting pipeline. Returns full credit_state dict."""
+    """Run full credit underwriting pipeline in background. Poll /api/jobs/{job_id}."""
     if _kill_switch["enabled"]:
         raise HTTPException(status_code=503, detail="Kill switch is active — agent execution is disabled platform-wide.")
-    try:
-        from core.loan_types import normalize_loan_type
-        canonical = normalize_loan_type(req.loan_type)
-
-        # Build prefilled financial context from application form so agents
-        # can reference submitted data and cross-check against live research.
-        prefilled = {}
-        for attr in (
-            "sector", "description", "jurisdiction", "purpose",
-            "total_facility", "pricing_spread_bps", "oid_pct", "call_protection", "expected_close",
-            "revenue_ltm", "ebitda_ltm", "adj_ebitda_ltm", "revenue_growth_pct",
-            "capex", "fcf", "total_debt_proforma", "equity_contribution", "enterprise_value",
-            "leverage_covenant", "icr_covenant", "min_liquidity",
-            "customer_concentration_pct", "recurring_revenue_pct",
-            "management_tenure_years", "backlog", "key_risks", "esg_flags", "notes",
-        ):
-            val = getattr(req, attr, None)
-            if val is not None:
-                prefilled[attr] = val
-
-        from core.orchestrator import run_full_underwriting
-        credit_state = run_full_underwriting(
-            company=req.company,
-            ticker=req.ticker,
-            loan_amount=req.loan_amount,
-            loan_tenor=req.loan_tenor,
-            loan_type=canonical,
-            sponsor=req.sponsor,
-            portfolio=_portfolio,
-            prefilled_application=prefilled,
-        )
-
-        # Inject loan-type-specific fields
-        if req.project_type:        credit_state["project_type"]        = req.project_type
-        if req.offtake_type:        credit_state["offtake_type"]        = req.offtake_type
-        if req.total_project_capex: credit_state["total_project_capex"] = req.total_project_capex
-        if req.equity_pct:          credit_state["equity_pct"]          = req.equity_pct
-        if req.bridge_exit_type:    credit_state["bridge_exit_type"]    = req.bridge_exit_type
-
-        deal_id = credit_state.get("deal_id", f"{req.ticker}_{int(datetime.now().timestamp())}")
-        credit_state["deal_id"] = deal_id
-        credit_state = record_initial_rating(credit_state)
-        _portfolio[deal_id] = credit_state
-        save_deal(deal_id, credit_state)
-        return credit_state
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    job_id = _start_job(_do_underwrite, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
 
 
-@app.post("/api/daily-monitor", response_model=MonitorResponse)
+def _do_daily_monitor(req_dict: dict) -> dict:
+    from core.orchestrator import DailyMonitoringOrchestrator
+    deal_id = req_dict["deal_id"]
+    credit_state = _get_deal(deal_id)
+    orchestrator = DailyMonitoringOrchestrator()
+    credit_state = orchestrator.run(credit_state)
+    _portfolio[deal_id] = credit_state
+    save_deal(deal_id, credit_state)
+    return {
+        "deal_id":            deal_id,
+        "risk_score":         credit_state.get("risk_score"),
+        "live_risk_score":    credit_state.get("live_risk_score"),
+        "alerts":             get_pending_alerts(credit_state),
+        "sentiment":          credit_state.get("sentiment_analysis"),
+        "sentiment_trend":    credit_state.get("sentiment_trend", []),
+        "monitoring_summary": credit_state.get("early_warning_summary"),
+        "early_warning_flags":credit_state.get("early_warning_flags", []),
+        "news_signals":       credit_state.get("news_signals", []),
+        "job_signals":        credit_state.get("job_signals"),
+        "consumer_signals":   credit_state.get("consumer_signals"),
+    }
+
+
+@app.post("/api/daily-monitor")
 def daily_monitor(req: MonitorRequest):
-    """Run daily monitoring agents for an existing deal."""
-    try:
-        from core.orchestrator import DailyMonitoringOrchestrator
-        credit_state = _get_deal(req.deal_id)
-        orchestrator = DailyMonitoringOrchestrator()
-        credit_state = orchestrator.run(credit_state)
-        _portfolio[req.deal_id] = credit_state
-        save_deal(req.deal_id, credit_state)
-
-        summary = get_alert_summary(credit_state)
-        return MonitorResponse(
-            deal_id=req.deal_id,
-            risk_score=credit_state.get("risk_score"),
-            live_risk_score=credit_state.get("live_risk_score"),
-            alerts=get_pending_alerts(credit_state),
-            sentiment=credit_state.get("sentiment_analysis"),
-            sentiment_trend=credit_state.get("sentiment_trend", []),
-            monitoring_summary=credit_state.get("early_warning_summary"),
-            early_warning_flags=credit_state.get("early_warning_flags", []),
-            news_signals=credit_state.get("news_signals", []),
-            job_signals=credit_state.get("job_signals"),
-            consumer_signals=credit_state.get("consumer_signals"),
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Run daily monitoring agents in background. Poll /api/jobs/{job_id}."""
+    _get_deal(req.deal_id)  # validate deal exists before queueing
+    job_id = _start_job(_do_daily_monitor, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
 
 
-@app.post("/api/quarterly-review", response_model=QuarterlyReviewResponse)
+def _do_quarterly_review(req_dict: dict) -> dict:
+    from core.orchestrator import QuarterlyReviewOrchestrator
+    deal_id = req_dict["deal_id"]
+    credit_state = _get_deal(deal_id)
+    orchestrator = QuarterlyReviewOrchestrator()
+    credit_state = orchestrator.run(credit_state)
+    _portfolio[deal_id] = credit_state
+    save_deal(deal_id, credit_state)
+    return {
+        "deal_id":        deal_id,
+        "rating":         credit_state.get("credit_rating"),
+        "covenant_status":credit_state.get("covenant_status"),
+        "rating_change":  credit_state.get("rating_change"),
+        "review_summary": credit_state.get("quarterly_review_summary"),
+    }
+
+
+@app.post("/api/quarterly-review")
 def quarterly_review(req: QuarterlyReviewRequest):
-    """Run quarterly review agents for an existing deal."""
-    try:
-        from core.orchestrator import QuarterlyReviewOrchestrator
-        credit_state = _get_deal(req.deal_id)
-        orchestrator = QuarterlyReviewOrchestrator()
-        credit_state = orchestrator.run(credit_state)
-        _portfolio[req.deal_id] = credit_state
-        save_deal(req.deal_id, credit_state)
-
-        return QuarterlyReviewResponse(
-            deal_id=req.deal_id,
-            rating=credit_state.get("credit_rating"),
-            covenant_status=credit_state.get("covenant_status"),
-            rating_change=credit_state.get("rating_change"),
-            review_summary=credit_state.get("quarterly_review_summary"),
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Run quarterly review agents in background. Poll /api/jobs/{job_id}."""
+    _get_deal(req.deal_id)
+    job_id = _start_job(_do_quarterly_review, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
 
 
-@app.post("/api/credit-memo", response_model=CreditMemoResponse)
+def _do_credit_memo(req_dict: dict) -> dict:
+    from agents.ic_memo_writer import ICMemoWriterAgent
+    deal_id = req_dict["deal_id"]
+    credit_state = _get_deal(deal_id)
+    agent = ICMemoWriterAgent()
+    credit_state = agent.run(credit_state)
+    _portfolio[deal_id] = credit_state
+    save_deal(deal_id, credit_state)
+    return {
+        "deal_id":        deal_id,
+        "memo_sections":  credit_state.get("ic_memo"),
+        "recommendation": credit_state.get("recommendation"),
+        "approval_status":credit_state.get("approval_status"),
+    }
+
+
+@app.post("/api/credit-memo")
 def credit_memo(req: CreditMemoRequest):
-    """Generate IC credit memo for an existing deal."""
-    try:
-        from agents.ic_memo_writer import ICMemoWriterAgent
-        credit_state = _get_deal(req.deal_id)
-        agent = ICMemoWriterAgent()
-        credit_state = agent.run(credit_state)
-        _portfolio[req.deal_id] = credit_state
-        save_deal(req.deal_id, credit_state)
-
-        return CreditMemoResponse(
-            deal_id=req.deal_id,
-            memo_sections=credit_state.get("ic_memo"),
-            recommendation=credit_state.get("recommendation"),
-            approval_status=credit_state.get("approval_status"),
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Generate IC credit memo in background. Poll /api/jobs/{job_id}."""
+    _get_deal(req.deal_id)
+    job_id = _start_job(_do_credit_memo, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
 
 
 @app.get("/")
@@ -755,6 +765,15 @@ def sector_alerts():
 # 7. Kill Switch
 # ---------------------------------------------------------------------------
 
+@app.get("/api/jobs/{job_id}")
+def get_job_status(job_id: str):
+    """Poll any background agent job. Returns {status, result} or {status, error}."""
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
 @app.get("/api/kill-switch")
 def get_kill_switch():
     return _kill_switch
@@ -964,180 +983,170 @@ class ClosingRequest(BaseModel):
     deal_id: str
 
 
-def _run_origination_scan(job_id: str, criteria: dict):
-    """Background worker for origination scan."""
-    try:
-        from agents.origination_scout import OriginationScoutAgent
-        state = {"fund_criteria": criteria}
-        agent = OriginationScoutAgent()
-        state = agent.run(state)
-        raw = state.get("origination_scan", {})
-        candidates = [
-            {
-                "company":   opp.get("company", ""),
-                "ticker":    opp.get("ticker"),
-                "sector":    opp.get("sector"),
-                "signal":    opp.get("signal_summary") or opp.get("signal_source", ""),
-                "rationale": opp.get("fit_rationale") or opp.get("signal_summary", ""),
-                "urgency":   opp.get("timing"),
-                "fit_score": opp.get("fit_score"),
-                "source":    opp.get("signal_source"),
-            }
-            for opp in raw.get("opportunities", [])
-        ]
-        _origination_jobs[job_id] = {
-            "status": "done",
-            "result": {
-                "candidates":   candidates,
-                "scan_summary": raw.get("macro_backdrop"),
-                "signals_seen": len(candidates),
-            },
+def _do_origination_scan(criteria: dict) -> dict:
+    from agents.origination_scout import OriginationScoutAgent
+    state = {"fund_criteria": criteria}
+    agent = OriginationScoutAgent()
+    state = agent.run(state)
+    raw = state.get("origination_scan", {})
+    candidates = [
+        {
+            "company":   opp.get("company", ""),
+            "ticker":    opp.get("ticker"),
+            "sector":    opp.get("sector"),
+            "signal":    opp.get("signal_summary") or opp.get("signal_source", ""),
+            "rationale": opp.get("fit_rationale") or opp.get("signal_summary", ""),
+            "urgency":   opp.get("timing"),
+            "fit_score": opp.get("fit_score"),
+            "source":    opp.get("signal_source"),
         }
-    except Exception as e:
-        _origination_jobs[job_id] = {"status": "error", "error": str(e)}
+        for opp in raw.get("opportunities", [])
+    ]
+    return {
+        "candidates":   candidates,
+        "scan_summary": raw.get("macro_backdrop"),
+        "signals_seen": len(candidates),
+    }
 
 
 @app.post("/api/origination-scan")
 def origination_scan(req: FundCriteria):
-    """Stage 1: Start origination scan in background. Returns job_id for polling."""
-    import uuid
-    job_id = str(uuid.uuid4())
-    _origination_jobs[job_id] = {"status": "running"}
-    t = threading.Thread(target=_run_origination_scan, args=(job_id, req.model_dump()), daemon=True)
-    t.start()
+    """Stage 1: Start origination scan in background. Poll /api/jobs/{job_id}."""
+    job_id = _start_job(_do_origination_scan, req.model_dump())
     return {"job_id": job_id, "status": "running"}
 
 
-@app.get("/api/origination-scan/{job_id}")
-def get_origination_scan(job_id: str):
-    """Poll origination scan job status and result."""
-    job = _origination_jobs.get(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-    return job
+def _do_screen_deal(req_dict: dict) -> dict:
+    sector_counts: dict[str, int] = {}
+    sponsor_counts: dict[str, int] = {}
+    for d in _portfolio.values():
+        s  = d.get("sector", "")
+        sp = d.get("sponsor", "")
+        sector_counts[s]   = sector_counts.get(s, 0) + 1
+        sponsor_counts[sp] = sponsor_counts.get(sp, 0) + 1
+    state = {
+        "deal_teaser": req_dict,
+        "portfolio_concentration": {
+            "by_sector":   sector_counts,
+            "by_sponsor":  sponsor_counts,
+            "total_deals": len(_portfolio),
+        },
+        "fund_criteria": {
+            "target_sectors":  ["Healthcare", "Technology", "Industrials", "Consumer", "Energy"],
+            "exclude_sectors": [],
+            "ebitda_min":      10_000_000,
+            "ebitda_max":      150_000_000,
+            "loan_size_max":   500_000_000,
+            "max_leverage":    6.5,
+        },
+    }
+    from agents.deal_screener import DealScreenerAgent
+    agent = DealScreenerAgent()
+    state = agent.run(state)
+    return state.get("screening_result", {})
 
 
 @app.post("/api/screen-deal")
 def screen_deal(req: DealTeaserRequest):
-    """Stage 2: Rapid go/no-go screening of an incoming deal teaser."""
-    try:
-        # Build portfolio concentration summary
-        sector_counts: dict[str, int] = {}
-        sponsor_counts: dict[str, int] = {}
-        for d in _portfolio.values():
-            s = d.get("sector", "")
-            sp = d.get("sponsor", "")
-            sector_counts[s]  = sector_counts.get(s, 0) + 1
-            sponsor_counts[sp] = sponsor_counts.get(sp, 0) + 1
+    """Stage 2: Screen a deal teaser in background. Poll /api/jobs/{job_id}."""
+    job_id = _start_job(_do_screen_deal, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
 
-        state = {
-            "deal_teaser": req.model_dump(),
-            "portfolio_concentration": {
-                "by_sector":  sector_counts,
-                "by_sponsor": sponsor_counts,
-                "total_deals": len(_portfolio),
-            },
-            "fund_criteria": {
-                "target_sectors":  ["Healthcare", "Technology", "Industrials", "Consumer", "Energy"],
-                "exclude_sectors": [],
-                "ebitda_min":      10_000_000,
-                "ebitda_max":      150_000_000,
-                "loan_size_max":   500_000_000,
-                "max_leverage":    6.5,
-            },
-        }
-        from agents.deal_screener import DealScreenerAgent
-        agent = DealScreenerAgent()
-        state = agent.run(state)
-        return state.get("screening_result", {})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+def _do_ic_committee(req_dict: dict) -> dict:
+    from agents.ic_committee import ICCommitteeAgent
+    deal_id = req_dict["deal_id"]
+    credit_state = _get_deal(deal_id)
+    agent = ICCommitteeAgent()
+    credit_state = agent.run(copy.deepcopy(credit_state))
+    _portfolio[deal_id] = credit_state
+    save_deal(deal_id, credit_state)
+    return {
+        "deal_id":        deal_id,
+        "ic_decision":    credit_state.get("ic_decision"),
+        "conditions":     credit_state.get("approval_conditions", []),
+        "final_terms":    credit_state.get("final_terms", {}),
+        "ic_full_output": credit_state.get("ic_committee_output", {}),
+    }
 
 
 @app.post("/api/ic-committee")
 def ic_committee(req: ICRequest):
-    """Stage 4: Run IC deliberation on a fully underwritten deal."""
-    try:
-        from agents.ic_committee import ICCommitteeAgent
-        credit_state = _get_deal(req.deal_id)
-        agent = ICCommitteeAgent()
-        credit_state = agent.run(copy.deepcopy(credit_state))
-        _portfolio[req.deal_id] = credit_state
-        save_deal(req.deal_id, credit_state)
-        return {
-            "deal_id":          req.deal_id,
-            "ic_decision":      credit_state.get("ic_decision"),
-            "conditions":       credit_state.get("approval_conditions", []),
-            "final_terms":      credit_state.get("final_terms", {}),
-            "ic_full_output":   credit_state.get("ic_committee_output", {}),
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Stage 4: Run IC deliberation in background. Poll /api/jobs/{job_id}."""
+    _get_deal(req.deal_id)
+    job_id = _start_job(_do_ic_committee, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
+
+
+def _do_generate_docs(req_dict: dict) -> dict:
+    deal_id = req_dict["deal_id"]
+    credit_state = _get_deal(deal_id)
+    if credit_state.get("ic_decision") == "REJECT":
+        raise ValueError("Cannot generate docs for a rejected deal.")
+    from agents.documentation_agent import DocumentationAgent
+    agent = DocumentationAgent()
+    credit_state = agent.run(copy.deepcopy(credit_state))
+    _portfolio[deal_id] = credit_state
+    save_deal(deal_id, credit_state)
+    return {
+        "deal_id":          deal_id,
+        "term_sheet":       credit_state.get("term_sheet", {}),
+        "red_lines":        credit_state.get("red_lines", []),
+        "concession_map":   credit_state.get("concession_map", []),
+        "borrower_pushback":credit_state.get("borrower_pushback", []),
+    }
 
 
 @app.post("/api/generate-docs")
 def generate_docs(req: DocumentationRequest):
-    """Stage 5: Generate term sheet and negotiation guide for an IC-approved deal."""
-    try:
-        credit_state = _get_deal(req.deal_id)
-        if credit_state.get("ic_decision") == "REJECT":
-            raise HTTPException(status_code=400, detail="Cannot generate docs for a rejected deal.")
-        from agents.documentation_agent import DocumentationAgent
-        agent = DocumentationAgent()
-        credit_state = agent.run(copy.deepcopy(credit_state))
-        _portfolio[req.deal_id] = credit_state
-        save_deal(req.deal_id, credit_state)
-        return {
-            "deal_id":          req.deal_id,
-            "term_sheet":       credit_state.get("term_sheet", {}),
-            "red_lines":        credit_state.get("red_lines", []),
-            "concession_map":   credit_state.get("concession_map", []),
-            "borrower_pushback": credit_state.get("borrower_pushback", []),
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Stage 5: Generate term sheet in background. Poll /api/jobs/{job_id}."""
+    credit_state = _get_deal(req.deal_id)
+    if credit_state.get("ic_decision") == "REJECT":
+        raise HTTPException(status_code=400, detail="Cannot generate docs for a rejected deal.")
+    job_id = _start_job(_do_generate_docs, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
 
 
 class ESGRequest(BaseModel):
     deal_id: str
 
 
+def _do_esg_screen(req_dict: dict) -> dict:
+    from agents.esg_screening import ESGScreeningAgent
+    deal_id = req_dict["deal_id"]
+    credit_state = _get_deal(deal_id)
+    agent = ESGScreeningAgent()
+    credit_state = agent.run(copy.deepcopy(credit_state))
+    _portfolio[deal_id] = credit_state
+    save_deal(deal_id, credit_state)
+    return credit_state.get("esg_screen", {})
+
+
 @app.post("/api/esg-screen")
 def esg_screen(req: ESGRequest):
-    """Run ESG screen on a deal — required for >$75M loans per ESG policy."""
-    try:
-        from agents.esg_screening import ESGScreeningAgent
-        credit_state = _get_deal(req.deal_id)
-        agent = ESGScreeningAgent()
-        credit_state = agent.run(copy.deepcopy(credit_state))
-        _portfolio[req.deal_id] = credit_state
-        save_deal(req.deal_id, credit_state)
-        return credit_state.get("esg_screen", {})
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Run ESG screen in background. Poll /api/jobs/{job_id}."""
+    _get_deal(req.deal_id)
+    job_id = _start_job(_do_esg_screen, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
+
+
+def _do_closing_checklist(req_dict: dict) -> dict:
+    from agents.closing_agent import ClosingAgent
+    deal_id = req_dict["deal_id"]
+    credit_state = _get_deal(deal_id)
+    agent = ClosingAgent()
+    credit_state = agent.run(copy.deepcopy(credit_state))
+    _portfolio[deal_id] = credit_state
+    save_deal(deal_id, credit_state)
+    return credit_state.get("closing_output", {})
 
 
 @app.post("/api/closing-checklist")
 def closing_checklist(req: ClosingRequest):
-    """Stage 6: Generate CP checklist and funds flow summary for closing."""
-    try:
-        from agents.closing_agent import ClosingAgent
-        credit_state = _get_deal(req.deal_id)
-        agent = ClosingAgent()
-        credit_state = agent.run(copy.deepcopy(credit_state))
-        _portfolio[req.deal_id] = credit_state
-        save_deal(req.deal_id, credit_state)
-        return credit_state.get("closing_output", {})
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Stage 6: Generate CP checklist in background. Poll /api/jobs/{job_id}."""
+    _get_deal(req.deal_id)
+    job_id = _start_job(_do_closing_checklist, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
 
 
 # ---------------------------------------------------------------------------
@@ -1148,21 +1157,23 @@ class KYCRequest(BaseModel):
     deal_id: str
 
 
+def _do_kyc_screen(req_dict: dict) -> dict:
+    from agents.kyc_aml import KYCAMLAgent
+    deal_id = req_dict["deal_id"]
+    credit_state = _get_deal(deal_id)
+    agent = KYCAMLAgent()
+    credit_state = agent.run(copy.deepcopy(credit_state))
+    _portfolio[deal_id] = credit_state
+    save_deal(deal_id, credit_state)
+    return credit_state.get("kyc_aml_screen", {})
+
+
 @app.post("/api/kyc-screen")
 def kyc_screen(req: KYCRequest):
-    """Run OFAC / PEP / adverse-media / beneficial-ownership screen on a deal."""
-    try:
-        from agents.kyc_aml import KYCAMLAgent
-        credit_state = _get_deal(req.deal_id)
-        agent = KYCAMLAgent()
-        credit_state = agent.run(copy.deepcopy(credit_state))
-        _portfolio[req.deal_id] = credit_state
-        save_deal(req.deal_id, credit_state)
-        return credit_state.get("kyc_aml_screen", {})
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Run KYC/AML screen in background. Poll /api/jobs/{job_id}."""
+    _get_deal(req.deal_id)
+    job_id = _start_job(_do_kyc_screen, req.model_dump())
+    return {"job_id": job_id, "status": "running"}
 
 
 @app.patch("/api/closing-checklist/{deal_id}/cp")
@@ -1293,22 +1304,23 @@ def refresh_alerts():
 class ValuationMarkRequest(BaseModel):
     deal_id: str
 
+def _do_valuation_mark(deal_id: str) -> dict:
+    from agents.valuation_agent import ValuationAgent
+    deal = _get_deal(deal_id)
+    agent = ValuationAgent()
+    updated = agent.run(dict(deal))
+    mark = updated.get("valuation_mark", {})
+    _portfolio[deal_id] = updated
+    save_deal(deal_id, updated)
+    return {"deal_id": deal_id, "company": deal.get("company"), "valuation_mark": mark}
+
+
 @app.post("/api/valuation/mark")
 def valuation_mark(req: ValuationMarkRequest):
-    """Run ASC 820 Level 3 fair-value mark on a single deal."""
-    from agents.valuation_agent import ValuationAgent
-    deal = _portfolio.get(req.deal_id)
-    if not deal:
-        raise HTTPException(status_code=404, detail=f"Deal {req.deal_id} not found")
-    try:
-        agent = ValuationAgent()
-        updated = agent.run(dict(deal))
-        mark = updated.get("valuation_mark", {})
-        _portfolio[req.deal_id] = updated
-        save_deal(req.deal_id, updated)
-        return {"deal_id": req.deal_id, "company": deal.get("company"), "valuation_mark": mark}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Run ASC 820 fair-value mark in background. Poll /api/jobs/{job_id}."""
+    _get_deal(req.deal_id)
+    job_id = _start_job(_do_valuation_mark, req.deal_id)
+    return {"job_id": job_id, "status": "running"}
 
 
 @app.get("/api/valuation/portfolio-marks")
@@ -1328,16 +1340,17 @@ def portfolio_marks():
     return {"marks": rows, "count": len(rows)}
 
 
+def _do_inconsistency_scan() -> dict:
+    from agents.valuation_agent import MarkInconsistencyDetector
+    detector = MarkInconsistencyDetector()
+    return detector.run_on_portfolio(_portfolio)
+
+
 @app.post("/api/valuation/inconsistency-scan")
 def inconsistency_scan():
-    """Run portfolio-wide mark consistency review (MarkInconsistencyDetector)."""
-    from agents.valuation_agent import MarkInconsistencyDetector
-    try:
-        detector = MarkInconsistencyDetector()
-        result = detector.run_on_portfolio(_portfolio)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    """Run portfolio-wide mark consistency review in background. Poll /api/jobs/{job_id}."""
+    job_id = _start_job(_do_inconsistency_scan)
+    return {"job_id": job_id, "status": "running"}
 
 
 # ---------------------------------------------------------------------------
@@ -1354,54 +1367,51 @@ class LPNoticeRequest(BaseModel):
     lp_roster: list
     fund_meta: Optional[dict] = None
 
+def _do_lp_template(fund_meta: dict) -> dict:
+    from agents.lp_reporting import LPReportingAgent
+    agent = LPReportingAgent()
+    return agent.generate_reporting_template(portfolio=_portfolio, fund_meta=fund_meta)
+
+
 @app.post("/api/lp-reporting/template")
 def lp_reporting_template(req: LPReportingRequest):
-    """Generate ILPA Reporting Template 2.0 quarterly LP statement."""
+    """Generate ILPA Reporting Template in background. Poll /api/jobs/{job_id}."""
+    job_id = _start_job(_do_lp_template, req.fund_meta or {})
+    return {"job_id": job_id, "status": "running"}
+
+
+def _do_lp_performance(fund_meta: dict) -> dict:
     from agents.lp_reporting import LPReportingAgent
-    try:
-        agent = LPReportingAgent()
-        result = agent.generate_reporting_template(
-            portfolio=_portfolio,
-            fund_meta=req.fund_meta or {},
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    agent = LPReportingAgent()
+    return agent.generate_performance_template(portfolio=_portfolio, fund_meta=fund_meta)
 
 
 @app.post("/api/lp-reporting/performance")
 def lp_reporting_performance(req: LPReportingRequest):
-    """Generate ILPA Performance Template (TVPI, DPI, RVPI, IRR)."""
+    """Generate ILPA Performance Template in background. Poll /api/jobs/{job_id}."""
+    job_id = _start_job(_do_lp_performance, req.fund_meta or {})
+    return {"job_id": job_id, "status": "running"}
+
+
+def _do_lp_notice(notice_type: str, amount: float, purpose: str, lp_roster: list, fund_meta: dict) -> dict:
     from agents.lp_reporting import LPReportingAgent
-    try:
-        agent = LPReportingAgent()
-        result = agent.generate_performance_template(
-            portfolio=_portfolio,
-            fund_meta=req.fund_meta or {},
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    agent = LPReportingAgent()
+    return agent.generate_notice(
+        notice_type=notice_type,
+        amount=amount,
+        purpose=purpose,
+        lp_roster=lp_roster,
+        fund_meta=fund_meta,
+    )
 
 
 @app.post("/api/lp-reporting/notice")
 def lp_reporting_notice(req: LPNoticeRequest):
-    """Generate per-LP capital call or distribution notices."""
-    from agents.lp_reporting import LPReportingAgent
+    """Generate LP notice in background. Poll /api/jobs/{job_id}."""
     if req.notice_type not in ("capital_call", "distribution"):
         raise HTTPException(status_code=422, detail="notice_type must be 'capital_call' or 'distribution'")
-    try:
-        agent = LPReportingAgent()
-        result = agent.generate_notice(
-            notice_type=req.notice_type,
-            amount=req.amount,
-            purpose=req.purpose,
-            lp_roster=req.lp_roster,
-            fund_meta=req.fund_meta or {},
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
+    job_id = _start_job(_do_lp_notice, req.notice_type, req.amount, req.purpose, req.lp_roster, req.fund_meta or {})
+    return {"job_id": job_id, "status": "running"}
 
 
 @app.get("/api/refresh-status")
