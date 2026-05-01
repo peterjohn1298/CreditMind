@@ -105,7 +105,7 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
         sector:              d.sector,
         sponsor:             d.sponsor,
         loan_amount:         d.loan_amount,
-        loan_tenor:          d.loan_tenor,
+        loan_tenor:          typeof d.loan_tenor === "string" ? parseInt(d.loan_tenor) : d.loan_tenor,
         loan_type:           d.loan_type,
         status:              (d.loan_status ?? d.status ?? "current").toLowerCase(),
         internal_rating:     d.internal_rating ?? d.current_rating ?? "B+",
