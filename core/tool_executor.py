@@ -12,7 +12,7 @@ from data.financial_data import (
     get_sec_filings,
     _df_to_dict,
 )
-from data.news_data import get_company_news, get_sector_news
+from data.news_data import get_company_news, get_sector_news, get_ma_news
 from data.macro_data import get_macro_snapshot
 from data.jobs_data import get_job_signals
 from data.consumer_signals import get_consumer_signals
@@ -134,9 +134,19 @@ def _dispatch(tool_name: str, tool_input: dict):
 
     elif tool_name == "scan_ma_news":
         sectors  = tool_input.get("sectors", [])
-        keywords = tool_input.get("keywords", ["acquisition", "buyout", "private equity"])
-        combined = keywords + sectors
-        return get_sector_news(combined, limit=15)
+        keywords = tool_input.get("keywords", [])
+        articles = get_ma_news(limit=20)
+        if articles:
+            filter_terms = [t.lower() for t in sectors + keywords]
+            if filter_terms:
+                articles = [
+                    a for a in articles
+                    if any(t in (a.get("title", "") + " " + a.get("description", "")).lower()
+                           for t in filter_terms)
+                ] or articles  # if filtering zeros out results, return unfiltered
+            return articles[:15]
+        # Finnhub key not set — fall back to general sector news
+        return get_sector_news(sectors + keywords + ["acquisition", "buyout", "private equity"], limit=15)
 
     elif tool_name == "scan_sec_edgar":
         keywords  = tool_input.get("keywords", ["acquisition", "credit agreement"])

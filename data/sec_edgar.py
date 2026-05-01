@@ -39,17 +39,18 @@ def scan_sec_8k_filings(keywords: list[str], days_back: int = 30) -> list[dict]:
 
             for hit in hits[:5]:
                 src = hit.get("_source", {})
-                company = src.get("entity_name", "")
+                raw_name = src.get("display_names", [""])[0]
+                company = raw_name.split("(")[0].strip() if raw_name else ""
                 if not company or company in seen_companies:
                     continue
                 seen_companies.add(company)
                 results.append({
                     "company":       company,
-                    "form":          src.get("form_type", "8-K"),
+                    "form":          src.get("form", "8-K"),
                     "filed":         src.get("file_date", ""),
-                    "period":        src.get("period_of_report", ""),
+                    "period":        src.get("period_ending", ""),
                     "keyword_match": keyword,
-                    "cik":           src.get("entity_id", ""),
+                    "cik":           (src.get("ciks") or [""])[0],
                 })
         except Exception:
             continue

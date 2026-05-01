@@ -986,6 +986,8 @@ class ClosingRequest(BaseModel):
 def _do_origination_scan(criteria: dict) -> dict:
     import os, json, requests
     from anthropic import Anthropic
+    from data.news_data import get_ma_news
+    from data.sec_edgar import scan_sec_8k_filings
 
     target_sectors = criteria.get("target_sectors", ["Healthcare", "Technology", "Industrials"])
     ebitda_min  = criteria.get("ebitda_min",  10_000_000) / 1_000_000
@@ -994,36 +996,32 @@ def _do_origination_scan(criteria: dict) -> dict:
     loan_max    = criteria.get("loan_size_max", 500_000_000) / 1_000_000
     max_lev     = criteria.get("max_leverage", 6.5)
 
-    # Pull Finnhub general news as context; gracefully skip if no key or timeout
-    news_text = ""
-    finnhub_key = os.environ.get("FINNHUB_API_KEY", "")
-    if finnhub_key:
-        try:
-            resp = requests.get(
-                "https://finnhub.io/api/v1/news",
-                params={"category": "general", "token": finnhub_key},
-                timeout=10,
-            )
-            if resp.ok:
-                ma_terms = {"acquisition", "buyout", "leveraged", "private equity", "lbo",
-                            "credit", "refinanc", "sponsor", "debt"}
-                articles = [
-                    a for a in resp.json()
-                    if any(t in (a.get("headline","") + " " + a.get("summary","")).lower()
-                           for t in ma_terms)
-                ][:12]
-                news_text = "\n".join(
-                    f"- {a.get('headline','')}: {a.get('summary','')[:180]}"
-                    for a in articles
-                )
-        except Exception:
-            pass
+    # --- Real signal 1: Finnhub merger/M&A news (category=merger, not general) ---
+    ma_articles = get_ma_news(limit=20)
+    if ma_articles:
+        news_lines = [
+            f"- [{a.get('source','')}] {a.get('title','')}: {a.get('description','')[:200]}"
+            for a in ma_articles
+        ]
+        news_block = "Live M&A news signals (Finnhub merger feed):\n" + "\n".join(news_lines)
+    else:
+        news_block = "Finnhub merger feed unavailable — no live M&A news signals."
 
-    news_block = f"Recent M&A / credit news signals:\n{news_text}" if news_text else \
-                 "No live news retrieved — use your knowledge of current deal flow."
+    # --- Real signal 2: SEC EDGAR 8-K filings for M&A / credit events ---
+    edgar_keywords = ["credit agreement", "acquisition", "leveraged buyout", "private equity"]
+    edgar_hits = scan_sec_8k_filings(edgar_keywords, days_back=45)
+    if edgar_hits:
+        edgar_lines = [
+            f"- {h.get('company','')} filed {h.get('form','8-K')} on {h.get('filed','')} "
+            f"(keyword: {h.get('keyword_match','')})"
+            for h in edgar_hits
+        ]
+        edgar_block = "Recent SEC 8-K filings (M&A / credit events):\n" + "\n".join(edgar_lines)
+    else:
+        edgar_block = "No matching SEC 8-K filings found in the last 45 days."
 
     prompt = f"""You are a private credit origination analyst at a $8B direct lending fund.
-Identify 4-5 realistic private credit origination opportunities matching our fund's criteria.
+Your job is to interpret the real market signals below and identify private credit opportunities.
 
 Fund criteria:
 - Target sectors: {', '.join(target_sectors)}
@@ -1034,23 +1032,28 @@ Fund criteria:
 
 {news_block}
 
-Identify 4-5 realistic middle-market companies that could be seeking private credit right now —
-LBO debt from a recent sponsor acquisition, refinancing of existing bank debt, growth capital,
-or a distressed situation. Use realistic company names and specific, plausible rationale.
+{edgar_block}
+
+Using ONLY the real signals above, identify 3-5 private credit origination opportunities.
+For each signal that represents a genuine opportunity (LBO debt need, refinancing, growth capital,
+or distressed), extract the company and explain the credit opportunity. If a signal does not match
+our fund criteria, skip it. Do not invent companies not mentioned in the signals above.
+If signals are sparse, return fewer opportunities — quality over quantity.
 
 Return ONLY valid JSON — no markdown, no explanation:
 {{
-  "macro_backdrop": "2-3 sentence macro context for private credit deal flow right now",
+  "macro_backdrop": "2-3 sentence macro context derived from the signals above",
+  "signal_quality": "rich | moderate | sparse",
   "opportunities": [
     {{
-      "company": "realistic company name",
-      "sector": "one of the target sectors",
+      "company": "company name from the signal",
+      "sector": "sector",
       "opportunity_type": "LBO debt | growth capital | refinancing | distressed",
-      "signal_source": "M&A news | sponsor activity | sector stress | refinancing need",
-      "signal_summary": "specific signal — e.g. PE sponsor acquired this company in Q4 2024 and is now seeking to place senior debt",
-      "fit_rationale": "why this matches our fund criteria on size, sector, leverage",
+      "signal_source": "Finnhub M&A news | SEC 8-K filing",
+      "signal_summary": "what the specific signal says",
+      "fit_rationale": "why this matches our fund criteria",
       "timing": "near-term (0-3 months) | medium-term (3-9 months) | watch list",
-      "risk_flags": ["key risk 1", "key risk 2"],
+      "risk_flags": ["risk 1", "risk 2"],
       "recommended_action": "outreach | monitor | pass"
     }}
   ]
@@ -1059,7 +1062,7 @@ Return ONLY valid JSON — no markdown, no explanation:
     client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=2000,
+        max_tokens=2500,
         messages=[{"role": "user", "content": prompt}],
     )
     raw_text = response.content[0].text.strip()
@@ -1080,9 +1083,10 @@ Return ONLY valid JSON — no markdown, no explanation:
         for opp in raw.get("opportunities", [])
     ]
     return {
-        "candidates":   candidates,
-        "scan_summary": raw.get("macro_backdrop"),
-        "signals_seen": len(candidates),
+        "candidates":    candidates,
+        "scan_summary":  raw.get("macro_backdrop"),
+        "signal_quality": raw.get("signal_quality", "unknown"),
+        "signals_seen":  len(candidates),
     }
 
 

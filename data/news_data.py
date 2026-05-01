@@ -8,6 +8,32 @@ import yfinance as yf
 from datetime import datetime, timedelta
 
 
+def get_ma_news(limit: int = 20) -> list:
+    """Fetch M&A-specific news from Finnhub using the merger category."""
+    api_key = os.environ.get("FINNHUB_API_KEY", "")
+    if not api_key:
+        return []
+    try:
+        resp = requests.get(
+            "https://finnhub.io/api/v1/news",
+            params={"category": "merger", "token": api_key},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return [
+            {
+                "title":        a.get("headline", ""),
+                "source":       a.get("source", ""),
+                "published_at": datetime.fromtimestamp(a.get("datetime", 0)).isoformat(),
+                "description":  a.get("summary", ""),
+                "url":          a.get("url", ""),
+            }
+            for a in resp.json()[:limit]
+        ]
+    except Exception:
+        return []
+
+
 def get_sector_news(keywords: list, limit: int = 15) -> list:
     """Fetch recent finance news from Finnhub, filtered by keywords."""
     api_key = os.environ.get("FINNHUB_API_KEY", "")
