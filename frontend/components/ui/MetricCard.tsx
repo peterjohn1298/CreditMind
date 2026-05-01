@@ -7,10 +7,10 @@ import { cn } from "@/lib/utils";
 type Variant = "accent" | "success" | "warning" | "danger";
 
 const VARIANTS: Record<Variant, { color: string; glow: string }> = {
-  accent:  { color: "#C9A84C", glow: "0 0 18px rgba(201,168,76,0.15)" },
+  accent:  { color: "#5B6BFF", glow: "0 0 18px rgba(91,107,255,0.12)" },
   success: { color: "#00D4A4", glow: "" },
   warning: { color: "#FFB300", glow: "" },
-  danger:  { color: "#FF3B5C", glow: "0 0 18px rgba(255,59,92,0.18)" },
+  danger:  { color: "#FF3B5C", glow: "0 0 18px rgba(255,59,92,0.15)" },
 };
 
 function useCountUp(target: number, duration = 900) {
@@ -64,7 +64,7 @@ export default function MetricCard({
         <p className="text-muted text-xs font-semibold uppercase tracking-widest">{label}</p>
         {Icon && <Icon size={16} style={{ color }} />}
       </div>
-      <p className="text-primary font-mono text-2xl font-bold">{display}</p>
+      <p className="text-primary font-mono text-2xl font-bold tabular-nums">{display}</p>
       {delta !== undefined && (
         <div className={cn("flex items-center gap-1 text-xs font-mono",
           deltaType === "up" ? "text-success" : "text-danger"

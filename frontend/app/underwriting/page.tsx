@@ -275,7 +275,7 @@ function TextArea({ value, onChange, placeholder, rows = 3 }: {
   );
 }
 
-function MetricPill({ label, value, color = "#C9A84C" }: { label: string; value: string; color?: string }) {
+function MetricPill({ label, value, color = "#5B6BFF" }: { label: string; value: string; color?: string }) {
   return (
     <div className="bg-black/40 border border-white/[0.06] rounded-lg px-3 py-2 text-center">
       <p className="text-muted text-[9px] uppercase tracking-wider mb-0.5">{label}</p>

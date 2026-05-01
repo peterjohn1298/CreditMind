@@ -15,9 +15,9 @@ const MODULES = [
     href: "/dashboard",
     icon: LayoutDashboard,
     description: "Portfolio overview, key metrics, and recent deal activity",
-    color: "#C9A84C",
-    border: "rgba(201,168,76,0.22)",
-    glow: "rgba(201,168,76,0.07)",
+    color: "#5B6BFF",
+    border: "rgba(91,107,255,0.22)",
+    glow: "rgba(91,107,255,0.07)",
   },
   {
     label: "Origination",
@@ -127,7 +127,7 @@ export default function Home() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#050505",
+      background: "#111318",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -143,7 +143,7 @@ export default function Home() {
         style={{ textAlign: "center", marginBottom: 52 }}
       >
         <p style={{
-          color: "rgba(201,168,76,0.5)",
+          color: "rgba(91,107,255,0.5)",
           fontSize: 11,
           fontFamily: "JetBrains Mono, monospace",
           letterSpacing: "0.35em",

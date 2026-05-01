@@ -46,7 +46,7 @@ function DockInner({ path }: { path: string }) {
         display: "flex",
         alignItems: "center",
         gap: 2,
-        background: "rgba(10, 10, 10, 0.9)",
+        background: "rgba(17, 19, 24, 0.92)",
         border: "1px solid rgba(255,255,255,0.09)",
         borderRadius: 999,
         padding: "6px 10px",
@@ -73,12 +73,12 @@ function DockInner({ path }: { path: string }) {
                   alignItems: "center",
                   justifyContent: "center",
                   background: active
-                    ? "rgba(201,168,76,0.14)"
+                    ? "rgba(91,107,255,0.14)"
                     : hub
                     ? "rgba(255,255,255,0.06)"
                     : "transparent",
                   border: active
-                    ? "1px solid rgba(201,168,76,0.38)"
+                    ? "1px solid rgba(91,107,255,0.38)"
                     : hub
                     ? "1px solid rgba(255,255,255,0.1)"
                     : "1px solid transparent",
@@ -91,7 +91,7 @@ function DockInner({ path }: { path: string }) {
                   size={hub ? 14 : 15}
                   color={
                     active
-                      ? "#C9A84C"
+                      ? "#5B6BFF"
                       : hub
                       ? "rgba(255,255,255,0.55)"
                       : "rgba(255,255,255,0.32)"
@@ -108,7 +108,7 @@ function DockInner({ path }: { path: string }) {
                     height: 6,
                     background: "#FF3B5C",
                     borderRadius: "50%",
-                    border: "1.5px solid rgba(10,10,10,0.9)",
+                    border: "1.5px solid rgba(17,19,24,0.92)",
                   }} />
                 )}
               </motion.div>
@@ -125,10 +125,10 @@ function DockInner({ path }: { path: string }) {
                   transform: "translateX(-50%)",
                   width: 4,
                   height: 4,
-                  background: "#C9A84C",
+                  background: "#5B6BFF",
                   borderRadius: "50%",
                   display: "block",
-                  boxShadow: "0 0 6px #C9A84C",
+                  boxShadow: "0 0 6px #5B6BFF",
                 }}
                 transition={{ type: "spring", stiffness: 380, damping: 30 }}
               />
@@ -140,7 +140,7 @@ function DockInner({ path }: { path: string }) {
               bottom: "calc(100% + 10px)",
               left: "50%",
               transform: "translateX(-50%)",
-              background: "rgba(6,6,6,0.95)",
+              background: "rgba(17,19,24,0.95)",
               border: "1px solid rgba(255,255,255,0.1)",
               color: "rgba(255,255,255,0.75)",
               fontSize: 10,

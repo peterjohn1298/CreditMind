@@ -10,17 +10,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        "navy-900": "#080808",
-        "navy-800": "#111111",
-        "navy-700": "#1C1C1C",
-        "navy-600": "#2A2A2A",
-        "navy-500": "#333333",
-        accent:    "#C9A84C",
+        "navy-900": "#111318",
+        "navy-800": "#1A1D24",
+        "navy-700": "#22262F",
+        "navy-600": "#2C3340",
+        "navy-500": "#3A3F4D",
+        accent:    "#5B6BFF",
         success:   "#00D4A4",
         danger:    "#FF3B5C",
         warning:   "#FFB300",
-        muted:     "#888888",
-        primary:   "#F0EEE8",
+        muted:     "#6B7FA3",
+        primary:   "#E8EDF5",
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],

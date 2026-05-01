@@ -27,11 +27,11 @@ export default function Sidebar() {
   const totalAlerts = state.alertSummary.critical + state.alertSummary.high;
 
   return (
-    <aside className="w-60 min-h-screen border-r border-white/[0.06] flex flex-col shrink-0" style={{ background: "rgba(6, 6, 6, 0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
+    <aside className="w-60 min-h-screen border-r border-white/[0.06] flex flex-col shrink-0 bg-navy-900" style={{ backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-white/[0.06]">
         <div>
-          <p className="text-primary font-bold text-sm tracking-wide">CreditMind</p>
+          <p className="text-accent font-bold text-sm tracking-wide">CreditMind</p>
           <p className="text-muted text-[10px] tracking-widest uppercase">Credit Intelligence</p>
         </div>
       </div>
@@ -47,15 +47,15 @@ export default function Sidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-150 relative group",
                 active
-                  ? "text-primary border-l-4 border-accent pl-2"
-                  : "text-muted hover:text-primary border-l-4 border-transparent pl-2"
+                  ? "text-primary bg-accent/[0.08] border-l-[3px] border-accent pl-2"
+                  : "text-muted hover:text-primary hover:bg-white/[0.03] border-l-[3px] border-transparent pl-2"
               )}
             >
               <Icon size={16} className={active ? "text-accent" : "text-muted group-hover:text-primary"} />
               <span className="flex-1">{label}</span>
               {badge && totalAlerts > 0 && (
                 <span className="relative inline-flex items-center justify-center w-6 h-5">
-                  <span className="absolute w-5 h-5 rounded-full animate-ping" style={{ backgroundColor: "#FF3B5C", opacity: 0.5 }} />
+                  <span className="absolute w-5 h-5 rounded-full animate-ping" style={{ backgroundColor: "#FF3B5C", opacity: 0.4 }} />
                   <span className="relative z-10 text-white text-[10px] font-mono font-bold px-1 rounded-full text-center" style={{ backgroundColor: "#FF3B5C" }}>
                     {totalAlerts > 9 ? "9+" : totalAlerts}
                   </span>
@@ -68,7 +68,7 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-white/[0.06]">
-        <p className="text-muted text-[10px] text-center">MSF Group Project · April 2026</p>
+        <p className="text-muted text-[10px] text-center">MSF Group Project</p>
       </div>
     </aside>
   );

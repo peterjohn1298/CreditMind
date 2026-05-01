@@ -4,7 +4,7 @@ import { Treemap, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cel
 import type { Deal } from "@/lib/types";
 
 const SECTOR_COLORS: Record<string, string> = {
-  "Aerospace & Defense": "#C9A84C",
+  "Aerospace & Defense": "#5B6BFF",
   "Healthcare":          "#FF3B5C",
   "Industrials":         "#888888",
   "Consumer & Retail":   "#FF8C00",
@@ -17,7 +17,7 @@ const SECTOR_COLORS: Record<string, string> = {
 };
 
 const RATING_COLORS: Record<string, string> = {
-  "BB+": "#00D4A4", "BB": "#00D4A4", "BB-": "#C9A84C",
+  "BB+": "#00D4A4", "BB": "#00D4A4", "BB-": "#5B6BFF",
   "B+": "#FFB300",  "B": "#FF8C00",  "B-": "#FF3B5C",
 };
 
@@ -154,7 +154,7 @@ export default function PortfolioCharts({ portfolio }: { portfolio: Deal[] }) {
           </BarChart>
         </ResponsiveContainer>
         <div className="flex gap-3 mt-1 flex-wrap">
-          {[["BB+/BB/BB-", "#00D4A4"], ["B+/B", "#FFB300"], ["B-", "#FF3B5C"]].map(([label, color]) => (
+          {[["BB+/BB", "#00D4A4"], ["BB-", "#5B6BFF"], ["B+/B", "#FFB300"], ["B-", "#FF3B5C"]].map(([label, color]) => (
             <span key={label} className="flex items-center gap-1 text-[10px] text-muted">
               <span className="w-2 h-2 rounded-sm inline-block" style={{ backgroundColor: color }} />
               {label}
