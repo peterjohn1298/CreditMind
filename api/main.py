@@ -969,7 +969,26 @@ def origination_scan(req: FundCriteria):
         state = {"fund_criteria": req.model_dump()}
         agent = OriginationScoutAgent()
         state = agent.run(state)
-        return state.get("origination_scan", {})
+        raw = state.get("origination_scan", {})
+        # Agent returns "opportunities"; frontend expects "candidates"
+        candidates = [
+            {
+                "company":   opp.get("company", ""),
+                "ticker":    opp.get("ticker"),
+                "sector":    opp.get("sector"),
+                "signal":    opp.get("signal_summary") or opp.get("signal_source", ""),
+                "rationale": opp.get("fit_rationale") or opp.get("signal_summary", ""),
+                "urgency":   opp.get("timing"),
+                "fit_score": opp.get("fit_score"),
+                "source":    opp.get("signal_source"),
+            }
+            for opp in raw.get("opportunities", [])
+        ]
+        return {
+            "candidates":   candidates,
+            "scan_summary": raw.get("macro_backdrop"),
+            "signals_seen": len(candidates),
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": str(e)})
 
