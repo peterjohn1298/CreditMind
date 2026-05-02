@@ -25,6 +25,10 @@ from apscheduler.triggers.cron import CronTrigger
 
 from core.alert_system import get_pending_alerts, resolve_alert, get_alert_summary
 from core.credit_state import create_credit_state, record_initial_rating
+from core.ic_checkpoint import (
+    get_checkpoint, list_pending, submit_vote,
+    push_back, clear_push_back, finalize_decision,
+)
 from data.db import (
     init_db, is_available,
     load_portfolio, save_deal, save_portfolio,
@@ -339,6 +343,22 @@ class ResolveAlertResponse(BaseModel):
     success: bool
     alert_id: str
     resolved_at: str
+
+
+class ICVoteRequest(BaseModel):
+    action: str                            # 'vote' | 'push_back' | 'clear_push_back'
+    member: str                            # IC member name or 'ANALYST'
+    vote: Optional[str] = None             # required if action == 'vote'
+    conditions: Optional[list] = []
+    notes: str = ""
+    question: str = ""                     # required if action == 'push_back'
+    analyst_response: str = ""             # required if action == 'clear_push_back'
+
+
+class ICFinalizeRequest(BaseModel):
+    decision: str                          # APPROVE | CONDITIONAL_APPROVE | REJECT
+    final_conditions: list = []
+    decided_by: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -1493,6 +1513,56 @@ def lp_reporting_notice(req: LPNoticeRequest):
         raise HTTPException(status_code=422, detail="notice_type must be 'capital_call' or 'distribution'")
     job_id = _start_job(_do_lp_notice, req.notice_type, req.amount, req.purpose, req.lp_roster, req.fund_meta or {})
     return {"job_id": job_id, "status": "running"}
+
+
+# ---------------------------------------------------------------------------
+# IC Checkpoint Endpoints — Owner: John Hanish
+# ---------------------------------------------------------------------------
+
+@app.get("/api/ic-checkpoints/pending")
+def list_pending_checkpoints():
+    """Return all IC checkpoints not yet finalized (dashboard queue view)."""
+    return {"pending": list_pending()}
+
+
+@app.get("/api/ic-checkpoint/{deal_id}")
+def get_ic_checkpoint(deal_id: str):
+    """Fetch the full IC checkpoint state for a deal."""
+    result = get_checkpoint(deal_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.post("/api/ic-checkpoint/{deal_id}")
+def post_ic_checkpoint(deal_id: str, req: ICVoteRequest):
+    """Submit a vote, raise a push-back, or post an analyst response to a push-back."""
+    try:
+        if req.action == "vote":
+            result = submit_vote(deal_id, req.member, req.vote, req.conditions or [], req.notes)
+        elif req.action == "push_back":
+            result = push_back(deal_id, req.member, req.question)
+        elif req.action == "clear_push_back":
+            result = clear_push_back(deal_id, req.analyst_response)
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown action '{req.action}'. Must be vote | push_back | clear_push_back.")
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.patch("/api/ic-checkpoint/{deal_id}/finalize")
+def finalize_ic_checkpoint(deal_id: str, req: ICFinalizeRequest):
+    """Finalize the IC decision. Locks the checkpoint — no further votes accepted."""
+    try:
+        result = finalize_decision(deal_id, req.decision, req.final_conditions, req.decided_by)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.get("/api/refresh-status")
